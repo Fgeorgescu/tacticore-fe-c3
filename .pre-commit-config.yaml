@@ -1,0 +1,3 @@
+# Pre-commit configuration file
+# Minimal configuration to allow commits
+repos: []
