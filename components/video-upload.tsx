@@ -1,59 +1,25 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Upload, Check, X } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Upload, Video, X, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
+import { apiService } from "@/lib/api"
 
 interface VideoFile {
   file: File
   url: string
-  duration: number
-  size: string
+  name: string
 }
 
 export default function VideoUpload() {
   const [selectedVideo, setSelectedVideo] = useState<VideoFile | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadComplete, setUploadComplete] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return "0 Bytes"
-    const k = 1024
-    const sizes = ["Bytes", "KB", "MB", "GB"]
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
-  }
-
-  const formatDuration = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60)
-    const secs = Math.floor(seconds % 60)
-    return `${mins}:${secs.toString().padStart(2, "0")}`
-  }
-
-  const handleVideoLoad = useCallback((file: File) => {
-    const url = URL.createObjectURL(file)
-    const video = document.createElement("video")
-
-    video.onloadedmetadata = () => {
-      setSelectedVideo({
-        file,
-        url,
-        duration: video.duration,
-        size: formatFileSize(file.size),
-      })
-    }
-
-    video.src = url
-  }, [])
 
   const handleFileSelect = (files: FileList | null) => {
     if (!files || files.length === 0) return
@@ -64,22 +30,20 @@ export default function VideoUpload() {
       return
     }
 
-    handleVideoLoad(file)
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
+    const url = URL.createObjectURL(file)
+    setSelectedVideo({
+      file,
+      url,
+      name: file.name,
+    })
+    setUploadProgress(0)
+    setIsUploading(false)
+    setUploadComplete(false)
+    setUploadError(null)
   }
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
-    setIsDragging(false)
     handleFileSelect(e.dataTransfer.files)
   }
 
@@ -88,19 +52,22 @@ export default function VideoUpload() {
 
     setIsUploading(true)
     setUploadProgress(0)
+    setUploadError(null)
 
-    // Mock upload simulation
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          setIsUploading(false)
-          setUploadComplete(true)
-          return 100
-        }
-        return prev + Math.random() * 15
-      })
-    }, 200)
+    try {
+      const result = await apiService.uploadVideoFile(selectedVideo.file)
+      
+      if (result.success) {
+        setUploadProgress(100)
+        setUploadComplete(true)
+      } else {
+        setUploadError(result.message)
+      }
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "Error al subir el video")
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   const handleReset = () => {
@@ -111,6 +78,7 @@ export default function VideoUpload() {
     setUploadProgress(0)
     setIsUploading(false)
     setUploadComplete(false)
+    setUploadError(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
@@ -124,146 +92,137 @@ export default function VideoUpload() {
       </div>
 
       {!selectedVideo ? (
-        <Card className="border-2 border-dashed border-border hover:border-primary/50 transition-colors">
+        <Card>
           <CardContent className="p-8">
             <div
-              className={cn(
-                "flex flex-col items-center justify-center space-y-4 text-center cursor-pointer",
-                isDragging && "bg-muted/50 rounded-lg",
-              )}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
+              className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center cursor-pointer transition-colors hover:border-primary/50"
+              onDragOver={(e) => e.preventDefault()}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
             >
-              <div className="p-4 bg-primary/10 rounded-full">
-                <Upload className="h-8 w-8 text-primary" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold">Arrastra y suelta tu video aquí</h3>
-                <p className="text-muted-foreground">o haz clic para seleccionar un archivo</p>
-                <p className="text-sm text-muted-foreground">Formatos soportados: MP4, MOV, AVI, WebM</p>
-              </div>
-              <Button variant="outline" className="mt-4 bg-transparent">
-                Seleccionar Archivo
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/*"
+                onChange={(e) => handleFileSelect(e.target.files)}
+                className="hidden"
+              />
+              <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">Arrastra tu video aquí</h3>
+              <p className="text-muted-foreground mb-4">
+                O haz clic para seleccionar un archivo de video
+              </p>
+              <Button variant="outline">
+                <Video className="h-4 w-4 mr-2" />
+                Seleccionar Video
               </Button>
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="video/*"
-              className="hidden"
-              onChange={(e) => handleFileSelect(e.target.files)}
-            />
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-6">
           {/* Video Preview */}
           <Card>
-            <CardContent className="p-6">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Previsualización del Video</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleReset}
+                  disabled={isUploading}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="space-y-4">
+                <video
+                  src={selectedVideo.url}
+                  className="w-full h-64 object-cover rounded-lg"
+                  controls
+                />
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Vista Previa</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReset}
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-4 w-4 mr-1" />
-                    Cambiar
-                  </Button>
-                </div>
-
-                <div className="relative bg-black rounded-lg overflow-hidden">
-                  <video
-                    ref={videoRef}
-                    src={selectedVideo.url}
-                    controls
-                    className="w-full h-auto max-h-96"
-                    preload="metadata"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground">Nombre del archivo</p>
-                    <p className="font-medium truncate">{selectedVideo.file.name}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground">Tamaño</p>
-                    <p className="font-medium">{selectedVideo.size}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground">Duración</p>
-                    <p className="font-medium">{formatDuration(selectedVideo.duration)}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground">Tipo</p>
-                    <p className="font-medium">{selectedVideo.file.type}</p>
-                  </div>
+                  <span className="text-sm font-medium">{selectedVideo.name}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {(selectedVideo.file.size / 1024 / 1024).toFixed(2)} MB
+                  </span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Upload Progress */}
-          {(isUploading || uploadComplete) && (
+          {isUploading && (
             <Card>
               <CardContent className="p-6">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">{uploadComplete ? "Subida Completada" : "Subiendo Video"}</h3>
-                    {uploadComplete && (
-                      <div className="flex items-center text-primary">
-                        <Check className="h-5 w-5 mr-1" />
-                        Completado
-                      </div>
-                    )}
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="font-medium">Subiendo video...</span>
                   </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Progreso</span>
-                      <span>{Math.round(uploadProgress)}%</span>
-                    </div>
-                    <Progress value={uploadProgress} className="h-2" />
-                  </div>
-
-                  {uploadComplete && (
-                    <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
-                      <p className="text-sm text-primary font-medium">✅ Tu video se ha subido exitosamente</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        El video está ahora disponible en tu biblioteca
-                      </p>
-                    </div>
-                  )}
+                  <Progress value={uploadProgress} className="h-2" />
+                  <span className="text-sm text-muted-foreground">
+                    {uploadProgress}% completado
+                  </span>
                 </div>
               </CardContent>
             </Card>
           )}
 
+          {/* Upload Success */}
+          {uploadComplete && (
+            <Card className="border-green-500/20 bg-green-500/5">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-2 text-green-600">
+                  <CheckCircle className="h-5 w-5" />
+                  <span className="font-medium">¡Video subido exitosamente!</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  El video ha sido procesado y está disponible para análisis.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Upload Error */}
+          {uploadError && (
+            <Card className="border-red-500/20 bg-red-500/5">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-2 text-red-600">
+                  <AlertCircle className="h-5 w-5" />
+                  <span className="font-medium">Error al subir el video</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {uploadError}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Action Buttons */}
-          <div className="flex gap-3">
-            {!uploadComplete && !isUploading && (
-              <Button onClick={handleUpload} className="flex-1" size="lg">
-                <Upload className="h-4 w-4 mr-2" />
-                Confirmar Subida
-              </Button>
-            )}
-
-            {uploadComplete && (
-              <Button onClick={handleReset} variant="outline" className="flex-1 bg-transparent" size="lg">
-                Subir Otro Video
-              </Button>
-            )}
-
-            {!uploadComplete && (
-              <Button onClick={handleReset} variant="outline" size="lg">
-                Cancelar
-              </Button>
-            )}
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={handleReset} disabled={isUploading}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleUpload}
+              disabled={isUploading || uploadComplete}
+              className="gap-2"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Subiendo...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4" />
+                  Subir Video
+                </>
+              )}
+            </Button>
           </div>
         </div>
       )}

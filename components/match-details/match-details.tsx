@@ -6,91 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { ArrowLeft, Target, Users, TrendingUp, TrendingDown, Send, MessageCircle } from "lucide-react"
-
-// Mock data for match details
-const mockMatchData = {
-  "1": {
-    fileName: "dust2_ranked_2024.dem",
-    map: "Dust2",
-    gameType: "Ranked",
-    duration: "32:45",
-    score: 8.5,
-    kills: [
-      {
-        id: 1,
-        killer: "Player1",
-        victim: "Enemy1",
-        weapon: "AK-47",
-        isGoodPlay: true,
-        round: 3,
-        time: "1:45",
-        teamAlive: { ct: 4, t: 3 },
-        position: "Long A",
-      },
-      {
-        id: 2,
-        killer: "Player1",
-        victim: "Enemy2",
-        weapon: "AK-47",
-        isGoodPlay: true,
-        round: 3,
-        time: "1:42",
-        teamAlive: { ct: 4, t: 2 },
-        position: "Long A",
-      },
-      {
-        id: 3,
-        killer: "Enemy3",
-        victim: "Player1",
-        weapon: "AWP",
-        isGoodPlay: false,
-        round: 5,
-        time: "0:30",
-        teamAlive: { ct: 2, t: 3 },
-        position: "Mid",
-      },
-      {
-        id: 4,
-        killer: "Player1",
-        victim: "Enemy4",
-        weapon: "M4A4",
-        isGoodPlay: true,
-        round: 8,
-        time: "1:15",
-        teamAlive: { ct: 3, t: 4 },
-        position: "Site B",
-      },
-      {
-        id: 5,
-        killer: "Player1",
-        victim: "Enemy5",
-        weapon: "Glock-18",
-        isGoodPlay: false,
-        round: 12,
-        time: "0:45",
-        teamAlive: { ct: 1, t: 2 },
-        position: "Tunnels",
-      },
-    ],
-  },
-}
-
-const mockChatMessages = [
-  { id: 1, user: "Analyst", message: "¿Qué opinas de la jugada en el round 3?", timestamp: "14:30" },
-  {
-    id: 2,
-    user: "Player",
-    message: "Fue una buena rotación, aproveché que estaban distraídos en B",
-    timestamp: "14:32",
-  },
-  {
-    id: 3,
-    user: "Coach",
-    message: "El timing fue perfecto, pero podrías haber usado mejor cobertura",
-    timestamp: "14:35",
-  },
-]
+import { ArrowLeft, Target, Users, TrendingUp, TrendingDown, Send, MessageCircle, Loader2, Trash2 } from "lucide-react"
+import { useApi } from "@/hooks/useApi"
+import { apiService, Match, Kill, ChatMessage } from "@/lib/api"
 
 interface MatchDetailsProps {
   matchId: string | null
@@ -99,10 +17,59 @@ interface MatchDetailsProps {
 
 export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
   const [chatMessage, setChatMessage] = useState("")
-  const [chatMessages, setChatMessages] = useState(mockChatMessages)
+  const [isSendingMessage, setIsSendingMessage] = useState(false)
 
-  const matchData = matchId ? mockMatchData[matchId as keyof typeof mockMatchData] : null
+  // Fetch match data
+  const { data: matchData, loading: matchLoading, error: matchError } = useApi(
+    () => matchId ? apiService.getMatch(matchId) : Promise.reject(new Error("No match ID provided")),
+    [matchId]
+  );
 
+  // Fetch kills data
+  const { data: kills, loading: killsLoading, error: killsError } = useApi(
+    () => matchId ? apiService.getMatchKills(matchId) : Promise.reject(new Error("No match ID provided")),
+    [matchId]
+  );
+
+  // Fetch chat messages
+  const { data: chatMessages, loading: chatLoading, error: chatError, refetch: refetchChat } = useApi(
+    () => matchId ? apiService.getMatchChat(matchId) : Promise.reject(new Error("No match ID provided")),
+    [matchId]
+  );
+
+  // Loading state
+  if (matchLoading || killsLoading || chatLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Cargando detalles de la partida...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (matchError || killsError || chatError) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={onBack} className="gap-2 bg-transparent">
+            <ArrowLeft className="h-4 w-4" />
+            Volver al Dashboard
+          </Button>
+          <h1 className="text-3xl font-bold font-heading text-white">Error al cargar la partida</h1>
+        </div>
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+          <p className="text-sm text-muted-foreground">
+            {matchError || killsError || chatError}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // No match data
   if (!matchData) {
     return (
       <div className="space-y-6">
@@ -114,188 +81,212 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
           <h1 className="text-3xl font-bold font-heading text-white">Partida no encontrada</h1>
         </div>
       </div>
-    )
+    );
   }
 
-  const handleSendMessage = () => {
-    if (chatMessage.trim()) {
-      const newMessage = {
-        id: chatMessages.length + 1,
-        user: "You",
-        message: chatMessage,
-        timestamp: new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
-      }
-      setChatMessages([...chatMessages, newMessage])
-      setChatMessage("")
+  const handleSendMessage = async () => {
+    if (!chatMessage.trim() || !matchId || isSendingMessage) return;
+
+    setIsSendingMessage(true);
+    try {
+      await apiService.addChatMessage(matchId, chatMessage);
+      setChatMessage("");
+      refetchChat(); // Refresh chat messages
+    } catch (error) {
+      console.error("Error sending message:", error);
+    } finally {
+      setIsSendingMessage(false);
     }
-  }
+  };
+
+  const handleDeleteMatch = async () => {
+    if (!matchId) return;
+    
+    if (confirm("¿Estás seguro de que quieres eliminar esta partida?")) {
+      try {
+        await apiService.deleteMatch(matchId);
+        onBack(); // Go back to dashboard
+      } catch (error) {
+        console.error("Error deleting match:", error);
+        alert("Error al eliminar la partida");
+      }
+    }
+  };
+
+  const killsData = kills || [];
+  const chatMessagesData = chatMessages || [];
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="outline" onClick={onBack} className="gap-2 bg-transparent">
-          <ArrowLeft className="h-4 w-4" />
-          Volver al Dashboard
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold font-heading text-white">Detalles de Partida</h1>
-          <p className="text-white/70">
-            {matchData.fileName} - {matchData.map}
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={onBack} className="gap-2 bg-transparent">
+            <ArrowLeft className="h-4 w-4" />
+            Volver al Dashboard
+          </Button>
+          <h1 className="text-3xl font-bold font-heading text-white">{matchData.fileName}</h1>
         </div>
+        <Button variant="destructive" onClick={handleDeleteMatch} className="gap-2">
+          <Trash2 className="h-4 w-4" />
+          Eliminar Partida
+        </Button>
       </div>
 
-      {/* Match Summary */}
-      <div className="grid grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="py-2 px-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-white">Mapa</CardTitle>
-              <div className="text-lg font-bold text-white">{matchData.map}</div>
-            </div>
+      {/* Match Info */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Match Statistics */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Estadísticas de la Partida
+            </CardTitle>
           </CardHeader>
-        </Card>
-
-        <Card>
-          <CardHeader className="py-2 px-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-white">Tipo</CardTitle>
-              <div className="text-lg font-bold text-white">{matchData.gameType}</div>
-            </div>
-          </CardHeader>
-        </Card>
-
-        <Card>
-          <CardHeader className="py-2 px-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-white">Duración</CardTitle>
-              <div className="text-lg font-bold text-white">{matchData.duration}</div>
-            </div>
-          </CardHeader>
-        </Card>
-
-        <Card>
-          <CardHeader className="py-2 px-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-white">Puntaje</CardTitle>
-              <div className="text-lg font-bold text-primary">{matchData.score}/10</div>
-            </div>
-          </CardHeader>
-        </Card>
-      </div>
-
-      {/* Main Content */}
-      <div className="grid grid-cols-3 gap-6">
-        {/* Left Side - Match Details and Map */}
-        <div className="col-span-2 space-y-6">
-          {/* Map Image */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-heading text-white">Mapa: {matchData.map}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                <img
-                  src="/cs-map-dust2.png"
-                  alt={`Mapa ${matchData.map}`}
-                  className="w-full h-full object-contain rounded-lg"
-                />
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-green-400">{matchData.kills}</p>
+                <p className="text-sm text-muted-foreground">Kills</p>
               </div>
-            </CardContent>
-          </Card>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-red-400">{matchData.deaths}</p>
+                <p className="text-sm text-muted-foreground">Deaths</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-green-400">{matchData.goodPlays}</p>
+                <p className="text-sm text-muted-foreground">Buenas Jugadas</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-red-400">{matchData.badPlays}</p>
+                <p className="text-sm text-muted-foreground">Malas Jugadas</p>
+              </div>
+            </div>
 
-          {/* Kills Timeline */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-heading text-white">Timeline de Kills</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {matchData.kills.map((kill) => (
-                  <div key={kill.id} className="border border-border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <Badge variant={kill.isGoodPlay ? "default" : "destructive"} className="gap-1">
-                          {kill.isGoodPlay ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                          {kill.isGoodPlay ? "Buena Jugada" : "Mala Jugada"}
-                        </Badge>
-                        <span className="text-sm text-white/70">
-                          Round {kill.round} - {kill.time}
-                        </span>
-                      </div>
-                      <div className="text-sm text-white/70">{kill.position}</div>
+            <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="text-center">
+                <p className="text-lg font-semibold text-foreground">{matchData.map}</p>
+                <p className="text-sm text-muted-foreground">Mapa</p>
+              </div>
+              <div className="text-center">
+                <Badge variant="outline">{matchData.gameType}</Badge>
+                <p className="text-sm text-muted-foreground mt-1">Tipo de Juego</p>
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-semibold text-foreground">{matchData.duration}</p>
+                <p className="text-sm text-muted-foreground">Duración</p>
+              </div>
+            </div>
+
+            <div className="mt-6 text-center">
+              <p className="text-3xl font-bold text-primary">{matchData.score.toFixed(1)}/10</p>
+              <p className="text-sm text-muted-foreground">Puntaje Final</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Chat */}
+        <Card className="h-fit">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5" />
+              Chat de Análisis
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-64 mb-4">
+              <div className="space-y-3">
+                {chatMessagesData.map((message) => (
+                  <div key={message.id} className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-primary">{message.user}</span>
+                      <span className="text-xs text-muted-foreground">{message.timestamp}</span>
                     </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <Target className="h-4 w-4 text-green-400" />
-                          <span className="font-medium text-white">{kill.killer}</span>
-                          <span className="text-white/70">eliminó a</span>
-                          <span className="font-medium text-white">{kill.victim}</span>
-                        </div>
-                        <Badge variant="outline">{kill.weapon}</Badge>
-                      </div>
-
-                      <div className="flex items-center gap-4 text-sm">
-                        <div className="flex items-center gap-1">
-                          <Users className="h-4 w-4 text-blue-400" />
-                          <span className="text-blue-400">CT: {kill.teamAlive.ct}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Users className="h-4 w-4 text-orange-400" />
-                          <span className="text-orange-400">T: {kill.teamAlive.t}</span>
-                        </div>
-                      </div>
-                    </div>
+                    <p className="text-sm text-foreground">{message.message}</p>
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </ScrollArea>
 
-        {/* Right Side - Chat */}
-        <div className="space-y-6">
-          <Card className="h-[600px] flex flex-col">
-            <CardHeader>
-              <CardTitle className="font-heading flex items-center gap-2 text-white">
-                <MessageCircle className="h-5 w-5" />
-                Chat de Análisis
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col">
-              <ScrollArea className="flex-1 pr-4">
-                <div className="space-y-4">
-                  {chatMessages.map((msg) => (
-                    <div key={msg.id} className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm text-foreground">{msg.user}</span>
-                        <span className="text-xs text-muted-foreground">{msg.timestamp}</span>
-                      </div>
-                      <div className="bg-muted rounded-lg p-3 text-sm text-black">{msg.message}</div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-
-              <div className="flex gap-2 mt-4">
-                <Input
-                  placeholder="Escribe tu pregunta o comentario..."
-                  value={chatMessage}
-                  onChange={(e) => setChatMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                  className="flex-1"
-                />
-                <Button onClick={handleSendMessage} size="sm" className="gap-2">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Escribe un mensaje..."
+                value={chatMessage}
+                onChange={(e) => setChatMessage(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                disabled={isSendingMessage}
+              />
+              <Button 
+                size="sm" 
+                onClick={handleSendMessage}
+                disabled={!chatMessage.trim() || isSendingMessage}
+              >
+                {isSendingMessage ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
                   <Send className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Kills Timeline */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Timeline de Kills</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {killsData.length === 0 ? (
+            <div className="text-center py-8">
+              <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">No hay kills registradas para esta partida.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {killsData.map((kill) => (
+                <div
+                  key={kill.id}
+                  className={`flex items-center justify-between p-3 rounded-lg border ${
+                    kill.isGoodPlay
+                      ? "bg-green-500/10 border-green-500/20"
+                      : "bg-red-500/10 border-red-500/20"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-foreground">{kill.killer}</span>
+                      <span className="text-muted-foreground">→</span>
+                      <span className="text-foreground">{kill.victim}</span>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      {kill.weapon}
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">{kill.position}</span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground">Round {kill.round}</p>
+                      <p className="text-sm font-medium">{kill.time}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground">CT: {kill.teamAlive.ct}</p>
+                      <p className="text-xs text-muted-foreground">T: {kill.teamAlive.t}</p>
+                    </div>
+                    {kill.isGoodPlay ? (
+                      <TrendingUp className="h-4 w-4 text-green-400" />
+                    ) : (
+                      <TrendingDown className="h-4 w-4 text-red-400" />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

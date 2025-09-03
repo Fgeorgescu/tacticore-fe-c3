@@ -7,6 +7,7 @@ import { Dashboard } from "@/components/dashboard/dashboard"
 import { MatchDetails } from "@/components/match-details/match-details"
 import { HistoricalAnalytics } from "@/components/analytics/historical-analytics"
 import { UploadModal } from "@/components/upload/upload-modal"
+import { ConnectionStatus } from "@/components/ui/connection-status"
 
 export default function Home() {
   const [activeView, setActiveView] = useState("dashboard")
@@ -38,6 +39,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
+      <ConnectionStatus />
       <Header onAddMatch={() => setIsUploadModalOpen(true)} />
       <div className="flex">
         <Sidebar activeView={activeView} onViewChange={setActiveView} />
