@@ -125,7 +125,8 @@ export class ApiService {
   // Analytics
   async getHistoricalAnalytics(): Promise<AnalyticsData[]> {
     const response = await fetch(`${this.baseUrl}/api/analytics/historical`);
-    return handleResponse<AnalyticsData[]>(response);
+    const result = await handleResponse<{ data: AnalyticsData[] }>(response);
+    return result.data;
   }
 
   async getDashboardStats(): Promise<DashboardStats> {
