@@ -43,7 +43,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center gap-2">
           <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Cargando detalles de la partida...</span>
+          <span className="text-white">Cargando detalles de la partida...</span>
         </div>
       </div>
     );
@@ -61,7 +61,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
           <h1 className="text-3xl font-bold font-heading text-white">Error al cargar la partida</h1>
         </div>
         <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white">
             {matchError || killsError || chatError}
           </p>
         </div>
@@ -147,40 +147,40 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
                 <p className="text-2xl font-bold text-green-400">{matchData.kills}</p>
-                <p className="text-sm text-muted-foreground">Kills</p>
+                <p className="text-sm text-white">Kills</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-red-400">{matchData.deaths}</p>
-                <p className="text-sm text-muted-foreground">Deaths</p>
+                <p className="text-sm text-white">Deaths</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-green-400">{matchData.goodPlays}</p>
-                <p className="text-sm text-muted-foreground">Buenas Jugadas</p>
+                <p className="text-sm text-white">Buenas Jugadas</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-red-400">{matchData.badPlays}</p>
-                <p className="text-sm text-muted-foreground">Malas Jugadas</p>
+                <p className="text-sm text-white">Malas Jugadas</p>
               </div>
             </div>
 
             <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="text-center">
                 <p className="text-lg font-semibold text-foreground">{matchData.map}</p>
-                <p className="text-sm text-muted-foreground">Mapa</p>
+                <p className="text-sm text-white">Mapa</p>
               </div>
               <div className="text-center">
                 <Badge variant="outline">{matchData.gameType}</Badge>
-                <p className="text-sm text-muted-foreground mt-1">Tipo de Juego</p>
+                <p className="text-sm text-white mt-1">Tipo de Juego</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-semibold text-foreground">{matchData.duration}</p>
-                <p className="text-sm text-muted-foreground">Duración</p>
+                <p className="text-sm text-white">Duración</p>
               </div>
             </div>
 
             <div className="mt-6 text-center">
               <p className="text-3xl font-bold text-primary">{matchData.score.toFixed(1)}/10</p>
-              <p className="text-sm text-muted-foreground">Puntaje Final</p>
+              <p className="text-sm text-white">Puntaje Final</p>
             </div>
           </CardContent>
         </Card>
@@ -200,7 +200,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
                   <div key={message.id} className="flex flex-col">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-primary">{message.user}</span>
-                      <span className="text-xs text-muted-foreground">{message.timestamp}</span>
+                      <span className="text-xs text-white">{message.timestamp}</span>
                     </div>
                     <p className="text-sm text-foreground">{message.message}</p>
                   </div>
@@ -240,8 +240,8 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
         <CardContent>
           {killsData.length === 0 ? (
             <div className="text-center py-8">
-              <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No hay kills registradas para esta partida.</p>
+              <Target className="h-12 w-12 text-white mx-auto mb-4" />
+              <p className="text-white">No hay kills registradas para esta partida.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -257,23 +257,23 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-foreground">{kill.killer}</span>
-                      <span className="text-muted-foreground">→</span>
+                      <span className="text-white">→</span>
                       <span className="text-foreground">{kill.victim}</span>
                     </div>
                     <Badge variant="outline" className="text-xs">
                       {kill.weapon}
                     </Badge>
-                    <span className="text-sm text-muted-foreground">{kill.position}</span>
+                    <span className="text-sm text-white">{kill.position}</span>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <div className="text-center">
-                      <p className="text-xs text-muted-foreground">Round {kill.round}</p>
+                      <p className="text-xs text-white">Round {kill.round}</p>
                       <p className="text-sm font-medium">{kill.time}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-xs text-muted-foreground">CT: {kill.teamAlive.ct}</p>
-                      <p className="text-xs text-muted-foreground">T: {kill.teamAlive.t}</p>
+                      <p className="text-xs text-white">CT: {kill.teamAlive.ct}</p>
+                      <p className="text-xs text-white">T: {kill.teamAlive.t}</p>
                     </div>
                     {kill.isGoodPlay ? (
                       <TrendingUp className="h-4 w-4 text-green-400" />

@@ -29,7 +29,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center gap-2">
           <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Cargando datos...</span>
+          <span className="text-white">Cargando datos...</span>
         </div>
       </div>
     );
@@ -41,7 +41,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
       <div className="space-y-6">
         <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
           <h3 className="text-destructive font-semibold mb-2">Error al cargar datos</h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white">
             {matchesError || statsError}
           </p>
           <Button 
@@ -95,7 +95,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Partidas</p>
+                <p className="text-sm font-medium text-white">Total Partidas</p>
                 <p className="text-2xl font-bold text-foreground">{statsData.totalMatches}</p>
               </div>
               <Trophy className="h-8 w-8 text-primary" />
@@ -107,7 +107,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Kills</p>
+                <p className="text-sm font-medium text-white">Total Kills</p>
                 <p className="text-2xl font-bold text-foreground">{statsData.totalKills}</p>
               </div>
               <Target className="h-8 w-8 text-green-400" />
@@ -119,7 +119,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">K/D Ratio</p>
+                <p className="text-sm font-medium text-white">K/D Ratio</p>
                 <p className="text-2xl font-bold text-foreground">{statsData.kdr.toFixed(2)}</p>
               </div>
               <Crosshair className="h-8 w-8 text-blue-400" />
@@ -131,7 +131,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Promedio Score</p>
+                <p className="text-sm font-medium text-white">Promedio Score</p>
                 <p className="text-2xl font-bold text-foreground">{statsData.averageScore.toFixed(1)}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-yellow-400" />
@@ -152,9 +152,9 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
         {matchesData.length === 0 ? (
           <Card className="bg-card/50 border-card-border">
             <CardContent className="p-8 text-center">
-              <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No hay partidas</h3>
-              <p className="text-muted-foreground">Sube tu primera partida para comenzar a analizar tu rendimiento.</p>
+              <Trophy className="h-12 w-12 text-white mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-white mb-2">No hay partidas</h3>
+              <p className="text-white">Sube tu primera partida para comenzar a analizar tu rendimiento.</p>
             </CardContent>
           </Card>
         ) : (
@@ -200,8 +200,8 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">{match.duration}</span>
+                      <Clock className="h-4 w-4 text-white" />
+                      <span className="text-sm text-white">{match.duration}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`text-sm font-semibold ${getScoreColor(match.score)}`}>

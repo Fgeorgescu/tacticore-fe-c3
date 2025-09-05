@@ -37,7 +37,7 @@ export function HistoricalAnalytics() {
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center gap-2">
           <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Cargando datos históricos...</span>
+          <span className="text-white">Cargando datos históricos...</span>
         </div>
       </div>
     );
@@ -49,7 +49,7 @@ export function HistoricalAnalytics() {
       <div className="space-y-6">
         <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
           <h3 className="text-destructive font-semibold mb-2">Error al cargar datos históricos</h3>
-          <p className="text-sm text-muted-foreground">{error}</p>
+          <p className="text-sm text-white">{error}</p>
           <button 
             className="mt-2 text-sm text-primary hover:underline"
             onClick={() => refetch()}
@@ -117,9 +117,9 @@ export function HistoricalAnalytics() {
     return (
       <div className="space-y-6">
         <div className="text-center py-12">
-          <Trophy className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-foreground mb-2">No hay datos históricos</h3>
-          <p className="text-muted-foreground">Sube algunas partidas para comenzar a ver tu progreso histórico.</p>
+          <Trophy className="h-16 w-16 text-white mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-white mb-2">No hay datos históricos</h3>
+          <p className="text-white">Sube algunas partidas para comenzar a ver tu progreso histórico.</p>
         </div>
       </div>
     );
@@ -162,7 +162,7 @@ export function HistoricalAnalytics() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">K/D Ratio Actual</p>
+                <p className="text-sm font-medium text-white">K/D Ratio Actual</p>
                 <p className="text-2xl font-bold text-foreground">
                   {latestData ? latestData.kdr.toFixed(2) : "0.00"}
                 </p>
@@ -180,7 +180,7 @@ export function HistoricalAnalytics() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Puntaje Promedio</p>
+                <p className="text-sm font-medium text-white">Puntaje Promedio</p>
                 <p className="text-2xl font-bold text-foreground">
                   {latestData ? latestData.score.toFixed(1) : "0.0"}
                 </p>
@@ -198,7 +198,7 @@ export function HistoricalAnalytics() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Kills por Partida</p>
+                <p className="text-sm font-medium text-white">Kills por Partida</p>
                 <p className="text-2xl font-bold text-foreground">
                   {latestData ? latestData.kills : 0}
                 </p>
