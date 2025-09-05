@@ -84,7 +84,8 @@ export class ApiService {
   // Matches
   async getMatches(): Promise<Match[]> {
     const response = await fetch(`${this.baseUrl}/api/matches`);
-    return handleResponse<Match[]>(response);
+    const result = await handleResponse<{ matches: Match[] }>(response);
+    return result.matches;
   }
 
   async getMatch(id: string): Promise<Match> {
@@ -94,7 +95,8 @@ export class ApiService {
 
   async getMatchKills(id: string): Promise<Kill[]> {
     const response = await fetch(`${this.baseUrl}/api/matches/${id}/kills`);
-    return handleResponse<Kill[]>(response);
+    const result = await handleResponse<{ kills: Kill[] }>(response);
+    return result.kills;
   }
 
   async getMatchChat(id: string): Promise<ChatMessage[]> {
@@ -163,7 +165,17 @@ export class ApiService {
   }
 
   // File Uploads
-  async uploadDemFile(file: File): Promise<{ success: boolean; message: string }> {
+  async uploadDemFile(file: File): Promise<{ 
+    success: boolean; 
+    message: string; 
+    id?: string;
+    fileName?: string;
+    status?: string;
+    aiResponse?: any;
+    totalKills?: number;
+    map?: string;
+    tickrate?: number;
+  }> {
     const formData = new FormData();
     formData.append('file', file);
 
@@ -171,7 +183,17 @@ export class ApiService {
       method: 'POST',
       body: formData,
     });
-    return handleResponse<{ success: boolean; message: string }>(response);
+    return handleResponse<{ 
+      success: boolean; 
+      message: string; 
+      id?: string;
+      fileName?: string;
+      status?: string;
+      aiResponse?: any;
+      totalKills?: number;
+      map?: string;
+      tickrate?: number;
+    }>(response);
   }
 
   async uploadVideoFile(file: File): Promise<{ success: boolean; message: string }> {
@@ -198,8 +220,13 @@ export class ApiService {
 
   // Health check
   async ping(): Promise<{ status: string; timestamp: string; service: string }> {
-    const response = await fetch(`${this.baseUrl}/ping`);
-    return handleResponse<{ status: string; timestamp: string; service: string }>(response);
+    const response = await fetch(`${this.baseUrl}/api/health`);
+    const healthText = await response.text();
+    return {
+      status: response.ok ? "ok" : "error",
+      timestamp: new Date().toISOString(),
+      service: healthText
+    };
   }
 }
 

@@ -60,7 +60,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
   }
 
   // Use real data or fallback to empty arrays/objects
-  const matchesData = matches?.matches || [];
+  const matchesData = matches || [];
   const statsData = stats || {
     totalMatches: 0,
     totalKills: 0,
