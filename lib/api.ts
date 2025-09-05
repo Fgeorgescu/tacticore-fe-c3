@@ -33,6 +33,7 @@ export interface ChatMessage {
   user: string;
   message: string;
   timestamp: string;
+  isBot?: boolean; // Nueva propiedad para identificar mensajes del bot
 }
 
 export interface AnalyticsData {

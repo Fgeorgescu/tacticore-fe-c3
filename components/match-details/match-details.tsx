@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ArrowLeft, Target, Users, TrendingUp, TrendingDown, Send, MessageCircle, Loader2, Trash2 } from "lucide-react"
+import { BotChat } from "@/components/chat/bot-chat"
 import { useApi } from "@/hooks/useApi"
 import { apiService, Match, Kill, ChatMessage } from "@/lib/api"
 
@@ -16,8 +17,7 @@ interface MatchDetailsProps {
 }
 
 export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
-  const [chatMessage, setChatMessage] = useState("")
-  const [isSendingMessage, setIsSendingMessage] = useState(false)
+  const [chatMessagesData, setChatMessagesData] = useState<ChatMessage[]>([])
 
   // Fetch match data
   const { data: matchData, loading: matchLoading, error: matchError } = useApi(
@@ -36,6 +36,13 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
     () => matchId ? apiService.getMatchChat(matchId) : Promise.reject(new Error("No match ID provided")),
     [matchId]
   );
+
+  // Actualizar mensajes cuando se cargan del backend
+  React.useEffect(() => {
+    if (chatMessages) {
+      setChatMessagesData(chatMessages);
+    }
+  }, [chatMessages]);
 
   // Loading state
   if (matchLoading || killsLoading || chatLoading) {
@@ -84,20 +91,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
     );
   }
 
-  const handleSendMessage = async () => {
-    if (!chatMessage.trim() || !matchId || isSendingMessage) return;
-
-    setIsSendingMessage(true);
-    try {
-      await apiService.addChatMessage(matchId, chatMessage);
-      setChatMessage("");
-      refetchChat(); // Refresh chat messages
-    } catch (error) {
-      console.error("Error sending message:", error);
-    } finally {
-      setIsSendingMessage(false);
-    }
-  };
+  const killsData = kills || [];
 
   const handleDeleteMatch = async () => {
     if (!matchId) return;
@@ -112,9 +106,6 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
       }
     }
   };
-
-  const killsData = kills || [];
-  const chatMessagesData = chatMessages || [];
 
   return (
     <div className="space-y-6">
@@ -185,49 +176,17 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
           </CardContent>
         </Card>
 
-        {/* Chat */}
+        {/* Chat con Bot */}
         <Card className="h-fit">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageCircle className="h-5 w-5" />
-              Chat de Análisis
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-64 mb-4">
-              <div className="space-y-3">
-                {chatMessagesData.map((message) => (
-                  <div key={message.id} className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-primary">{message.user}</span>
-                      <span className="text-xs text-white">{message.timestamp}</span>
-                    </div>
-                    <p className="text-sm text-foreground">{message.message}</p>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-
-            <div className="flex gap-2">
-              <Input
-                placeholder="Escribe un mensaje..."
-                value={chatMessage}
-                onChange={(e) => setChatMessage(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                disabled={isSendingMessage}
-              />
-              <Button 
-                size="sm" 
-                onClick={handleSendMessage}
-                disabled={!chatMessage.trim() || isSendingMessage}
-              >
-                {isSendingMessage ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
+          <CardContent className="p-4">
+            <BotChat 
+              matchData={matchData}
+              initialMessages={chatMessagesData}
+              onNewMessage={(message) => {
+                // Agregar el mensaje a la lista local
+                setChatMessagesData(prev => [...prev, message]);
+              }}
+            />
           </CardContent>
         </Card>
       </div>
