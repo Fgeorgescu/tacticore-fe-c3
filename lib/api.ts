@@ -219,6 +219,40 @@ export class ApiService {
     return handleResponse<{ success: boolean; message: string }>(response);
   }
 
+  // New method for uploading matches with processing status
+  async uploadMatch(demFile: File, videoFile?: File, metadata?: any): Promise<{ 
+    id: string; 
+    status: string; 
+    message: string; 
+  }> {
+    const formData = new FormData();
+    formData.append('demFile', demFile);
+    
+    if (videoFile) {
+      formData.append('videoFile', videoFile);
+    }
+    
+    if (metadata) {
+      formData.append('metadata', JSON.stringify(metadata));
+    }
+
+    const response = await fetch(`${this.baseUrl}/api/matches`, {
+      method: 'POST',
+      body: formData,
+    });
+    return handleResponse<{ id: string; status: string; message: string }>(response);
+  }
+
+  // Method to check match processing status
+  async getMatchStatus(matchId: string): Promise<{ 
+    id: string; 
+    status: string; 
+    message: string; 
+  }> {
+    const response = await fetch(`${this.baseUrl}/api/matches/${matchId}/status`);
+    return handleResponse<{ id: string; status: string; message: string }>(response);
+  }
+
   // Health check
   async ping(): Promise<{ status: string; timestamp: string; service: string }> {
     const response = await fetch(`${this.baseUrl}/api/health`);

@@ -29,6 +29,8 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [demFile, setDemFile] = useState<FileUpload | null>(null)
   const [videoFile, setVideoFile] = useState<FileUpload | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [currentMatchId, setCurrentMatchId] = useState<string | null>(null)
   const [metadata, setMetadata] = useState({
     map: "",
     gameType: "",
@@ -64,46 +66,81 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     setIsUploading(true)
 
     try {
-      // Upload .dem file
-      const demResult = await apiService.uploadDemFile(demFile.file)
-      if (demResult.success) {
+      // Prepare metadata for the new endpoint
+      const matchMetadata = {
+        playerName: "Player", // Default value
+        notes: metadata.map || metadata.description || "Unknown map"
+      }
+
+      // Upload match using the new endpoint
+      const result = await apiService.uploadMatch(
+        demFile.file, 
+        videoFile?.file, 
+        matchMetadata
+      )
+
+      if (result.status === "processing") {
+        setCurrentMatchId(result.id)
+        setIsProcessing(true)
         setDemFile(prev => prev ? { ...prev, status: "success", progress: 100 } : null)
-      } else {
-        setDemFile(prev => prev ? { ...prev, status: "error", error: demResult.message } : null)
-        throw new Error(demResult.message)
-      }
-
-      // Upload video file if present
-      if (videoFile && videoFile.status !== "error") {
-        const videoResult = await apiService.uploadVideoFile(videoFile.file)
-        if (videoResult.success) {
+        
+        if (videoFile) {
           setVideoFile(prev => prev ? { ...prev, status: "success", progress: 100 } : null)
-        } else {
-          setVideoFile(prev => prev ? { ...prev, status: "error", error: videoResult.message } : null)
-          throw new Error(videoResult.message)
         }
-      }
 
-      // Process upload with metadata
-      const processResult = await apiService.processUpload({
-        ...metadata,
-        demFile: demFile.file.name,
-        videoFile: videoFile?.file.name,
-      })
-
-      if (processResult.success) {
-        // Wait a bit to show success state
-        setTimeout(() => {
-          handleClose()
-        }, 1000)
+        // Start polling for status updates
+        startPolling(result.id)
       } else {
-        throw new Error(processResult.message)
+        throw new Error(result.message)
       }
+
     } catch (error) {
       console.error("Upload error:", error)
+      setDemFile(prev => prev ? { ...prev, status: "error", error: error instanceof Error ? error.message : "Upload failed" } : null)
     } finally {
       setIsUploading(false)
     }
+  }
+
+  // Polling function to check match status
+  const startPolling = (matchId: string) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const statusResult = await apiService.getMatchStatus(matchId)
+        
+        if (statusResult.status === "completed") {
+          clearInterval(pollInterval)
+          setIsProcessing(false)
+          setCurrentMatchId(null)
+          
+          // Wait a bit to show success state
+          setTimeout(() => {
+            handleClose()
+          }, 1000)
+        } else if (statusResult.status === "failed") {
+          clearInterval(pollInterval)
+          setIsProcessing(false)
+          setCurrentMatchId(null)
+          setDemFile(prev => prev ? { ...prev, status: "error", error: statusResult.message } : null)
+        }
+        // If still processing, continue polling
+      } catch (error) {
+        console.error("Error checking match status:", error)
+        clearInterval(pollInterval)
+        setIsProcessing(false)
+        setCurrentMatchId(null)
+      }
+    }, 2000) // Poll every 2 seconds
+
+    // Stop polling after 30 seconds to avoid infinite polling
+    setTimeout(() => {
+      clearInterval(pollInterval)
+      if (isProcessing) {
+        setIsProcessing(false)
+        setCurrentMatchId(null)
+        console.warn("Polling timeout - match processing may still be in progress")
+      }
+    }, 30000)
   }
 
   const handleClose = () => {
@@ -113,6 +150,8 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     setDemFile(null)
     setVideoFile(null)
     setIsUploading(false)
+    setIsProcessing(false)
+    setCurrentMatchId(null)
     setMetadata({ map: "", gameType: "", description: "" })
     onClose()
   }
@@ -128,7 +167,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     }
   }
 
-  const canUpload = demFile && demFile.status !== "error" && !isUploading
+  const canUpload = demFile && demFile.status !== "error" && !isUploading && !isProcessing
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -189,7 +228,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                             variant="ghost"
                             size="sm"
                             onClick={() => removeFile("dem")}
-                            disabled={isUploading}
+                            disabled={isUploading || isProcessing}
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -255,7 +294,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                             variant="ghost"
                             size="sm"
                             onClick={() => removeFile("video")}
-                            disabled={isUploading}
+                            disabled={isUploading || isProcessing}
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -324,9 +363,29 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
             </CardContent>
           </Card>
 
+          {/* Processing Status */}
+          {isProcessing && currentMatchId && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                  <div>
+                    <h3 className="font-semibold text-blue-600">Procesando partida...</h3>
+                    <p className="text-sm text-muted-foreground">
+                      ID: {currentMatchId}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Analizando archivo DEM y generando estadísticas
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Upload Button */}
           <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={handleClose} disabled={isUploading}>
+            <Button variant="outline" onClick={handleClose} disabled={isUploading || isProcessing}>
               Cancelar
             </Button>
             <Button
@@ -338,6 +397,11 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Subiendo...
+                </>
+              ) : isProcessing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Procesando...
                 </>
               ) : (
                 <>
