@@ -160,30 +160,6 @@ export function BotChat({ matchData, initialMessages, onNewMessage }: BotChatPro
           )}
         </Button>
       </div>
-
-      {/* Sugerencias de preguntas */}
-      <div className="space-y-2">
-        <p className="text-xs text-white">Preguntas sugeridas:</p>
-        <div className="flex flex-wrap gap-2">
-          {[
-            "¿Cómo puedo mejorar mi K/D?",
-            "¿Qué arma debería usar más?",
-            "¿Cómo mejorar mi posicionamiento?",
-            "¿Qué errores debo evitar?"
-          ].map((suggestion) => (
-            <Button
-              key={suggestion}
-              variant="outline"
-              size="sm"
-              onClick={() => setMessage(suggestion)}
-              disabled={isBotTyping}
-              className="text-xs h-7"
-            >
-              {suggestion}
-            </Button>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }
