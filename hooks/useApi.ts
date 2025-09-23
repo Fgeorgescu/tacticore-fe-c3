@@ -31,6 +31,7 @@ export function useApi<T>(
   };
 
   useEffect(() => {
+    console.log('useApi: dependencies changed:', dependencies)
     fetchData();
   }, dependencies);
 

@@ -39,6 +39,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
 
   const demInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const handleFileSelect = (files: FileList | null, type: "dem" | "video") => {
     if (!files || files.length === 0) return
@@ -104,12 +105,20 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
 
   // Polling function to check match status
   const startPolling = (matchId: string) => {
-    const pollInterval = setInterval(async () => {
+    // Clear any existing interval
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current)
+    }
+    
+    pollIntervalRef.current = setInterval(async () => {
       try {
         const statusResult = await apiService.getMatchStatus(matchId)
         
         if (statusResult.status === "completed") {
-          clearInterval(pollInterval)
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current)
+            pollIntervalRef.current = null
+          }
           setIsProcessing(false)
           setCurrentMatchId(null)
           
@@ -118,7 +127,10 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
             handleClose()
           }, 1000)
         } else if (statusResult.status === "failed") {
-          clearInterval(pollInterval)
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current)
+            pollIntervalRef.current = null
+          }
           setIsProcessing(false)
           setCurrentMatchId(null)
           setDemFile(prev => prev ? { ...prev, status: "error", error: statusResult.message } : null)
@@ -126,15 +138,22 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
         // If still processing, continue polling
       } catch (error) {
         console.error("Error checking match status:", error)
-        clearInterval(pollInterval)
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current)
+          pollIntervalRef.current = null
+        }
         setIsProcessing(false)
         setCurrentMatchId(null)
+        setDemFile(prev => prev ? { ...prev, status: "error", error: "Error checking status" } : null)
       }
     }, 2000) // Poll every 2 seconds
 
     // Stop polling after 30 seconds to avoid infinite polling
     setTimeout(() => {
-      clearInterval(pollInterval)
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
+        pollIntervalRef.current = null
+      }
       if (isProcessing) {
         setIsProcessing(false)
         setCurrentMatchId(null)
@@ -144,6 +163,12 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
   }
 
   const handleClose = () => {
+    // Clear any active polling
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current)
+      pollIntervalRef.current = null
+    }
+    
     if (videoFile?.preview) {
       URL.revokeObjectURL(videoFile.preview)
     }

@@ -18,6 +18,21 @@ export interface ChatGPTResponse {
   }[];
 }
 
+export interface RoundData {
+  roundNumber: number;
+  totalKills: number;
+  goodPlays: number;
+  badPlays: number;
+  kills: Array<{
+    killer: string;
+    victim: string;
+    weapon: string;
+    isGoodPlay: boolean;
+    time: string;
+    position: string;
+  }>;
+}
+
 export interface MatchContext {
   map: string;
   kills: number;
@@ -28,6 +43,7 @@ export interface MatchContext {
   badPlays: number;
   duration: string;
   gameType: string;
+  rounds?: RoundData[];
 }
 
 export class ChatGPTService {
@@ -180,6 +196,29 @@ export class ChatGPTService {
     const killsPerMinute = parseFloat(matchContext.duration.split(':')[0]) > 0 ? 
       (matchContext.kills / parseFloat(matchContext.duration.split(':')[0])).toFixed(2) : '0';
     
+    // Construir información de rondas si está disponible
+    let roundsAnalysis = '';
+    if (matchContext.rounds && matchContext.rounds.length > 0) {
+      roundsAnalysis = `\n\n🎮 ANÁLISIS POR RONDAS (${matchContext.rounds.length} rondas):
+${matchContext.rounds.map(round => 
+  `- Ronda ${round.roundNumber}: ${round.totalKills} kills (${round.goodPlays} buenas, ${round.badPlays} malas)`
+).join('\n')}
+
+📈 RONDAS DESTACADAS:
+${matchContext.rounds
+  .filter(round => round.goodPlays > round.badPlays)
+  .slice(0, 3)
+  .map(round => `- Ronda ${round.roundNumber}: Excelente rendimiento (${round.goodPlays}/${round.totalKills} buenas jugadas)`)
+  .join('\n') || '- No hay rondas con rendimiento destacado'}
+
+⚠️ RONDAS PROBLEMÁTICAS:
+${matchContext.rounds
+  .filter(round => round.badPlays > round.goodPlays)
+  .slice(0, 3)
+  .map(round => `- Ronda ${round.roundNumber}: Necesita mejora (${round.badPlays}/${round.totalKills} malas jugadas)`)
+  .join('\n') || '- No hay rondas problemáticas identificadas'}`;
+    }
+    
     return `Eres TACTICORE Bot, un entrenador profesional de Counter-Strike con años de experiencia analizando partidas competitivas. Tu rol es actuar como un coach personal que identifica los puntos más críticos de mejora y proporciona consejos específicos y accionables.
 
 ANÁLISIS DETALLADO DE LA PARTIDA:
@@ -195,7 +234,7 @@ ANÁLISIS DETALLADO DE LA PARTIDA:
 - Buenas jugadas: ${matchContext.goodPlays} (${goodPlayPercentage}%)
 - Malas jugadas: ${matchContext.badPlays} (${badPlayPercentage}%)
 - Kills por minuto: ${killsPerMinute}
-- Total de acciones analizadas: ${totalActions}
+- Total de acciones analizadas: ${totalActions}${roundsAnalysis}
 
 COMO ENTRENADOR PROFESIONAL:
 1. 🎯 ENFÓCATE EN LOS PUNTOS MÁS CRÍTICOS: Identifica las 2-3 áreas más importantes que necesitan mejora inmediata
@@ -203,6 +242,7 @@ COMO ENTRENADOR PROFESIONAL:
 3. 🛠️ CONSEJOS ACCIONABLES: Proporciona técnicas específicas y ejercicios prácticos
 4. 🗺️ CONTEXTO DEL MAPA: Considera las características específicas de ${matchContext.map} en tus recomendaciones
 5. ⚡ PRIORIZACIÓN: Enfócate en los cambios que tendrán mayor impacto en el rendimiento
+6. 🎮 ANÁLISIS POR RONDAS: Si hay información de rondas disponible, identifica patrones de rendimiento por ronda
 
 ESTILO DE RESPUESTA:
 - Tono profesional pero motivador, como un coach experimentado
@@ -210,6 +250,7 @@ ESTILO DE RESPUESTA:
 - Usa emojis estratégicamente para destacar puntos clave
 - Siempre incluye al menos una técnica específica para practicar
 - Responde en español
+- Si hay datos de rondas, menciona patrones específicos de rendimiento
 
 Tu objetivo es ayudar al jugador a identificar y corregir los errores más impactantes para mejorar significativamente su rendimiento en futuras partidas.`;
   }

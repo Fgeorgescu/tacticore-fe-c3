@@ -5,18 +5,49 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Send, Bot, User, Loader2, MessageCircle } from "lucide-react"
-import { ChatMessage, Match } from "@/lib/api"
-import { chatGPTService, MatchContext } from "@/lib/chatgpt"
+import { ChatMessage, Match, Kill } from "@/lib/api"
+import { chatGPTService, MatchContext, RoundData } from "@/lib/chatgpt"
 
 interface BotChatProps {
   matchData: Match
+  killsData?: Kill[]
   initialMessages: ChatMessage[]
   onNewMessage: (message: ChatMessage) => void
 }
 
-export function BotChat({ matchData, initialMessages, onNewMessage }: BotChatProps) {
+export function BotChat({ matchData, killsData, initialMessages, onNewMessage }: BotChatProps) {
   const [message, setMessage] = useState("")
   const [isBotTyping, setIsBotTyping] = useState(false)
+
+  // Función para procesar kills y crear datos de rondas
+  const processRoundsData = (kills: Kill[]): RoundData[] => {
+    const roundsMap = new Map<number, Kill[]>();
+    
+    kills.forEach(kill => {
+      const round = kill.round;
+      if (!roundsMap.has(round)) {
+        roundsMap.set(round, []);
+      }
+      roundsMap.get(round)!.push(kill);
+    });
+    
+    return Array.from(roundsMap.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([roundNumber, roundKills]) => ({
+        roundNumber,
+        totalKills: roundKills.length,
+        goodPlays: roundKills.filter(kill => kill.isGoodPlay).length,
+        badPlays: roundKills.filter(kill => !kill.isGoodPlay).length,
+        kills: roundKills.map(kill => ({
+          killer: kill.killer,
+          victim: kill.victim,
+          weapon: kill.weapon,
+          isGoodPlay: kill.isGoodPlay,
+          time: kill.time,
+          position: kill.position
+        }))
+      }));
+  };
 
   const handleSendMessage = async () => {
     if (!message.trim() || isBotTyping) return
@@ -46,7 +77,8 @@ export function BotChat({ matchData, initialMessages, onNewMessage }: BotChatPro
         goodPlays: matchData.goodPlays,
         badPlays: matchData.badPlays,
         duration: matchData.duration,
-        gameType: matchData.gameType
+        gameType: matchData.gameType,
+        rounds: killsData ? processRoundsData(killsData) : undefined
       }
 
       // Enviar al bot y obtener respuesta
