@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { ArrowLeft, Target, Users, TrendingUp, TrendingDown, Send, MessageCircle, Loader2, Trash2 } from "lucide-react"
+import { ArrowLeft, Target, Users, TrendingUp, TrendingDown, Send, MessageCircle, Loader2, Trash2, ChevronDown, ChevronRight } from "lucide-react"
 import { BotChat } from "@/components/chat/bot-chat"
 import { useApi } from "@/hooks/useApi"
+import { useUser } from "@/contexts/UserContext"
 import { apiService, Match, Kill, ChatMessage } from "@/lib/api"
 
 interface MatchDetailsProps {
@@ -17,7 +18,9 @@ interface MatchDetailsProps {
 }
 
 export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
+  const { selectedUser } = useUser();
   const [chatMessagesData, setChatMessagesData] = useState<ChatMessage[]>([])
+  const [expandedRounds, setExpandedRounds] = useState<Set<number>>(new Set())
 
   // Fetch match data
   const { data: matchData, loading: matchLoading, error: matchError } = useApi(
@@ -27,8 +30,8 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
 
   // Fetch kills data
   const { data: kills, loading: killsLoading, error: killsError } = useApi(
-    () => matchId ? apiService.getMatchKills(matchId) : Promise.reject(new Error("No match ID provided")),
-    [matchId]
+    () => matchId ? apiService.getMatchKills(matchId, selectedUser.value) : Promise.reject(new Error("No match ID provided")),
+    [matchId, selectedUser.value]
   );
 
   // Fetch chat messages
@@ -107,6 +110,45 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
     }
   };
 
+  // Función para agrupar kills por rondas
+  const groupKillsByRounds = (kills: Kill[]) => {
+    const roundsMap = new Map<number, Kill[]>();
+    
+    kills.forEach(kill => {
+      const round = kill.round;
+      if (!roundsMap.has(round)) {
+        roundsMap.set(round, []);
+      }
+      roundsMap.get(round)!.push(kill);
+    });
+    
+    // Ordenar las rondas y los kills dentro de cada ronda
+    const sortedRounds = Array.from(roundsMap.entries()).sort(([a], [b]) => a - b);
+    sortedRounds.forEach(([, kills]) => {
+      kills.sort((a, b) => a.time.localeCompare(b.time));
+    });
+    
+    return sortedRounds;
+  };
+
+  // Función para alternar la expansión de una ronda
+  const toggleRound = (roundNumber: number) => {
+    const newExpanded = new Set(expandedRounds);
+    if (newExpanded.has(roundNumber)) {
+      newExpanded.delete(roundNumber);
+    } else {
+      newExpanded.add(roundNumber);
+    }
+    setExpandedRounds(newExpanded);
+  };
+
+  // Función para calcular estadísticas de una ronda
+  const getRoundStats = (kills: Kill[]) => {
+    const goodPlays = kills.filter(kill => kill.isGoodPlay).length;
+    const badPlays = kills.filter(kill => !kill.isGoodPlay).length;
+    return { goodPlays, badPlays, totalKills: kills.length };
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -181,6 +223,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
           <CardContent className="p-4">
             <BotChat 
               matchData={matchData}
+              killsData={killsData}
               initialMessages={chatMessagesData}
               onNewMessage={(message) => {
                 // Agregar el mensaje a la lista local
@@ -194,7 +237,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
       {/* Kills Timeline */}
       <Card>
         <CardHeader>
-          <CardTitle>Timeline de Kills</CardTitle>
+          <CardTitle>Timeline de Kills por Rondas</CardTitle>
         </CardHeader>
         <CardContent>
           {killsData.length === 0 ? (
@@ -203,45 +246,91 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
               <p className="text-white">No hay kills registradas para esta partida.</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {killsData.map((kill) => (
-                <div
-                  key={kill.id}
-                  className={`flex items-center justify-between p-3 rounded-lg border ${
-                    kill.isGoodPlay
-                      ? "bg-green-500/10 border-green-500/20"
-                      : "bg-red-500/10 border-red-500/20"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-foreground">{kill.killer}</span>
-                      <span className="text-white">→</span>
-                      <span className="text-foreground">{kill.victim}</span>
+            <div className="space-y-4">
+              {groupKillsByRounds(killsData).map(([roundNumber, roundKills]) => {
+                const stats = getRoundStats(roundKills);
+                const isExpanded = expandedRounds.has(roundNumber);
+                
+                return (
+                  <div key={roundNumber} className="border border-border rounded-lg">
+                    {/* Header de la ronda */}
+                    <div 
+                      className="flex items-center justify-between p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                      onClick={() => toggleRound(roundNumber)}
+                    >
+                      <div className="flex items-center gap-4">
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4 text-white" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-white" />
+                        )}
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-lg font-semibold text-white">Ronda {roundNumber}</h3>
+                          <Badge variant="outline" className="text-xs">
+                            {stats.totalKills} kills
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4 text-green-400" />
+                          <span className="text-sm text-green-400">{stats.goodPlays}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <TrendingDown className="h-4 w-4 text-red-400" />
+                          <span className="text-sm text-red-400">{stats.badPlays}</span>
+                        </div>
+                      </div>
                     </div>
-                    <Badge variant="outline" className="text-xs">
-                      {kill.weapon}
-                    </Badge>
-                    <span className="text-sm text-white">{kill.position}</span>
-                  </div>
+                    
+                    {/* Contenido de la ronda */}
+                    {isExpanded && (
+                      <div className="border-t border-border p-4">
+                        <div className="space-y-2">
+                          {roundKills.map((kill) => (
+                            <div
+                              key={kill.id}
+                              className={`flex items-center justify-between p-3 rounded-lg border ${
+                                kill.isGoodPlay
+                                  ? "bg-green-500/10 border-green-500/20"
+                                  : "bg-red-500/10 border-red-500/20"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-foreground">{kill.killer}</span>
+                                  <span className="text-white">→</span>
+                                  <span className="text-foreground">{kill.victim}</span>
+                                </div>
+                                <Badge variant="outline" className="text-xs">
+                                  {kill.weapon}
+                                </Badge>
+                                <span className="text-sm text-white">{kill.position}</span>
+                              </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="text-center">
-                      <p className="text-xs text-white">Round {kill.round}</p>
-                      <p className="text-sm font-medium">{kill.time}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-white">CT: {kill.teamAlive.ct}</p>
-                      <p className="text-xs text-white">T: {kill.teamAlive.t}</p>
-                    </div>
-                    {kill.isGoodPlay ? (
-                      <TrendingUp className="h-4 w-4 text-green-400" />
-                    ) : (
-                      <TrendingDown className="h-4 w-4 text-red-400" />
+                              <div className="flex items-center gap-3">
+                                <div className="text-center">
+                                  <p className="text-sm font-medium">{kill.time}</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-xs text-white">CT: {kill.teamAlive.ct}</p>
+                                  <p className="text-xs text-white">T: {kill.teamAlive.t}</p>
+                                </div>
+                                {kill.isGoodPlay ? (
+                                  <TrendingUp className="h-4 w-4 text-green-400" />
+                                ) : (
+                                  <TrendingDown className="h-4 w-4 text-red-400" />
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

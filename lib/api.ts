@@ -83,8 +83,10 @@ export class ApiService {
   }
 
   // Matches
-  async getMatches(): Promise<Match[]> {
-    const response = await fetch(`${this.baseUrl}/api/matches`);
+  async getMatches(user?: string | null): Promise<Match[]> {
+    const url = user ? `${this.baseUrl}/api/matches?user=${encodeURIComponent(user)}` : `${this.baseUrl}/api/matches`;
+    console.log('API: getMatches called with user:', user, 'URL:', url);
+    const response = await fetch(url);
     const result = await handleResponse<{ matches: Match[] }>(response);
     return result.matches;
   }
@@ -94,8 +96,9 @@ export class ApiService {
     return handleResponse<Match>(response);
   }
 
-  async getMatchKills(id: string): Promise<Kill[]> {
-    const response = await fetch(`${this.baseUrl}/api/matches/${id}/kills`);
+  async getMatchKills(id: string, user?: string | null): Promise<Kill[]> {
+    const url = user ? `${this.baseUrl}/api/matches/${id}/kills?user=${encodeURIComponent(user)}` : `${this.baseUrl}/api/matches/${id}/kills`;
+    const response = await fetch(url);
     const result = await handleResponse<{ kills: Kill[] }>(response);
     return result.kills;
   }
@@ -132,8 +135,10 @@ export class ApiService {
     return result.data;
   }
 
-  async getDashboardStats(): Promise<DashboardStats> {
-    const response = await fetch(`${this.baseUrl}/api/analytics/dashboard`);
+  async getDashboardStats(user?: string | null): Promise<DashboardStats> {
+    const url = user ? `${this.baseUrl}/api/analytics/dashboard?user=${encodeURIComponent(user)}` : `${this.baseUrl}/api/analytics/dashboard`;
+    console.log('API: getDashboardStats called with user:', user, 'URL:', url);
+    const response = await fetch(url);
     return handleResponse<DashboardStats>(response);
   }
 

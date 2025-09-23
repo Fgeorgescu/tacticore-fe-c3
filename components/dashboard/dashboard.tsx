@@ -3,25 +3,35 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Eye, Play, Clock, Target, Skull, TrendingUp, TrendingDown, Users, Trophy, Crosshair, Loader2 } from "lucide-react"
+import { Eye, Play, Clock, Target, Skull, TrendingUp, TrendingDown, Users, Trophy, Crosshair, Loader2, Calendar } from "lucide-react"
 import { useApi } from "@/hooks/useApi"
+import { useUser } from "@/contexts/UserContext"
 import { apiService, Match, DashboardStats } from "@/lib/api"
+import { UserSelector } from "@/components/ui/user-selector"
 
 interface DashboardProps {
   onViewDetails: (matchId: string) => void
 }
 
 export function Dashboard({ onViewDetails }: DashboardProps) {
-  // Fetch matches and dashboard stats
+  const { selectedUser } = useUser();
+  
+  // Fetch matches and dashboard stats - se actualizan automáticamente cuando cambia selectedUser
   const { data: matches, loading: matchesLoading, error: matchesError, refetch: refetchMatches } = useApi(
-    () => apiService.getMatches(),
-    []
+    () => apiService.getMatches(selectedUser.value),
+    [selectedUser.value]
   );
 
-  const { data: stats, loading: statsLoading, error: statsError } = useApi(
-    () => apiService.getDashboardStats(),
-    []
+  const { data: stats, loading: statsLoading, error: statsError, refetch: refetchStats } = useApi(
+    () => apiService.getDashboardStats(selectedUser.value),
+    [selectedUser.value]
   );
+
+  // Función para actualizar ambos datos
+  const handleRefresh = () => {
+    refetchMatches()
+    refetchStats()
+  }
 
   // Loading state
   if (matchesLoading || statsLoading) {
@@ -48,9 +58,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
             variant="outline" 
             size="sm" 
             className="mt-2"
-            onClick={() => {
-              refetchMatches();
-            }}
+            onClick={handleRefresh}
           >
             Reintentar
           </Button>
@@ -87,8 +95,40 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
     return variants[type as keyof typeof variants] || variants["Otros"]
   }
 
+  // Función para formatear fecha relativa
+  const getRelativeTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+
+    if (diffInDays > 0) {
+      return `hace ${diffInDays} día${diffInDays > 1 ? 's' : ''}`;
+    } else if (diffInHours > 0) {
+      return `hace ${diffInHours} hora${diffInHours > 1 ? 's' : ''}`;
+    } else if (diffInMinutes > 0) {
+      return `hace ${diffInMinutes} minuto${diffInMinutes > 1 ? 's' : ''}`;
+    } else {
+      return 'hace unos momentos';
+    }
+  }
+
+  // Ordenar partidas por fecha (más recientes primero)
+  const sortedMatches = [...matchesData].sort((a, b) => {
+    const dateA = new Date(a.date);
+    const dateB = new Date(b.date);
+    return dateB.getTime() - dateA.getTime();
+  });
+
   return (
     <div className="space-y-6">
+      {/* User Selector */}
+      <div className="flex justify-end">
+        <UserSelector />
+      </div>
+      
       {/* Header Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-card/50 border-card-border">
@@ -144,7 +184,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-foreground">Partidas Recientes</h2>
-          <Button variant="outline" size="sm" onClick={refetchMatches}>
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
             Actualizar
           </Button>
         </div>
@@ -158,55 +198,73 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-            {matchesData.map((match) => (
+          <div className="space-y-3">
+            {sortedMatches.map((match) => (
               <Card key={match.id} className="bg-card/50 border-card-border hover:border-primary/30 transition-colors">
                 <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-foreground truncate">{match.fileName}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className={getGameTypeBadge(match.gameType)}>
-                          {match.gameType}
-                        </Badge>
-                        <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                          {match.map}
-                        </Badge>
+                  <div className="flex items-center justify-between">
+                    {/* Información principal */}
+                    <div className="flex items-center gap-4 flex-1">
+                      {/* Indicador de tiempo */}
+                      <div className="flex flex-col items-center min-w-[80px]">
+                        <Calendar className="h-4 w-4 text-white mb-1" />
+                        <span className="text-xs text-white text-center">{getRelativeTime(match.date)}</span>
+                      </div>
+
+                      {/* Información de la partida */}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-8">
+                          {/* Nombre y badges */}
+                          <div className="flex items-center gap-3">
+                            <h3 className="font-semibold text-foreground">{match.fileName}</h3>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className={getGameTypeBadge(match.gameType)}>
+                                {match.gameType}
+                              </Badge>
+                              <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                                {match.map}
+                              </Badge>
+                              {match.hasVideo && (
+                                <Play className="h-4 w-4 text-primary" />
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Estadísticas en línea */}
+                          <div className="flex items-center gap-4 text-sm">
+                            <div className="flex items-center gap-1">
+                              <Target className="h-4 w-4 text-green-400" />
+                              <span className="text-foreground">{match.kills}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Skull className="h-4 w-4 text-red-400" />
+                              <span className="text-foreground">{match.deaths}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <TrendingUp className="h-4 w-4 text-green-400" />
+                              <span className="text-foreground">{match.goodPlays}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <TrendingDown className="h-4 w-4 text-red-400" />
+                              <span className="text-foreground">{match.badPlays}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-4 w-4 text-white" />
+                              <span className="text-white">{match.duration}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    {match.hasVideo && (
-                      <Play className="h-4 w-4 text-primary" />
-                    )}
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="flex items-center gap-2">
-                      <Target className="h-4 w-4 text-green-400" />
-                      <span className="text-sm text-foreground">{match.kills} kills</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Skull className="h-4 w-4 text-red-400" />
-                      <span className="text-sm text-foreground">{match.deaths} deaths</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-green-400" />
-                      <span className="text-sm text-foreground">{match.goodPlays} buenas</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <TrendingDown className="h-4 w-4 text-red-400" />
-                      <span className="text-sm text-foreground">{match.badPlays} malas</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-white" />
-                      <span className="text-sm text-white">{match.duration}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-sm font-semibold ${getScoreColor(match.score)}`}>
-                        {match.score.toFixed(1)}
-                      </span>
+                    {/* Score y botón de acción */}
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <div className={`text-lg font-bold ${getScoreColor(match.score)}`}>
+                          {match.score.toFixed(1)}
+                        </div>
+                        <div className="text-xs text-white">Score</div>
+                      </div>
                       <Button
                         variant="ghost"
                         size="sm"
