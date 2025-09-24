@@ -8,6 +8,7 @@ import { useApi } from "@/hooks/useApi"
 import { useUser } from "@/contexts/UserContext"
 import { apiService, Match, DashboardStats } from "@/lib/api"
 import { UserSelector } from "@/components/ui/user-selector"
+import { getRelativeTimeFromBackend } from '@/lib/dateUtils'
 
 interface DashboardProps {
   onViewDetails: (matchId: string) => void
@@ -95,30 +96,15 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
     return variants[type as keyof typeof variants] || variants["Otros"]
   }
 
-  // Función para formatear fecha relativa
+  // Función para formatear fecha relativa (maneja zonas horarias correctamente)
   const getRelativeTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInMs = now.getTime() - date.getTime();
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-
-    if (diffInDays > 0) {
-      return `hace ${diffInDays} día${diffInDays > 1 ? 's' : ''}`;
-    } else if (diffInHours > 0) {
-      return `hace ${diffInHours} hora${diffInHours > 1 ? 's' : ''}`;
-    } else if (diffInMinutes > 0) {
-      return `hace ${diffInMinutes} minuto${diffInMinutes > 1 ? 's' : ''}`;
-    } else {
-      return 'hace unos momentos';
-    }
+    return getRelativeTimeFromBackend(dateString);
   }
 
   // Ordenar partidas por fecha (más recientes primero)
   const sortedMatches = [...matchesData].sort((a, b) => {
-    const dateA = new Date(a.date);
-    const dateB = new Date(b.date);
+    const dateA = new Date(a.date + 'Z'); // Agregar 'Z' para UTC
+    const dateB = new Date(b.date + 'Z'); // Agregar 'Z' para UTC
     return dateB.getTime() - dateA.getTime();
   });
 
