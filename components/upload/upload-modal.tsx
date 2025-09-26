@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Upload, File, Video, X, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
 import { apiService } from "@/lib/api"
 
@@ -25,6 +26,29 @@ interface UploadModalProps {
   onClose: () => void
 }
 
+// Lista de mapas disponibles
+const AVAILABLE_MAPS = [
+  // Mapas competitivos principales
+  "Ancient",
+  "Anubis", 
+  "Dust II",
+  "Inferno",
+  "Mirage",
+  "Nuke",
+  "Overpass",
+  "Train",
+  "Vertigo",
+  // Mapas adicionales
+  "Agency",
+  "Grail",
+  "Jura", 
+  "Office",
+  "Italy",
+  // Mapas de modo casual
+  "Dogtown",
+  "Pool Day"
+]
+
 export function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [demFile, setDemFile] = useState<FileUpload | null>(null)
   const [videoFile, setVideoFile] = useState<FileUpload | null>(null)
@@ -33,7 +57,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [currentMatchId, setCurrentMatchId] = useState<string | null>(null)
   const [metadata, setMetadata] = useState({
     map: "",
-    gameType: "",
+    gameType: "Ranked", // Valor por defecto
     description: "",
   })
 
@@ -177,7 +201,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     setIsUploading(false)
     setIsProcessing(false)
     setCurrentMatchId(null)
-    setMetadata({ map: "", gameType: "", description: "" })
+    setMetadata({ map: "", gameType: "Ranked", description: "" })
     onClose()
   }
 
@@ -196,7 +220,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
@@ -239,8 +263,8 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                         <div className="flex items-center gap-2">
-                          <File className="h-4 w-4" />
-                          <span className="text-sm font-medium">{demFile.file.name}</span>
+                          <File className="h-4 w-4 text-black dark:text-white" />
+                          <span className="text-sm font-medium text-black dark:text-white">{demFile.file.name}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           {demFile.status === "success" && (
@@ -255,7 +279,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                             onClick={() => removeFile("dem")}
                             disabled={isUploading || isProcessing}
                           >
-                            <X className="h-4 w-4" />
+                            <X className="h-4 w-4 text-black dark:text-white" />
                           </Button>
                         </div>
                       </div>
@@ -305,8 +329,8 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                         <div className="flex items-center gap-2">
-                          <Video className="h-4 w-4" />
-                          <span className="text-sm font-medium">{videoFile.file.name}</span>
+                          <Video className="h-4 w-4 text-black dark:text-white" />
+                          <span className="text-sm font-medium text-black dark:text-white">{videoFile.file.name}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           {videoFile.status === "success" && (
@@ -321,7 +345,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                             onClick={() => removeFile("video")}
                             disabled={isUploading || isProcessing}
                           >
-                            <X className="h-4 w-4" />
+                            <X className="h-4 w-4 text-black dark:text-white" />
                           </Button>
                         </div>
                       </div>
@@ -355,23 +379,45 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="map">Mapa</Label>
-                  <Input
-                    id="map"
-                    placeholder="ej. Dust2, Mirage, Inferno..."
-                    value={metadata.map}
-                    onChange={(e) => setMetadata(prev => ({ ...prev, map: e.target.value }))}
-                    disabled={isUploading}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="map"
+                      list="map-options"
+                      placeholder="Seleccionar mapa..."
+                      value={metadata.map}
+                      onChange={(e) => setMetadata(prev => ({ ...prev, map: e.target.value }))}
+                      disabled={isUploading}
+                      className={!AVAILABLE_MAPS.includes(metadata.map) && metadata.map !== "" ? "border-red-500 focus-visible:ring-red-500" : ""}
+                    />
+                    <datalist id="map-options">
+                      {AVAILABLE_MAPS.map((map) => (
+                        <option key={map} value={map} />
+                      ))}
+                    </datalist>
+                    {!AVAILABLE_MAPS.includes(metadata.map) && metadata.map !== "" && (
+                      <p className="text-sm text-red-500 mt-1">
+                        ⚠️ Mapa no reconocido. Verifica el nombre.
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="gameType">Tipo de Juego</Label>
-                  <Input
-                    id="gameType"
-                    placeholder="ej. Ranked, Casual, Entrenamiento..."
+                  <Label>Tipo de Juego</Label>
+                  <RadioGroup
                     value={metadata.gameType}
-                    onChange={(e) => setMetadata(prev => ({ ...prev, gameType: e.target.value }))}
+                    onValueChange={(value) => setMetadata(prev => ({ ...prev, gameType: value }))}
                     disabled={isUploading}
-                  />
+                    className="flex gap-6"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Ranked" id="ranked" />
+                      <Label htmlFor="ranked" className="cursor-pointer">Ranked</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Casual" id="casual" />
+                      <Label htmlFor="casual" className="cursor-pointer">Casual</Label>
+                    </div>
+                  </RadioGroup>
                 </div>
               </div>
               <div className="space-y-2 mt-4">
