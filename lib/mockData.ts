@@ -214,10 +214,10 @@ export const mockDashboardStats: DashboardStats = {
   kdr: 1.37,
 }
 
-export const mockUserProfile: UserProfile = {
-  id: "user123",
-  username: "ProPlayer_CS",
-  email: "player@tacticore.gg",
+export const createMockUserProfile = (username: string): UserProfile => ({
+  id: `user_${username}`,
+  username: username,
+  email: `${username.toLowerCase()}@tacticore.gg`,
   avatar: "/gamer-avatar.png",
   role: "Entry Fragger",
   stats: {
@@ -244,4 +244,7 @@ export const mockUserProfile: UserProfile = {
     theme: "dark",
     notifications: true,
   },
-}
+})
+
+// Mantener la exportación original para compatibilidad
+export const mockUserProfile: UserProfile = createMockUserProfile("ProPlayer_CS")

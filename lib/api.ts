@@ -96,6 +96,7 @@ import {
   mockAnalyticsData,
   mockDashboardStats,
   mockUserProfile,
+  createMockUserProfile,
 } from "./mockData"
 
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true"
@@ -282,7 +283,7 @@ export class ApiService {
         const response = await fetch(url)
         return handleResponse<UserProfile>(response)
       },
-      mockUserProfile,
+      username ? createMockUserProfile(username) : mockUserProfile,
       "getUserProfile",
     )
   }
