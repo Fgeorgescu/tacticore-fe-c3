@@ -85,6 +85,10 @@ export function UserComparison() {
     }
   }
 
+  const handleActivatePremium = () => {
+    setIsPremiumMode(true)
+  }
+
   const getComparisonIndicator = (currentValue: number, compareValue: number, higherIsBetter = true) => {
     if (currentValue === compareValue) return null
 
@@ -137,7 +141,7 @@ export function UserComparison() {
           <div className="flex items-center gap-2">
             <Switch id="premium-mode" checked={isPremiumMode} onCheckedChange={handlePremiumModeChange} />
             <Label htmlFor="premium-mode" className="text-white cursor-pointer">
-              Modo Premium
+              [DEMO] Modo Premium
             </Label>
           </div>
           {hasReachedFreeLimit ? (
@@ -266,7 +270,11 @@ export function UserComparison() {
         </DialogContent>
       </Dialog>
 
-      <PremiumModal open={isPremiumModalOpen} onOpenChange={setIsPremiumModalOpen} />
+      <PremiumModal
+        open={isPremiumModalOpen}
+        onOpenChange={setIsPremiumModalOpen}
+        onActivatePremium={handleActivatePremium}
+      />
     </div>
   )
 }

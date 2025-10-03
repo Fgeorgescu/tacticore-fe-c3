@@ -8,9 +8,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 interface PremiumModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onActivatePremium: () => void
 }
 
-export function PremiumModal({ open, onOpenChange }: PremiumModalProps) {
+export function PremiumModal({ open, onOpenChange, onActivatePremium }: PremiumModalProps) {
   const features = [
     {
       title: "Estadísticas de otros",
@@ -36,6 +37,11 @@ export function PremiumModal({ open, onOpenChange }: PremiumModalProps) {
 
   const paymentMethods = ["Rapipago", "Pagofácil", "Mercadopago", "Tarjetas de crédito/débito"]
 
+  const handleActivatePremium = () => {
+    onActivatePremium()
+    onOpenChange(false)
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -51,7 +57,10 @@ export function PremiumModal({ open, onOpenChange }: PremiumModalProps) {
 
         <div className="space-y-6 py-4">
           <div className="flex justify-center">
-            <Button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-6 text-lg font-semibold">
+            <Button
+              onClick={handleActivatePremium}
+              className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-6 text-lg font-semibold"
+            >
               <Sparkles className="h-5 w-5 mr-2" />
               Obtener Premium por $1.500/mes
             </Button>
