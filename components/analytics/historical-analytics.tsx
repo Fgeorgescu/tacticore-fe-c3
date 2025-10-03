@@ -3,20 +3,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   LineChart,
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
   BarChart,
   Bar,
   AreaChart,
   Area,
 } from "recharts"
-import { Trophy, Loader2, Calendar } from "lucide-react"
+import { Trophy, Loader2, Calendar, HelpCircle } from "lucide-react"
 import { useState } from "react"
 import { useApi } from "@/hooks/useApi"
 import { apiService } from "@/lib/api"
@@ -237,86 +238,129 @@ export function HistoricalAnalytics() {
         </Select>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-card/50 border-card-border">
-          <CardHeader>
-            <CardTitle>Buenas vs Malas Jugadas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={getFilteredData()}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="date" stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
-                <YAxis stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
-                <Tooltip
-                  content={<CustomTooltip labelMap={{ goodPlays: "Buenas Jugadas", badPlays: "Malas Jugadas" }} />}
-                />
-                <Bar dataKey="goodPlays" fill="#10B981" />
-                <Bar dataKey="badPlays" fill="#EF4444" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+      <TooltipProvider>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="bg-card/50 border-card-border">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <CardTitle>Buenas vs Malas Jugadas</CardTitle>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>
+                      Muestra la evolución de tus buenas y malas jugadas a lo largo del tiempo. Las buenas jugadas
+                      incluyen kills, asistencias y objetivos completados, mientras que las malas jugadas incluyen
+                      deaths y errores tácticos.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={getFilteredData()}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="date" stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
+                  <YAxis stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
+                  <RechartsTooltip
+                    content={<CustomTooltip labelMap={{ goodPlays: "Buenas Jugadas", badPlays: "Malas Jugadas" }} />}
+                  />
+                  <Bar dataKey="goodPlays" fill="#10B981" />
+                  <Bar dataKey="badPlays" fill="#EF4444" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-        <Card className="bg-card/50 border-card-border">
-          <CardHeader>
-            <CardTitle>Progreso de Puntaje Promedio</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={getFilteredData()}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="date" stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
-                <YAxis stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
-                <Tooltip content={<CustomTooltip labelMap={{ score: "Puntaje" }} />} />
-                <Line
-                  type="monotone"
-                  dataKey="score"
-                  stroke="#ff851b"
-                  strokeWidth={2}
-                  dot={{ fill: "#ff851b", strokeWidth: 2, r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="bg-card/50 border-card-border">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <CardTitle>Progreso de Puntaje Promedio</CardTitle>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>
+                      Visualiza cómo ha evolucionado tu puntaje promedio por partida a lo largo del tiempo. Un puntaje
+                      en ascenso indica mejora constante en tu rendimiento general.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={getFilteredData()}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="date" stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
+                  <YAxis stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
+                  <RechartsTooltip content={<CustomTooltip labelMap={{ score: "Puntaje" }} />} />
+                  <Line
+                    type="monotone"
+                    dataKey="score"
+                    stroke="#ff851b"
+                    strokeWidth={2}
+                    dot={{ fill: "#ff851b", strokeWidth: 2, r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
 
-      <div className="grid grid-cols-1 gap-6">
-        <Card className="bg-card/50 border-card-border">
-          <CardHeader>
-            <CardTitle>Historial de Kills y Deaths</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={getCumulativeData()}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="date" stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
-                <YAxis stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
-                <Tooltip
-                  content={<CustomTooltip labelMap={{ totalKills: "Total Kills", totalDeaths: "Total Deaths" }} />}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="totalKills"
-                  stackId="1"
-                  stroke="#10B981"
-                  fill="#10B981"
-                  fillOpacity={0.6}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="totalDeaths"
-                  stackId="1"
-                  stroke="#EF4444"
-                  fill="#EF4444"
-                  fillOpacity={0.6}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+        <div className="grid grid-cols-1 gap-6">
+          <Card className="bg-card/50 border-card-border">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <CardTitle>Historial de Kills y Deaths</CardTitle>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>
+                      Muestra el acumulado total de kills (en verde) y deaths (en rojo) a lo largo de todas tus
+                      partidas. Este gráfico te permite ver tu progreso general y la relación entre eliminaciones y
+                      muertes.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={getCumulativeData()}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="date" stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
+                  <YAxis stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
+                  <RechartsTooltip
+                    content={<CustomTooltip labelMap={{ totalKills: "Total Kills", totalDeaths: "Total Deaths" }} />}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="totalKills"
+                    stackId="1"
+                    stroke="#10B981"
+                    fill="#10B981"
+                    fillOpacity={0.6}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="totalDeaths"
+                    stackId="1"
+                    stroke="#EF4444"
+                    fill="#EF4444"
+                    fillOpacity={0.6}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+      </TooltipProvider>
     </div>
   )
 }
