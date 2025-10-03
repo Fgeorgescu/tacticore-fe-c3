@@ -51,17 +51,24 @@ export function PremiumModal({ open, onOpenChange }: PremiumModalProps) {
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          <Card className="bg-gradient-to-br from-orange-500/20 to-orange-500/5 border-orange-500/30">
-            <CardContent className="pt-6">
+          <Card className="bg-orange-500 border-orange-600 w-fit mx-auto">
+            <CardContent className="pt-4 pb-4 px-6">
               <div className="text-center">
                 <div className="inline-flex items-baseline gap-1">
-                  <span className="text-3xl font-bold text-white">$1.500</span>
-                  <span className="text-lg text-muted-foreground">/mes</span>
+                  <span className="text-2xl font-bold text-white">$1.500</span>
+                  <span className="text-base text-white/90">/mes</span>
                 </div>
-                <div className="text-sm text-muted-foreground mt-1">Pesos Argentinos</div>
+                <div className="text-xs text-white/80 mt-0.5">Pesos Argentinos</div>
               </div>
             </CardContent>
           </Card>
+
+          <div className="flex justify-center">
+            <Button className="bg-orange-600 hover:bg-orange-700 text-white px-8">
+              <Sparkles className="h-4 w-4 mr-2" />
+              Obtener Premium
+            </Button>
+          </div>
 
           {/* Payment Methods */}
           <div>
@@ -129,16 +136,6 @@ export function PremiumModal({ open, onOpenChange }: PremiumModalProps) {
                 </table>
               </div>
             </TooltipProvider>
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
-              Cancelar
-            </Button>
-            <Button className="flex-1 bg-orange-500 hover:bg-orange-600 text-white">
-              <Sparkles className="h-4 w-4 mr-2" />
-              Obtener Premium
-            </Button>
           </div>
         </div>
       </DialogContent>
