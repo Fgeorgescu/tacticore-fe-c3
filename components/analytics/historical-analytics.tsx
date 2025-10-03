@@ -282,7 +282,7 @@ export function HistoricalAnalytics() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <Card className="bg-card/50 border-card-border">
           <CardHeader>
             <CardTitle>Historial de Kills y Deaths</CardTitle>
@@ -313,23 +313,6 @@ export function HistoricalAnalytics() {
                   fillOpacity={0.6}
                 />
               </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/50 border-card-border">
-          <CardHeader>
-            <CardTitle>Distribución de Puntajes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={getFilteredData()}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="date" stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
-                <YAxis stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
-                <Tooltip content={<CustomTooltip labelMap={{ score: "Puntaje" }} />} />
-                <Bar dataKey="score" fill="#ff851b" />
-              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
