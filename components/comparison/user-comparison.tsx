@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Plus, X, TrendingUp, TrendingDown, Loader2 } from "lucide-react"
+import { Plus, X, TrendingUp, TrendingDown, Loader2, Sparkles } from "lucide-react"
 import { useApi } from "@/hooks/useApi"
 import { apiService, type UserProfile } from "@/lib/api"
 import { useUser } from "@/contexts/UserContext"
@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { PremiumModal } from "./premium-modal"
 
 interface ComparisonUser {
   username: string
@@ -33,6 +34,7 @@ export function UserComparison() {
   const [newUsername, setNewUsername] = useState("")
   const [isLoadingNewUser, setIsLoadingNewUser] = useState(false)
   const [isPremiumMode, setIsPremiumMode] = useState(false)
+  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false)
 
   const { data: currentUserProfile, loading: currentUserLoading } = useApi(
     () => apiService.getUserProfile(selectedUser?.value),
@@ -125,6 +127,8 @@ export function UserComparison() {
     ...comparisonUsers.map((u) => ({ ...u, isCurrentUser: false })),
   ]
 
+  const hasReachedFreeLimit = comparisonUsers.length >= maxUsers && !isPremiumMode
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -136,14 +140,21 @@ export function UserComparison() {
               Modo Premium
             </Label>
           </div>
-          <Button
-            onClick={() => setIsAddDialogOpen(true)}
-            disabled={comparisonUsers.length >= maxUsers}
-            className="gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Agregar Usuario {comparisonUsers.length > 0 && `(${comparisonUsers.length}/${maxUsers})`}
-          </Button>
+          {hasReachedFreeLimit ? (
+            <Button onClick={() => setIsPremiumModalOpen(true)} className="gap-2 bg-primary hover:bg-primary/90">
+              <Sparkles className="h-4 w-4" />
+              Hacerse Premium
+            </Button>
+          ) : (
+            <Button
+              onClick={() => setIsAddDialogOpen(true)}
+              disabled={comparisonUsers.length >= maxUsers}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Agregar Usuario {comparisonUsers.length > 0 && `(${comparisonUsers.length}/${maxUsers})`}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -254,6 +265,8 @@ export function UserComparison() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PremiumModal open={isPremiumModalOpen} onOpenChange={setIsPremiumModalOpen} />
     </div>
   )
 }
