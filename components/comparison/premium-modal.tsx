@@ -45,20 +45,19 @@ export function PremiumModal({ open, onOpenChange }: PremiumModalProps) {
             <Sparkles className="h-6 w-6 text-primary" />
             <DialogTitle className="text-2xl">Hacerse Premium</DialogTitle>
           </div>
-          <DialogDescription>
+          <DialogDescription className="text-white">
             Desbloquea todas las funcionalidades y lleva tu experiencia al siguiente nivel
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
           <Card className="bg-orange-500 border-orange-600 w-fit mx-auto">
-            <CardContent className="pt-4 pb-4 px-6">
+            <CardContent className="pt-3 pb-3 px-6">
               <div className="text-center">
                 <div className="inline-flex items-baseline gap-1">
                   <span className="text-2xl font-bold text-white">$1.500</span>
                   <span className="text-base text-white/90">/mes</span>
                 </div>
-                <div className="text-xs text-white/80 mt-0.5">Pesos Argentinos</div>
               </div>
             </CardContent>
           </Card>
