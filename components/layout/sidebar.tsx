@@ -12,7 +12,7 @@ interface SidebarProps {
 export function Sidebar({ activeView, onViewChange }: SidebarProps) {
   const navigation = [
     { id: "dashboard", label: "Dashboard", icon: Home },
-    { id: "analytics", label: "Análisis Histórico", icon: TrendingUp },
+    { id: "analytics", label: "Mi Perfil", icon: TrendingUp },
   ]
 
   return (

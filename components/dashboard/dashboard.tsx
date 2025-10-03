@@ -3,30 +3,45 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Eye, Play, Clock, Target, Skull, TrendingUp, TrendingDown, Users, Trophy, Crosshair, Loader2, Calendar } from "lucide-react"
+import {
+  Eye,
+  Play,
+  Clock,
+  Target,
+  Skull,
+  TrendingUp,
+  TrendingDown,
+  Trophy,
+  Crosshair,
+  Loader2,
+  Calendar,
+} from "lucide-react"
 import { useApi } from "@/hooks/useApi"
 import { useUser } from "@/contexts/UserContext"
-import { apiService, Match, DashboardStats } from "@/lib/api"
-import { UserSelector } from "@/components/ui/user-selector"
-import { getRelativeTimeFromBackend } from '@/lib/dateUtils'
+import { apiService } from "@/lib/api"
+import { getRelativeTimeFromBackend } from "@/lib/dateUtils"
 
 interface DashboardProps {
   onViewDetails: (matchId: string) => void
 }
 
 export function Dashboard({ onViewDetails }: DashboardProps) {
-  const { selectedUser } = useUser();
-  
-  // Fetch matches and dashboard stats - se actualizan automáticamente cuando cambia selectedUser
-  const { data: matches, loading: matchesLoading, error: matchesError, refetch: refetchMatches } = useApi(
-    () => apiService.getMatches(selectedUser.value),
-    [selectedUser.value]
-  );
+  const { selectedUser } = useUser()
 
-  const { data: stats, loading: statsLoading, error: statsError, refetch: refetchStats } = useApi(
-    () => apiService.getDashboardStats(selectedUser.value),
-    [selectedUser.value]
-  );
+  // Fetch matches and dashboard stats - se actualizan automáticamente cuando cambia selectedUser
+  const {
+    data: matches,
+    loading: matchesLoading,
+    error: matchesError,
+    refetch: refetchMatches,
+  } = useApi(() => apiService.getMatches(selectedUser.value), [selectedUser.value])
+
+  const {
+    data: stats,
+    loading: statsLoading,
+    error: statsError,
+    refetch: refetchStats,
+  } = useApi(() => apiService.getDashboardStats(selectedUser.value), [selectedUser.value])
 
   // Función para actualizar ambos datos
   const handleRefresh = () => {
@@ -43,7 +58,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
           <span className="text-white">Cargando datos...</span>
         </div>
       </div>
-    );
+    )
   }
 
   // Error state
@@ -52,24 +67,17 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
       <div className="space-y-6">
         <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
           <h3 className="text-destructive font-semibold mb-2">Error al cargar datos</h3>
-          <p className="text-sm text-white">
-            {matchesError || statsError}
-          </p>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="mt-2"
-            onClick={handleRefresh}
-          >
+          <p className="text-sm text-white">{matchesError || statsError}</p>
+          <Button variant="outline" size="sm" className="mt-2 bg-transparent" onClick={handleRefresh}>
             Reintentar
           </Button>
         </div>
       </div>
-    );
+    )
   }
 
   // Use real data or fallback to empty arrays/objects
-  const matchesData = matches || [];
+  const matchesData = matches || []
   const statsData = stats || {
     totalMatches: 0,
     totalKills: 0,
@@ -78,7 +86,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
     totalBadPlays: 0,
     averageScore: 0,
     kdr: 0,
-  };
+  }
 
   const getScoreColor = (score: number) => {
     if (score >= 8) return "text-green-400"
@@ -98,23 +106,18 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
 
   // Función para formatear fecha relativa (maneja zonas horarias correctamente)
   const getRelativeTime = (dateString: string) => {
-    return getRelativeTimeFromBackend(dateString);
+    return getRelativeTimeFromBackend(dateString)
   }
 
   // Ordenar partidas por fecha (más recientes primero)
   const sortedMatches = [...matchesData].sort((a, b) => {
-    const dateA = new Date(a.date + 'Z'); // Agregar 'Z' para UTC
-    const dateB = new Date(b.date + 'Z'); // Agregar 'Z' para UTC
-    return dateB.getTime() - dateA.getTime();
-  });
+    const dateA = new Date(a.date + "Z") // Agregar 'Z' para UTC
+    const dateB = new Date(b.date + "Z") // Agregar 'Z' para UTC
+    return dateB.getTime() - dateA.getTime()
+  })
 
   return (
     <div className="space-y-6">
-      {/* User Selector */}
-      <div className="flex justify-end">
-        <UserSelector />
-      </div>
-      
       {/* Header Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-card/50 border-card-border">
@@ -210,9 +213,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
                               <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
                                 {match.map}
                               </Badge>
-                              {match.hasVideo && (
-                                <Play className="h-4 w-4 text-primary" />
-                              )}
+                              {match.hasVideo && <Play className="h-4 w-4 text-primary" />}
                             </div>
                           </div>
 
@@ -251,12 +252,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
                         </div>
                         <div className="text-xs text-white">Score</div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onViewDetails(match.id)}
-                        className="h-8 w-8 p-0"
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => onViewDetails(match.id)} className="h-8 w-8 p-0">
                         <Eye className="h-4 w-4" />
                       </Button>
                     </div>
