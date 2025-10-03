@@ -89,6 +89,21 @@ export interface UserProfile {
   }
 }
 
+export interface UserValidationResult {
+  isValid: boolean
+  user?: {
+    id: string
+    name: string
+    role: string
+    averageScore: number
+    totalKills: number
+    totalDeaths: number
+    totalMatches: number
+    kdr: number
+  }
+  error?: string
+}
+
 import {
   mockMatches,
   mockKills,
@@ -97,6 +112,8 @@ import {
   mockDashboardStats,
   mockUserProfile,
   createMockUserProfile,
+  mockUsersList,
+  createMockUserValidation,
 } from "./mockData"
 
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true"
@@ -297,6 +314,45 @@ export class ApiService {
       body: JSON.stringify(profile),
     })
     return handleResponse<UserProfile>(response)
+  }
+
+  async searchUsers(query: string): Promise<string[]> {
+    return fetchWithFallback(
+      async () => {
+        const response = await fetch(`${this.baseUrl}/api/users/search?name=${encodeURIComponent(query)}`)
+        const result = await handleResponse<{ users: Array<{ name: string }> }>(response)
+        return result.users.map((u) => u.name)
+      },
+      mockUsersList.filter((name) => name.toLowerCase().includes(query.toLowerCase())),
+      `searchUsers(${query})`,
+    )
+  }
+
+  async validateUser(username: string): Promise<UserValidationResult> {
+    return fetchWithFallback(
+      async () => {
+        const response = await fetch(`${this.baseUrl}/api/users/${encodeURIComponent(username)}`)
+        if (response.status === 404) {
+          return { isValid: false, error: "Usuario no encontrado" }
+        }
+        const user = await handleResponse<any>(response)
+        return {
+          isValid: true,
+          user: {
+            id: user.id.toString(),
+            name: user.name,
+            role: user.role,
+            averageScore: user.averageScore || 0,
+            totalKills: user.totalKills || 0,
+            totalDeaths: user.totalDeaths || 0,
+            totalMatches: user.totalMatches || 0,
+            kdr: user.kdr || 0,
+          },
+        }
+      },
+      createMockUserValidation(username),
+      `validateUser(${username})`,
+    )
   }
 
   // File Uploads
