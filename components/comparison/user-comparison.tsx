@@ -190,13 +190,24 @@ export function UserComparison() {
                     <th key={user.username} className="text-center p-3 min-w-[150px]">
                       <div className="flex flex-col items-center gap-2">
                         <span className="text-white font-semibold">{user.username}</span>
-                        {user.isCurrentUser && <Badge variant="secondary">Tú</Badge>}
-                        {!user.isCurrentUser && (
+                        {/* Mostrar rol para todos los usuarios */}
+                        {user.profile?.role && (
+                          <Badge variant={user.isCurrentUser ? "default" : "secondary"}>
+                            {user.profile.role}
+                          </Badge>
+                        )}
+                        {user.error && (
+                          <Badge variant="destructive" className="text-xs">
+                            Error
+                          </Badge>
+                        )}
+                        {/* Botón de eliminar solo para usuarios no actuales */}
+                        {!user.isCurrentUser && !user.error && (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleRemoveUser(user.username)}
-                            className="h-6 w-6 p-0"
+                            className="h-6 w-6 p-0 mt-1"
                           >
                             <X className="h-4 w-4" />
                           </Button>
