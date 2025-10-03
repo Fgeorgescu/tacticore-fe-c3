@@ -14,8 +14,8 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  AreaChart,
   Area,
+  ComposedChart,
 } from "recharts"
 import { Trophy, Loader2, Calendar, HelpCircle } from "lucide-react"
 import { useState } from "react"
@@ -322,9 +322,9 @@ export function HistoricalAnalytics() {
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
                     <p>
-                      Muestra el acumulado total de kills (en verde) y deaths (en rojo) a lo largo de todas tus
-                      partidas. Este gráfico te permite ver tu progreso general y la relación entre eliminaciones y
-                      muertes.
+                      Muestra el acumulado total de kills (área verde) y deaths (línea roja punteada) a lo largo de
+                      todas tus partidas. Cuando la línea roja se mantiene dentro del área verde, indica que tu K/D
+                      ratio es positivo.
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -332,30 +332,23 @@ export function HistoricalAnalytics() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={getCumulativeData()}>
+                <ComposedChart data={getCumulativeData()}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis dataKey="date" stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
                   <YAxis stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
                   <RechartsTooltip
                     content={<CustomTooltip labelMap={{ totalKills: "Total Kills", totalDeaths: "Total Deaths" }} />}
                   />
-                  <Area
-                    type="monotone"
-                    dataKey="totalKills"
-                    stackId="1"
-                    stroke="#10B981"
-                    fill="#10B981"
-                    fillOpacity={0.6}
-                  />
-                  <Area
+                  <Area type="monotone" dataKey="totalKills" stroke="#10B981" fill="#10B981" fillOpacity={0.6} />
+                  <Line
                     type="monotone"
                     dataKey="totalDeaths"
-                    stackId="1"
                     stroke="#EF4444"
-                    fill="#EF4444"
-                    fillOpacity={0.6}
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={{ fill: "#EF4444", strokeWidth: 2, r: 3 }}
                   />
-                </AreaChart>
+                </ComposedChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
