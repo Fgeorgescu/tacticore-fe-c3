@@ -5,6 +5,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import { Plus, X, TrendingUp, TrendingDown, Loader2 } from "lucide-react"
 import { useApi } from "@/hooks/useApi"
 import { apiService, type UserProfile } from "@/lib/api"
@@ -30,11 +32,14 @@ export function UserComparison() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [newUsername, setNewUsername] = useState("")
   const [isLoadingNewUser, setIsLoadingNewUser] = useState(false)
+  const [isPremiumMode, setIsPremiumMode] = useState(false)
 
   const { data: currentUserProfile, loading: currentUserLoading } = useApi(
     () => apiService.getUserProfile(selectedUser?.value),
     [selectedUser],
   )
+
+  const maxUsers = isPremiumMode ? 5 : 1
 
   if (!selectedUser.value) {
     return (
@@ -49,7 +54,7 @@ export function UserComparison() {
   }
 
   const handleAddUser = async () => {
-    if (!newUsername.trim() || comparisonUsers.length >= 5) return
+    if (!newUsername.trim() || comparisonUsers.length >= maxUsers) return
 
     setIsLoadingNewUser(true)
     try {
@@ -59,7 +64,6 @@ export function UserComparison() {
       setIsAddDialogOpen(false)
     } catch (error) {
       console.error("Error loading user profile:", error)
-      // Still add the user but with null profile to show error state
       setComparisonUsers([...comparisonUsers, { username: newUsername.trim(), profile: null, loading: false }])
       setNewUsername("")
       setIsAddDialogOpen(false)
@@ -70,6 +74,13 @@ export function UserComparison() {
 
   const handleRemoveUser = (username: string) => {
     setComparisonUsers(comparisonUsers.filter((u) => u.username !== username))
+  }
+
+  const handlePremiumModeChange = (checked: boolean) => {
+    setIsPremiumMode(checked)
+    if (!checked && comparisonUsers.length > 1) {
+      setComparisonUsers(comparisonUsers.slice(0, 1))
+    }
   }
 
   const getComparisonIndicator = (currentValue: number, compareValue: number, higherIsBetter = true) => {
@@ -118,10 +129,22 @@ export function UserComparison() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-heading text-white">Comparación de Usuarios</h1>
-        <Button onClick={() => setIsAddDialogOpen(true)} disabled={comparisonUsers.length >= 5} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Agregar Usuario {comparisonUsers.length > 0 && `(${comparisonUsers.length}/5)`}
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Switch id="premium-mode" checked={isPremiumMode} onCheckedChange={handlePremiumModeChange} />
+            <Label htmlFor="premium-mode" className="text-white cursor-pointer">
+              Modo Premium
+            </Label>
+          </div>
+          <Button
+            onClick={() => setIsAddDialogOpen(true)}
+            disabled={comparisonUsers.length >= maxUsers}
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Agregar Usuario {comparisonUsers.length > 0 && `(${comparisonUsers.length}/${maxUsers})`}
+          </Button>
+        </div>
       </div>
 
       <Card className="bg-card/50 border-card-border">
@@ -160,7 +183,6 @@ export function UserComparison() {
                       const formattedValue =
                         stat.format && typeof value === "number" ? stat.format(value) : value?.toString() || "N/A"
 
-                      // Get comparison indicator relative to current user
                       let indicator = null
                       if (
                         !user.isCurrentUser &&
@@ -198,7 +220,10 @@ export function UserComparison() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Agregar Usuario para Comparar</DialogTitle>
-            <DialogDescription>Ingresa el nombre de usuario que deseas comparar. Máximo 5 usuarios.</DialogDescription>
+            <DialogDescription>
+              Ingresa el nombre de usuario que deseas comparar.{" "}
+              {isPremiumMode ? "Máximo 5 usuarios." : "Máximo 1 usuario (activa Modo Premium para comparar hasta 5)."}
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Input
