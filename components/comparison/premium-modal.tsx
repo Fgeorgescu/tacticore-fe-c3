@@ -3,7 +3,6 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Check, X, Sparkles, HelpCircle } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface PremiumModalProps {
@@ -51,21 +50,10 @@ export function PremiumModal({ open, onOpenChange }: PremiumModalProps) {
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          <Card className="bg-orange-500 border-orange-600 w-fit mx-auto">
-            <CardContent className="pt-3 pb-3 px-6">
-              <div className="text-center">
-                <div className="inline-flex items-baseline gap-1">
-                  <span className="text-2xl font-bold text-white">$1.500</span>
-                  <span className="text-base text-white/90">/mes</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           <div className="flex justify-center">
-            <Button className="bg-orange-600 hover:bg-orange-700 text-white px-8">
-              <Sparkles className="h-4 w-4 mr-2" />
-              Obtener Premium
+            <Button className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-6 text-lg font-semibold">
+              <Sparkles className="h-5 w-5 mr-2" />
+              Obtener Premium por $1.500/mes
             </Button>
           </div>
 
