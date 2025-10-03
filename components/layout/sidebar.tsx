@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Home, TrendingUp } from "lucide-react"
+import { Home, TrendingUp, Users } from "lucide-react"
 
 interface SidebarProps {
   activeView: string
@@ -13,6 +13,7 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
   const navigation = [
     { id: "dashboard", label: "Dashboard", icon: Home },
     { id: "analytics", label: "Mi Perfil", icon: TrendingUp },
+    { id: "comparison", label: "Comparación", icon: Users },
   ]
 
   return (
