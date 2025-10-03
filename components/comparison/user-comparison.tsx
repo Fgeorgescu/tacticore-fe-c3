@@ -25,6 +25,7 @@ interface ComparisonUser {
   username: string
   profile: UserProfile | null
   loading: boolean
+  error?: string
 }
 
 export function UserComparison() {
@@ -66,7 +67,23 @@ export function UserComparison() {
       setIsAddDialogOpen(false)
     } catch (error) {
       console.error("Error loading user profile:", error)
-      setComparisonUsers([...comparisonUsers, { username: newUsername.trim(), profile: null, loading: false }])
+      
+      // Determinar el tipo de error
+      let errorMessage = "Error al cargar el usuario"
+      if (error instanceof Error) {
+        if (error.message.includes("404") || error.message.includes("not found") || error.message.includes("Usuario no encontrado")) {
+          errorMessage = `No se encontró el usuario "${newUsername.trim()}"`
+        } else if (error.message.includes("network") || error.message.includes("fetch")) {
+          errorMessage = "Error de conexión. Usando datos de ejemplo."
+        }
+      }
+      
+      setComparisonUsers([...comparisonUsers, { 
+        username: newUsername.trim(), 
+        profile: null, 
+        loading: false,
+        error: errorMessage
+      }])
       setNewUsername("")
       setIsAddDialogOpen(false)
     } finally {
@@ -214,12 +231,25 @@ export function UserComparison() {
 
                       return (
                         <td key={`${user.username}-${stat.key}`} className="p-3 text-center">
-                          <span
-                            className={user.isCurrentUser ? "text-primary font-semibold text-sm" : "text-white text-sm"}
-                          >
-                            {formattedValue}
-                          </span>
-                          {indicator}
+                          {user.error ? (
+                            // Mostrar mensaje de error solo en la primera fila
+                            stat.key === stats[0].key ? (
+                              <div className="text-red-400 text-sm font-medium">
+                                {user.error}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )
+                          ) : (
+                            <>
+                              <span
+                                className={user.isCurrentUser ? "text-primary font-semibold text-sm" : "text-white text-sm"}
+                              >
+                                {formattedValue}
+                              </span>
+                              {indicator}
+                            </>
+                          )}
                         </td>
                       )
                     })}
