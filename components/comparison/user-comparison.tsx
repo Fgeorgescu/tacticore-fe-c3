@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -125,15 +125,12 @@ export function UserComparison() {
       </div>
 
       <Card className="bg-card/50 border-card-border">
-        <CardHeader>
-          <CardTitle>Tabla de Comparación</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left p-3 text-white font-semibold">Estadística</th>
+                  <th className="text-left p-3 text-white font-semibold text-sm">Estadística</th>
                   {allUsers.map((user) => (
                     <th key={user.username} className="text-center p-3 min-w-[150px]">
                       <div className="flex flex-col items-center gap-2">
@@ -157,7 +154,7 @@ export function UserComparison() {
               <tbody>
                 {stats.map((stat) => (
                   <tr key={stat.key} className="border-b border-border/50 hover:bg-background/30">
-                    <td className="p-3 text-white font-medium">{stat.label}</td>
+                    <td className="p-3 text-white font-medium text-sm">{stat.label}</td>
                     {allUsers.map((user, userIndex) => {
                       const value = user.profile?.stats[stat.key as keyof typeof user.profile.stats]
                       const formattedValue =
@@ -180,7 +177,9 @@ export function UserComparison() {
 
                       return (
                         <td key={`${user.username}-${stat.key}`} className="p-3 text-center">
-                          <span className={user.isCurrentUser ? "text-primary font-semibold" : "text-white"}>
+                          <span
+                            className={user.isCurrentUser ? "text-primary font-semibold text-sm" : "text-white text-sm"}
+                          >
                             {formattedValue}
                           </span>
                           {indicator}
