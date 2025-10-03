@@ -57,19 +57,6 @@ export function PremiumModal({ open, onOpenChange }: PremiumModalProps) {
             </Button>
           </div>
 
-          {/* Payment Methods */}
-          <div>
-            <h3 className="text-lg font-semibold text-white mb-3">Medios de Pago</h3>
-            <div className="grid grid-cols-2 gap-3">
-              {paymentMethods.map((method) => (
-                <div key={method} className="flex items-center gap-2 p-3 bg-card/50 rounded-lg border border-border">
-                  <Check className="h-4 w-4 text-green-400" />
-                  <span className="text-sm text-white">{method}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
           <div>
             <h3 className="text-lg font-semibold text-white mb-4">Comparación de Planes</h3>
             <TooltipProvider>
@@ -123,6 +110,19 @@ export function PremiumModal({ open, onOpenChange }: PremiumModalProps) {
                 </table>
               </div>
             </TooltipProvider>
+          </div>
+
+          {/* Payment Methods */}
+          <div>
+            <h3 className="text-lg font-semibold text-white mb-3">Medios de Pago</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {paymentMethods.map((method) => (
+                <div key={method} className="flex items-center gap-2 p-3 bg-card/50 rounded-lg border border-border">
+                  <Check className="h-4 w-4 text-green-400" />
+                  <span className="text-sm text-white">{method}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </DialogContent>
