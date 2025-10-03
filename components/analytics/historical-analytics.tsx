@@ -54,6 +54,18 @@ export function HistoricalAnalytics() {
     refetch,
   } = useApi(() => apiService.getHistoricalAnalytics(selectedUser?.value), [selectedUser])
 
+  if (!selectedUser.value) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h3 className="text-xl font-semibold text-white mb-2">
+            Para la demo, esta vista requiere seleccionar un usuario
+          </h3>
+        </div>
+      </div>
+    )
+  }
+
   if (loading || profileLoading) {
     return (
       <div className="flex items-center justify-center h-64">
