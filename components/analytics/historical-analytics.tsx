@@ -2,19 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  AreaChart,
-  Area,
-} from "recharts"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts"
 import { Trophy, Loader2 } from "lucide-react"
 import { useState } from "react"
 import { useApi } from "@/hooks/useApi"
@@ -124,8 +112,97 @@ export function HistoricalAnalytics() {
     )
   }
 
+  const totalMatches = data.length
+  const totalRounds = data.reduce((sum, d) => sum + (d.rounds || 1), 0)
+  const totalKills = data.reduce((sum, d) => sum + d.kills, 0)
+  const totalDeaths = data.reduce((sum, d) => sum + d.deaths, 0)
+  const kdRatio = totalDeaths > 0 ? (totalKills / totalDeaths).toFixed(2) : totalKills.toFixed(2)
+  const totalWins = data.filter((d) => d.result === "win").length
+  const winRate = totalMatches > 0 ? ((totalWins / totalMatches) * 100).toFixed(1) : "0.0"
+  const totalGoodPlays = data.reduce((sum, d) => sum + d.goodPlays, 0)
+  const totalBadPlays = data.reduce((sum, d) => sum + d.badPlays, 0)
+  const avgScore = totalMatches > 0 ? (data.reduce((sum, d) => sum + d.score, 0) / totalMatches).toFixed(0) : "0"
+  const totalHours = data.reduce((sum, d) => sum + (d.duration || 0), 0) / 3600
+  const favoriteMap = data.reduce((acc: any, d) => {
+    acc[d.map] = (acc[d.map] || 0) + 1
+    return acc
+  }, {})
+  const mostPlayedMap = Object.entries(favoriteMap).sort((a: any, b: any) => b[1] - a[1])[0]?.[0] || "N/A"
+  const favoriteWeapon = data.reduce((acc: any, d) => {
+    if (d.weapon) {
+      acc[d.weapon] = (acc[d.weapon] || 0) + 1
+    }
+    return acc
+  }, {})
+  const mostUsedWeapon = Object.entries(favoriteWeapon).sort((a: any, b: any) => b[1] - a[1])[0]?.[0] || "N/A"
+
   return (
     <div className="space-y-6">
+      <Card className="bg-card/50 border-card-border">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="h-20 w-20 rounded-full bg-primary/20 flex items-center justify-center">
+              <Trophy className="h-10 w-10 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-white">{selectedUser.label}</h2>
+              <p className="text-white">Estadísticas Generales</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="bg-background/50 rounded-lg p-4">
+              <p className="text-sm text-white mb-1">Total Partidas</p>
+              <p className="text-2xl font-bold text-white">{totalMatches}</p>
+            </div>
+            <div className="bg-background/50 rounded-lg p-4">
+              <p className="text-sm text-white mb-1">Total Rondas</p>
+              <p className="text-2xl font-bold text-white">{totalRounds}</p>
+            </div>
+            <div className="bg-background/50 rounded-lg p-4">
+              <p className="text-sm text-white mb-1">Total Kills</p>
+              <p className="text-2xl font-bold text-green-500">{totalKills}</p>
+            </div>
+            <div className="bg-background/50 rounded-lg p-4">
+              <p className="text-sm text-white mb-1">Total Deaths</p>
+              <p className="text-2xl font-bold text-red-500">{totalDeaths}</p>
+            </div>
+            <div className="bg-background/50 rounded-lg p-4">
+              <p className="text-sm text-white mb-1">K/D Ratio</p>
+              <p className="text-2xl font-bold text-primary">{kdRatio}</p>
+            </div>
+            <div className="bg-background/50 rounded-lg p-4">
+              <p className="text-sm text-white mb-1">Win Rate</p>
+              <p className="text-2xl font-bold text-primary">{winRate}%</p>
+            </div>
+            <div className="bg-background/50 rounded-lg p-4">
+              <p className="text-sm text-white mb-1">Buenas Jugadas</p>
+              <p className="text-2xl font-bold text-green-500">{totalGoodPlays}</p>
+            </div>
+            <div className="bg-background/50 rounded-lg p-4">
+              <p className="text-sm text-white mb-1">Malas Jugadas</p>
+              <p className="text-2xl font-bold text-red-500">{totalBadPlays}</p>
+            </div>
+            <div className="bg-background/50 rounded-lg p-4">
+              <p className="text-sm text-white mb-1">Puntaje Promedio</p>
+              <p className="text-2xl font-bold text-primary">{avgScore}</p>
+            </div>
+            <div className="bg-background/50 rounded-lg p-4">
+              <p className="text-sm text-white mb-1">Horas Jugadas</p>
+              <p className="text-2xl font-bold text-white">{totalHours.toFixed(1)}</p>
+            </div>
+            <div className="bg-background/50 rounded-lg p-4">
+              <p className="text-sm text-white mb-1">Mapa Favorito</p>
+              <p className="text-lg font-bold text-white truncate">{mostPlayedMap}</p>
+            </div>
+            <div className="bg-background/50 rounded-lg p-4">
+              <p className="text-sm text-white mb-1">Arma Favorita</p>
+              <p className="text-lg font-bold text-white truncate">{mostUsedWeapon}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-heading text-white">Análisis Histórico</h1>
         <Select value={timeRange} onValueChange={setTimeRange}>
@@ -195,45 +272,6 @@ export function HistoricalAnalytics() {
                   fillOpacity={0.6}
                 />
               </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-card/50 border-card-border">
-          <CardHeader>
-            <CardTitle>Buenas vs Malas Jugadas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={getFilteredData()}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="date" stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
-                <YAxis stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
-                <Tooltip
-                  content={<CustomTooltip labelMap={{ goodPlays: "Buenas Jugadas", badPlays: "Malas Jugadas" }} />}
-                />
-                <Bar dataKey="goodPlays" fill="#10B981" />
-                <Bar dataKey="badPlays" fill="#EF4444" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/50 border-card-border">
-          <CardHeader>
-            <CardTitle>Distribución de Puntajes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={getFilteredData()}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="date" stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
-                <YAxis stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
-                <Tooltip content={<CustomTooltip labelMap={{ score: "Puntaje" }} />} />
-                <Bar dataKey="score" fill="#ff851b" />
-              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
