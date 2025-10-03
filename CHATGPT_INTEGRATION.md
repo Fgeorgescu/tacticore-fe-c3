@@ -30,11 +30,11 @@ cp .env.example .env.local
 
 # Edita el archivo con tus credenciales reales
 nano .env.local
-```
+\`\`\`
 
 Contenido del archivo `.env.local`:
 
-```bash
+\`\`\`bash
 # API del backend
 NEXT_PUBLIC_API_URL=http://localhost:8080
 
@@ -45,14 +45,14 @@ NEXT_PUBLIC_OPENAI_API_KEY=tu_api_key_aqui
 NEXT_PUBLIC_CHATGPT_MODEL=gpt-3.5-turbo
 NEXT_PUBLIC_CHATGPT_MAX_TOKENS=300
 NEXT_PUBLIC_CHATGPT_TEMPERATURE=0.7
-```
+\`\`\`
 
 ### 3. Reiniciar Servicios
 
-```bash
+\`\`\`bash
 docker-compose down
 docker-compose up --build -d
-```
+\`\`\`
 
 ## 🎯 Uso del Bot
 
@@ -83,13 +83,13 @@ El bot proporcionará:
 
 ### Flujo de Datos
 
-```
+\`\`\`
 Frontend Chat → ChatGPT Service → OpenAI API
      ↓
 Match Context (kills, deaths, score, etc.)
      ↓
 Personalized Response
-```
+\`\`\`
 
 ### Componentes Principales
 
