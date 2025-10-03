@@ -85,17 +85,17 @@ export function UserComparison() {
   }
 
   const stats = [
+    { key: "kdr", label: "K/D Ratio", higherIsBetter: true, format: (v: number) => v.toFixed(2) },
+    { key: "winRate", label: "Win Rate (%)", higherIsBetter: true, format: (v: number) => v.toFixed(1) },
+    { key: "averageScore", label: "Puntaje Promedio", higherIsBetter: true, format: (v: number) => v.toFixed(1) },
+    { key: "totalGoodPlays", label: "Buenas Jugadas", higherIsBetter: true },
+    { key: "totalBadPlays", label: "Malas Jugadas", higherIsBetter: false },
     { key: "totalMatches", label: "Partidas Totales", higherIsBetter: true },
     { key: "totalKills", label: "Kills Totales", higherIsBetter: true },
     { key: "totalDeaths", label: "Deaths Totales", higherIsBetter: false },
-    { key: "kdr", label: "K/D Ratio", higherIsBetter: true, format: (v: number) => v.toFixed(2) },
-    { key: "winRate", label: "Win Rate (%)", higherIsBetter: true, format: (v: number) => v.toFixed(1) },
-    { key: "totalGoodPlays", label: "Buenas Jugadas", higherIsBetter: true },
-    { key: "totalBadPlays", label: "Malas Jugadas", higherIsBetter: false },
-    { key: "averageScore", label: "Puntaje Promedio", higherIsBetter: true, format: (v: number) => v.toFixed(1) },
     { key: "hoursPlayed", label: "Horas Jugadas", higherIsBetter: true, format: (v: number) => v.toFixed(1) },
-    { key: "favoriteMap", label: "Mapa Favorito", higherIsBetter: null },
     { key: "favoriteWeapon", label: "Arma Favorita", higherIsBetter: null },
+    { key: "favoriteMap", label: "Mapa Favorito", higherIsBetter: null },
   ]
 
   if (currentUserLoading) {
