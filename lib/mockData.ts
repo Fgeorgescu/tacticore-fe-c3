@@ -248,3 +248,33 @@ export const createMockUserProfile = (username: string): UserProfile => ({
 
 // Mantener la exportación original para compatibilidad
 export const mockUserProfile: UserProfile = createMockUserProfile("ProPlayer_CS")
+
+export const mockUsersList = [
+  "ProPlayer_CS",
+  "karrigan",
+  "NiKo",
+  "s1mple",
+  "ZywOo",
+  "device",
+  "electronic",
+  "Twistzz",
+  "ropz",
+  "frozen",
+]
+
+export const createMockUserValidation = (username: string) => {
+  const profile = createMockUserProfile(username)
+  return {
+    isValid: true,
+    user: {
+      id: profile.id,
+      name: profile.username,
+      role: profile.role || "Player",
+      averageScore: profile.stats.averageScore,
+      totalKills: profile.stats.totalKills,
+      totalDeaths: profile.stats.totalDeaths,
+      totalMatches: profile.stats.totalMatches,
+      kdr: profile.stats.kdr,
+    },
+  }
+}

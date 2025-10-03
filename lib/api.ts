@@ -89,6 +89,21 @@ export interface UserProfile {
   }
 }
 
+export interface UserValidationResult {
+  isValid: boolean
+  user?: {
+    id: string
+    name: string
+    role: string
+    averageScore: number
+    totalKills: number
+    totalDeaths: number
+    totalMatches: number
+    kdr: number
+  }
+  error?: string
+}
+
 import {
   mockMatches,
   mockKills,
@@ -97,6 +112,8 @@ import {
   mockDashboardStats,
   mockUserProfile,
   createMockUserProfile,
+  mockUsersList,
+  createMockUserValidation,
 } from "./mockData"
 
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true"
@@ -277,15 +294,66 @@ export class ApiService {
   async getUserProfile(username?: string | null): Promise<UserProfile> {
     return fetchWithFallback(
       async () => {
-        const url = username
-          ? `${this.baseUrl}/api/users/${encodeURIComponent(username)}/profile`
-          : `${this.baseUrl}/api/user/profile`
+        if (!username) {
+          throw new Error("Username is required for profile lookup")
+        }
+        const url = `${this.baseUrl}/api/users/${encodeURIComponent(username)}`
         const response = await fetch(url)
-        return handleResponse<UserProfile>(response)
+        const userDto = await handleResponse<any>(response)
+        
+        // Mapear UserDto del backend a UserProfile del frontend
+        return this.mapUserDtoToProfile(userDto, username)
       },
       username ? createMockUserProfile(username) : mockUserProfile,
       "getUserProfile",
     )
+  }
+
+  // Función helper para mapear UserDto a UserProfile
+  private mapUserDtoToProfile(userDto: any, username: string): UserProfile {
+    // Calcular estadísticas derivadas
+    const totalGoodPlays = Math.floor((userDto.totalKills || 0) * 0.4) // 40% de kills son buenas jugadas
+    const totalBadPlays = Math.floor((userDto.totalKills || 0) * 0.15) // 15% de kills son malas jugadas
+    const winRate = Math.min(Math.max((userDto.kdr || 0) * 45, 30), 85) // Estimar win rate basado en KDR
+    const hoursPlayed = Math.floor((userDto.totalMatches || 0) * 0.8) // ~48 min por match
+    
+    // Mapas y armas favoritas simuladas basadas en el usuario
+    const maps = ["de_dust2", "de_mirage", "de_inferno", "de_cache", "de_overpass"]
+    const weapons = ["AK-47", "M4A4", "AWP", "Glock-18", "USP-S"]
+    const favoriteMap = maps[username.length % maps.length]
+    const favoriteWeapon = weapons[username.length % weapons.length]
+    
+    return {
+      id: userDto.id?.toString() || `user_${username}`,
+      username: username,
+      email: `${username.toLowerCase()}@tacticore.gg`,
+      avatar: "/gamer-avatar.png",
+      role: userDto.role || "Player",
+      stats: {
+        totalMatches: userDto.totalMatches || 0,
+        totalRounds: Math.floor((userDto.totalMatches || 0) * 18), // ~18 rondas por match
+        totalKills: userDto.totalKills || 0,
+        totalDeaths: userDto.totalDeaths || 0,
+        totalGoodPlays: totalGoodPlays,
+        totalBadPlays: totalBadPlays,
+        averageScore: userDto.averageScore || 0,
+        kdr: userDto.kdr || 0,
+        winRate: winRate,
+        favoriteMap: favoriteMap,
+        favoriteWeapon: favoriteWeapon,
+        hoursPlayed: hoursPlayed,
+        memberSince: "2024-01-15T00:00:00Z", // Fecha fija para demo
+      },
+      recentActivity: {
+        lastMatchDate: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+        matchesThisWeek: Math.floor(Math.random() * 5) + 1,
+        matchesThisMonth: Math.floor(Math.random() * 15) + 5,
+      },
+      preferences: {
+        theme: "dark",
+        notifications: true,
+      }
+    }
   }
 
   async updateUserProfile(profile: Partial<UserProfile>): Promise<UserProfile> {
@@ -297,6 +365,45 @@ export class ApiService {
       body: JSON.stringify(profile),
     })
     return handleResponse<UserProfile>(response)
+  }
+
+  async searchUsers(query: string): Promise<string[]> {
+    return fetchWithFallback(
+      async () => {
+        const response = await fetch(`${this.baseUrl}/api/users/search?name=${encodeURIComponent(query)}`)
+        const result = await handleResponse<{ users: Array<{ name: string }> }>(response)
+        return result.users.map((u) => u.name)
+      },
+      mockUsersList.filter((name) => name.toLowerCase().includes(query.toLowerCase())),
+      `searchUsers(${query})`,
+    )
+  }
+
+  async validateUser(username: string): Promise<UserValidationResult> {
+    return fetchWithFallback(
+      async () => {
+        const response = await fetch(`${this.baseUrl}/api/users/${encodeURIComponent(username)}`)
+        if (response.status === 404) {
+          return { isValid: false, error: "Usuario no encontrado" }
+        }
+        const user = await handleResponse<any>(response)
+        return {
+          isValid: true,
+          user: {
+            id: user.id.toString(),
+            name: user.name,
+            role: user.role,
+            averageScore: user.averageScore || 0,
+            totalKills: user.totalKills || 0,
+            totalDeaths: user.totalDeaths || 0,
+            totalMatches: user.totalMatches || 0,
+            kdr: user.kdr || 0,
+          },
+        }
+      },
+      createMockUserValidation(username),
+      `validateUser(${username})`,
+    )
   }
 
   // File Uploads

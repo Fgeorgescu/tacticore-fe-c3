@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/layout/sidebar"
 import { Dashboard } from "@/components/dashboard/dashboard"
 import { MatchDetails } from "@/components/match-details/match-details"
 import { HistoricalAnalytics } from "@/components/analytics/historical-analytics"
+import { UserComparison } from "@/components/comparison/user-comparison"
 import { UploadModal } from "@/components/upload/upload-modal"
 import { ConnectionStatus } from "@/components/ui/connection-status"
 
@@ -32,6 +33,8 @@ export default function Home() {
         return <MatchDetails matchId={selectedMatch} onBack={handleBackToDashboard} />
       case "analytics":
         return <HistoricalAnalytics />
+      case "comparison":
+        return <UserComparison />
       default:
         return <Dashboard onViewDetails={handleViewDetails} />
     }
