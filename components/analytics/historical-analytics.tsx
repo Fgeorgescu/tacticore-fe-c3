@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
 import {
   LineChart,
   Line,
@@ -16,7 +15,7 @@ import {
   AreaChart,
   Area,
 } from "recharts"
-import { TrendingUp, TrendingDown, Trophy, Loader2, Calendar } from "lucide-react"
+import { Trophy, Loader2 } from "lucide-react"
 import { useState } from "react"
 import { useApi } from "@/hooks/useApi"
 import { apiService } from "@/lib/api"
@@ -42,11 +41,6 @@ export function HistoricalAnalytics() {
   const [timeRange, setTimeRange] = useState("all")
   const { selectedUser } = useUser()
 
-  const { data: userProfile, loading: profileLoading } = useApi(
-    () => apiService.getUserProfile(selectedUser?.value),
-    [selectedUser],
-  )
-
   const {
     data: historicalData,
     loading,
@@ -66,12 +60,12 @@ export function HistoricalAnalytics() {
     )
   }
 
-  if (loading || profileLoading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center gap-2">
           <Loader2 className="h-6 w-6 animate-spin" />
-          <span className="text-white">Cargando perfil...</span>
+          <span className="text-white">Cargando datos históricos...</span>
         </div>
       </div>
     )
@@ -118,13 +112,6 @@ export function HistoricalAnalytics() {
     })
   }
 
-  const latestData = data[data.length - 1]
-  const previousData = data[data.length - 2]
-
-  const kdrTrend = latestData && previousData ? latestData.kdr > previousData.kdr : false
-  const scoreTrend = latestData && previousData ? latestData.score > previousData.score : false
-  const killsTrend = latestData && previousData ? latestData.kills > previousData.kills : false
-
   if (data.length === 0) {
     return (
       <div className="space-y-6">
@@ -139,89 +126,6 @@ export function HistoricalAnalytics() {
 
   return (
     <div className="space-y-6">
-      {userProfile && (
-        <Card className="bg-card/50 border-card-border">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-6">
-              <div className="flex-shrink-0">
-                <img
-                  src={userProfile.avatar || "/placeholder.svg?height=100&width=100&query=gamer+avatar"}
-                  alt={userProfile.username}
-                  className="w-24 h-24 rounded-full border-2 border-primary"
-                />
-              </div>
-
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h2 className="text-2xl font-bold text-white">{userProfile.username}</h2>
-                  <span className="text-sm text-muted-foreground">{userProfile.email}</span>
-                </div>
-                {userProfile.role && (
-                  <Badge variant="secondary" className="mb-3">
-                    {userProfile.role}
-                  </Badge>
-                )}
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                  <Calendar className="h-4 w-4" />
-                  <span>Miembro desde {new Date(userProfile.stats.memberSince).toLocaleDateString()}</span>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  <div className="bg-background/50 rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground mb-1">Partidas</p>
-                    <p className="text-xl font-bold text-white">{userProfile.stats.totalMatches}</p>
-                  </div>
-                  <div className="bg-background/50 rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground mb-1">Rondas</p>
-                    <p className="text-xl font-bold text-white">{userProfile.stats.totalRounds}</p>
-                  </div>
-                  <div className="bg-background/50 rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground mb-1">Kills</p>
-                    <p className="text-xl font-bold text-green-400">{userProfile.stats.totalKills}</p>
-                  </div>
-                  <div className="bg-background/50 rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground mb-1">Deaths</p>
-                    <p className="text-xl font-bold text-red-400">{userProfile.stats.totalDeaths}</p>
-                  </div>
-                  <div className="bg-background/50 rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground mb-1">K/D Ratio</p>
-                    <p className="text-xl font-bold text-primary">{userProfile.stats.kdr.toFixed(2)}</p>
-                  </div>
-                  <div className="bg-background/50 rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground mb-1">Win Rate</p>
-                    <p className="text-xl font-bold text-white">{userProfile.stats.winRate.toFixed(1)}%</p>
-                  </div>
-                  <div className="bg-background/50 rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground mb-1">Buenas Jugadas</p>
-                    <p className="text-xl font-bold text-green-400">{userProfile.stats.totalGoodPlays}</p>
-                  </div>
-                  <div className="bg-background/50 rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground mb-1">Malas Jugadas</p>
-                    <p className="text-xl font-bold text-red-400">{userProfile.stats.totalBadPlays}</p>
-                  </div>
-                  <div className="bg-background/50 rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground mb-1">Puntaje Prom.</p>
-                    <p className="text-xl font-bold text-white">{userProfile.stats.averageScore.toFixed(1)}</p>
-                  </div>
-                  <div className="bg-background/50 rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground mb-1">Horas Jugadas</p>
-                    <p className="text-xl font-bold text-white">{userProfile.stats.hoursPlayed.toFixed(1)}h</p>
-                  </div>
-                  <div className="bg-background/50 rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground mb-1">Mapa Favorito</p>
-                    <p className="text-sm font-bold text-white">{userProfile.stats.favoriteMap}</p>
-                  </div>
-                  <div className="bg-background/50 rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground mb-1">Arma Favorita</p>
-                    <p className="text-sm font-bold text-white">{userProfile.stats.favoriteWeapon}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold font-heading text-white">Análisis Histórico</h1>
         <Select value={timeRange} onValueChange={setTimeRange}>
@@ -235,56 +139,6 @@ export function HistoricalAnalytics() {
             <SelectItem value="year">Último Año</SelectItem>
           </SelectContent>
         </Select>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-card/50 border-card-border">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-white">K/D Ratio Actual</p>
-                <p className="text-2xl font-bold text-foreground">{latestData ? latestData.kdr.toFixed(2) : "0.00"}</p>
-              </div>
-              {kdrTrend ? (
-                <TrendingUp className="h-8 w-8 text-green-400" />
-              ) : (
-                <TrendingDown className="h-8 w-8 text-red-400" />
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/50 border-card-border">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-white">Puntaje Promedio</p>
-                <p className="text-2xl font-bold text-foreground">{latestData ? latestData.score.toFixed(1) : "0.0"}</p>
-              </div>
-              {scoreTrend ? (
-                <TrendingUp className="h-8 w-8 text-green-400" />
-              ) : (
-                <TrendingDown className="h-8 w-8 text-red-400" />
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/50 border-card-border">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-white">Kills por Partida</p>
-                <p className="text-2xl font-bold text-foreground">{latestData ? latestData.kills : 0}</p>
-              </div>
-              {killsTrend ? (
-                <TrendingUp className="h-8 w-8 text-green-400" />
-              ) : (
-                <TrendingDown className="h-8 w-8 text-red-400" />
-              )}
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
