@@ -3,15 +3,14 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Instalar pnpm y curl para health checks
-RUN npm install -g pnpm && \
-    apk add --no-cache curl
+# Instalar curl para health checks
+RUN apk add --no-cache curl
 
 # Copiar archivos de dependencias
-COPY package.json pnpm-lock.yaml ./
+COPY package.json package-lock.json ./
 
 # Instalar dependencias
-RUN pnpm install --frozen-lockfile
+RUN npm install
 
 # Copiar código fuente
 COPY . .
@@ -20,4 +19,4 @@ COPY . .
 EXPOSE 3000
 
 # Comando para desarrollo
-CMD ["pnpm", "dev"]
+CMD ["npm", "run", "dev"]
