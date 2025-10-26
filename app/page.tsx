@@ -9,6 +9,7 @@ import { HistoricalAnalytics } from "@/components/analytics/historical-analytics
 import { UserComparison } from "@/components/comparison/user-comparison"
 import { UploadModal } from "@/components/upload/upload-modal"
 import { ConnectionStatus } from "@/components/ui/connection-status"
+import { ProtectedRoute } from "@/components/auth/protected-route"
 
 export default function Home() {
   const [activeView, setActiveView] = useState("dashboard")
@@ -41,14 +42,16 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <ConnectionStatus />
-      <Header onAddMatch={() => setIsUploadModalOpen(true)} />
-      <div className="flex">
-        <Sidebar activeView={activeView} onViewChange={setActiveView} />
-        <main className="flex-1 p-6">{renderContent()}</main>
+    <ProtectedRoute>
+      <div className="min-h-screen bg-background">
+        <ConnectionStatus />
+        <Header onAddMatch={() => setIsUploadModalOpen(true)} />
+        <div className="flex">
+          <Sidebar activeView={activeView} onViewChange={setActiveView} />
+          <main className="flex-1 p-6">{renderContent()}</main>
+        </div>
+        <UploadModal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} />
       </div>
-      <UploadModal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} />
-    </div>
+    </ProtectedRoute>
   )
 }

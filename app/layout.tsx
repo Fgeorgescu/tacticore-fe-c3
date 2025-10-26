@@ -5,6 +5,7 @@ import { Open_Sans } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import { UserProvider } from "@/contexts/UserContext"
+import { AuthProvider } from "@/contexts/AuthContext"
 import "./globals.css"
 
 const montserrat = Montserrat({
@@ -35,9 +36,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans ${montserrat.variable} ${openSans.variable} antialiased`}>
-        <UserProvider>
-          <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
-        </UserProvider>
+        <AuthProvider>
+          <UserProvider>
+            <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+          </UserProvider>
+        </AuthProvider>
         <Analytics />
       </body>
     </html>
