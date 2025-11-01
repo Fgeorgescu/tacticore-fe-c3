@@ -26,6 +26,26 @@ export interface Kill {
   time: string
   teamAlive: { ct: number; t: number }
   position: string
+  // Coordenadas para visualización en mapa
+  attackerPosition?: {
+    x: number
+    y: number
+    z: number
+  }
+  victimPosition?: {
+    x: number
+    y: number
+    z: number
+  }
+  // Coordenadas de imagen para mapas 2D
+  attackerImagePosition?: {
+    x: number
+    y: number
+  }
+  victimImagePosition?: {
+    x: number
+    y: number
+  }
 }
 
 export interface ChatMessage {
@@ -115,6 +135,7 @@ import {
   mockUsersList,
   createMockUserValidation,
 } from "./mockData"
+import { processBackendResponse } from "./killDataMapper"
 
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true"
 
@@ -186,6 +207,19 @@ export class ApiService {
           ? `${this.baseUrl}/api/matches/${id}/kills?user=${encodeURIComponent(user)}`
           : `${this.baseUrl}/api/matches/${id}/kills`
         const response = await fetch(url)
+        
+        // Intentar procesar como respuesta del backend con coordenadas
+        try {
+          const backendResponse = await response.json()
+          if (backendResponse.predictions) {
+            const processed = processBackendResponse(backendResponse)
+            return processed.kills
+          }
+        } catch (e) {
+          // Si falla, intentar el formato anterior
+        }
+        
+        // Formato anterior
         const result = await handleResponse<{ kills: Kill[] }>(response)
         return result.kills
       },
