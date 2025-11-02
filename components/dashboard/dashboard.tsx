@@ -219,12 +219,14 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
                           <div>
                             <p className="text-sm font-medium text-blue-200">{match.fileName}</p>
                             <div className="flex items-center gap-2 mt-1">
-                              <Badge
-                                variant="outline"
-                                className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs"
-                              >
-                                {match.map}
-                              </Badge>
+                              {match.map !== "Unknown" && (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs"
+                                >
+                                  {match.map}
+                                </Badge>
+                              )}
                               <span className="text-xs text-blue-300">{getRelativeTime(match.date)}</span>
                             </div>
                           </div>
