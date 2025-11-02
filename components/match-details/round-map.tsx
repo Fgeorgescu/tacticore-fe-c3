@@ -56,28 +56,7 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
 
   useEffect(() => {
     setCurrentKillIndex(null)
-
-    // Calculate which page should show to center the selected round
-    const middlePosition = Math.floor(ROUNDS_PER_PAGE / 2) // For 7 elements, this is 3
-    const totalRounds = killsByRound.length
-
-    // Calculate the ideal page to center the current round
-    let idealPage = Math.floor((currentRoundIndex - middlePosition) / ROUNDS_PER_PAGE)
-
-    // Handle border cases
-    if (currentRoundIndex < middlePosition) {
-      // Near the beginning, show first page
-      idealPage = 0
-    } else if (currentRoundIndex >= totalRounds - middlePosition) {
-      // Near the end, show last page
-      idealPage = totalRoundPages - 1
-    }
-
-    // Ensure page is within valid range
-    idealPage = Math.max(0, Math.min(totalRoundPages - 1, idealPage))
-
-    setRoundSelectorPage(idealPage)
-  }, [currentRoundIndex, killsByRound.length, totalRoundPages, ROUNDS_PER_PAGE])
+  }, [currentRoundIndex])
 
   const goToPreviousRound = () => {
     setCurrentRoundIndex(Math.max(0, currentRoundIndex - 1))
@@ -113,6 +92,14 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
 
   const showAllKills = () => {
     setCurrentKillIndex(null)
+  }
+
+  const goToPreviousRoundPage = () => {
+    setRoundSelectorPage(Math.max(0, roundSelectorPage - 1))
+  }
+
+  const goToNextRoundPage = () => {
+    setRoundSelectorPage(Math.min(totalRoundPages - 1, roundSelectorPage + 1))
   }
 
   if (killsByRound.length === 0) {
@@ -196,6 +183,18 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
               </div>
 
               <div className="flex items-center gap-2">
+                {totalRoundPages > 1 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToPreviousRoundPage}
+                    disabled={roundSelectorPage === 0}
+                    className="w-8 h-8 p-0 bg-transparent"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                )}
+
                 <div className="flex gap-1">
                   {visibleRounds.map(([roundNumber], index) => {
                     const actualIndex = roundSelectorPage * ROUNDS_PER_PAGE + index
@@ -212,6 +211,18 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
                     )
                   })}
                 </div>
+
+                {totalRoundPages > 1 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToNextRoundPage}
+                    disabled={roundSelectorPage === totalRoundPages - 1}
+                    className="w-8 h-8 p-0 bg-transparent"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
 
