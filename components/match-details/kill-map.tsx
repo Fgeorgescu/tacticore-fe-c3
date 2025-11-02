@@ -13,6 +13,11 @@ interface KillMapProps {
   kills: Kill[]
   selectedUser?: string
   className?: string
+  showHeader?: boolean
+  showAttackerPositions?: boolean
+  showVictimPositions?: boolean
+  onToggleAttackerPositions?: () => void
+  onToggleVictimPositions?: () => void
 }
 
 interface MapData {
@@ -271,10 +276,39 @@ function adjustCoordinatesForMap(
   return { x, y }
 }
 
-export function KillMap({ mapName, kills, selectedUser, className = "" }: KillMapProps) {
-  const [showAttackerPositions, setShowAttackerPositions] = useState(true)
-  const [showVictimPositions, setShowVictimPositions] = useState(true)
-  const [hoveredKill, setHoveredKill] = useState<Kill | null>(null)
+export function KillMap({
+  mapName,
+  kills,
+  selectedUser,
+  className = "",
+  showHeader = true,
+  showAttackerPositions: externalShowAttackerPositions,
+  showVictimPositions: externalShowVictimPositions,
+  onToggleAttackerPositions,
+  onToggleVictimPositions,
+}: KillMapProps) {
+  const [internalShowAttackerPositions, setInternalShowAttackerPositions] = useState(true)
+  const [internalShowVictimPositions, setInternalShowVictimPositions] = useState(true)
+
+  const showAttackerPositions = externalShowAttackerPositions ?? internalShowAttackerPositions
+  const showVictimPositions = externalShowVictimPositions ?? internalShowVictimPositions
+
+  const toggleAttackerPositions = () => {
+    if (onToggleAttackerPositions) {
+      onToggleAttackerPositions()
+    } else {
+      setInternalShowAttackerPositions(!internalShowAttackerPositions)
+    }
+  }
+
+  const toggleVictimPositions = () => {
+    if (onToggleVictimPositions) {
+      onToggleVictimPositions()
+    } else {
+      setInternalShowVictimPositions(!internalShowVictimPositions)
+    }
+  }
+
   const [mapDataJson, setMapDataJson] = useState<Record<string, MapData> | null>(null)
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number }>({
     width: 1024,
@@ -493,15 +527,19 @@ export function KillMap({ mapName, kills, selectedUser, className = "" }: KillMa
     setHoveredKill(null)
   }
 
+  const [hoveredKill, setHoveredKill] = useState<Kill | null>(null)
+
   if (killsWithCoordinates.length === 0) {
     return (
       <Card className={className}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Mapa de Kills - {mapConfig.displayName}
-          </CardTitle>
-        </CardHeader>
+        {showHeader && (
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Mapa de Kills - {mapConfig.displayName}
+            </CardTitle>
+          </CardHeader>
+        )}
         <CardContent>
           <div className="text-center py-8 text-white">
             <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -514,76 +552,82 @@ export function KillMap({ mapName, kills, selectedUser, className = "" }: KillMa
 
   return (
     <Card className={className}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MapPin className="h-5 w-5" />
-          Mapa de Kills - {mapConfig.displayName}
-        </CardTitle>
-      </CardHeader>
+      {showHeader && (
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            Mapa de Kills - {mapConfig.displayName}
+          </CardTitle>
+        </CardHeader>
+      )}
       <CardContent>
-        {/* Statistics and controls side by side */}
-        <div className="flex justify-between gap-6 mb-4 items-center">
-          {/* Left side: Statistics */}
-          <div className="grid grid-cols-3 gap-4 text-center flex-1">
-            <div>
-              <p className="text-2xl font-bold text-white">{killsWithCoordinates.length}</p>
-              <p className="text-sm text-gray-300">Total Kills</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-green-400">
-                {killsWithCoordinates.filter((k) => k.isGoodPlay).length}
-              </p>
-              <p className="text-sm text-gray-300">Buenas Jugadas</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-red-400">
-                {killsWithCoordinates.filter((k) => !k.isGoodPlay).length}
-              </p>
-              <p className="text-sm text-gray-300">Malas Jugadas</p>
-            </div>
-          </div>
-
-          {/* Right side: Buttons and legend */}
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-2">
-              <Button
-                variant={showAttackerPositions ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowAttackerPositions(!showAttackerPositions)}
-                className="gap-1"
-              >
-                {showAttackerPositions ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                Atacantes
-              </Button>
-              <Button
-                variant={showVictimPositions ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowVictimPositions(!showVictimPositions)}
-                className="gap-1"
-              >
-                {showVictimPositions ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                Víctimas
-              </Button>
+        {showHeader && (
+          <div className="flex justify-between gap-6 mb-4 items-center">
+            {/* Left side: Statistics */}
+            <div className="grid grid-cols-3 gap-4 text-center flex-1">
+              <div>
+                <p className="text-2xl font-bold text-white">{killsWithCoordinates.length}</p>
+                <p className="text-sm text-gray-300">Total Kills</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-green-400">
+                  {killsWithCoordinates.filter((k) => k.isGoodPlay).length}
+                </p>
+                <p className="text-sm text-gray-300">Buenas Jugadas</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-red-400">
+                  {killsWithCoordinates.filter((k) => !k.isGoodPlay).length}
+                </p>
+                <p className="text-sm text-gray-300">Malas Jugadas</p>
+              </div>
             </div>
 
-            {/* Leyenda de colores */}
-            <div className="flex gap-3 items-center text-xs bg-black/40 px-2 py-1 rounded">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#64b5f6" }}></div>
-                <span className="text-gray-300">CT</span>
+            {/* Right side: Buttons and legend */}
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <Button
+                  variant={showAttackerPositions ? "default" : "outline"}
+                  size="sm"
+                  onClick={toggleAttackerPositions}
+                  className="gap-1"
+                >
+                  {showAttackerPositions ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  Atacantes
+                </Button>
+                <Button
+                  variant={showVictimPositions ? "default" : "outline"}
+                  size="sm"
+                  onClick={toggleVictimPositions}
+                  className="gap-1"
+                >
+                  {showVictimPositions ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  Víctimas
+                </Button>
               </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ff9800" }}></div>
-                <span className="text-gray-300">T</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full border border-white" style={{ backgroundColor: "#4fc3f7" }}></div>
-                <span className="text-white text-[10px]">X</span>
-                <span className="text-gray-300">Víctima</span>
+
+              {/* Leyenda de colores */}
+              <div className="flex gap-3 items-center text-xs bg-black/40 px-2 py-1 rounded">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#64b5f6" }}></div>
+                  <span className="text-gray-300">CT</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ff9800" }}></div>
+                  <span className="text-gray-300">T</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div
+                    className="w-3 h-3 rounded-full border border-white"
+                    style={{ backgroundColor: "#4fc3f7" }}
+                  ></div>
+                  <span className="text-white text-[10px]">X</span>
+                  <span className="text-gray-300">Víctima</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Mapa */}
         <div
