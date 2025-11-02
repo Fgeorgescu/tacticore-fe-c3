@@ -309,9 +309,9 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
             )}
           </div>
 
-          <div className="grid grid-cols-4 gap-4">
-            {/* Mapa de la ronda actual - 3/4 del espacio */}
-            <div className="col-span-3">
+          <div className="grid grid-cols-2 gap-4">
+            {/* Mapa de la ronda actual - 50% del espacio */}
+            <div className="col-span-1">
               {killsWithCoordinates.length > 0 ? (
                 <KillMap mapName={mapName} kills={killsToDisplay} selectedUser={selectedUser} className="w-full" />
               ) : (
@@ -322,7 +322,7 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
               )}
             </div>
 
-            {/* Lista de kills de la ronda - 1/4 del espacio */}
+            {/* Lista de kills de la ronda - 50% del espacio */}
             {currentRoundKills.length > 0 && (
               <div className="col-span-1 space-y-2">
                 <h4 className="text-sm font-semibold text-white">Kills</h4>
