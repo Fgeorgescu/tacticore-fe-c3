@@ -4,15 +4,13 @@ import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { ArrowLeft, Target, Users, TrendingUp, TrendingDown, Send, MessageCircle, Loader2, Trash2, ChevronDown, ChevronRight } from "lucide-react"
+import { ArrowLeft, Target, TrendingUp, TrendingDown, Loader2, Trash2, ChevronDown, ChevronRight } from "lucide-react"
 import { BotChat } from "@/components/chat/bot-chat"
 import { KillMap } from "@/components/match-details/kill-map"
 import { RoundMap } from "@/components/match-details/round-map"
 import { useApi } from "@/hooks/useApi"
 import { useUser } from "@/contexts/UserContext"
-import { apiService, Match, Kill, ChatMessage } from "@/lib/api"
+import { apiService, type Kill, type ChatMessage } from "@/lib/api"
 
 interface MatchDetailsProps {
   matchId: string | null
@@ -20,34 +18,50 @@ interface MatchDetailsProps {
 }
 
 export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
-  const { selectedUser } = useUser();
+  const { selectedUser } = useUser()
   const [chatMessagesData, setChatMessagesData] = useState<ChatMessage[]>([])
   const [expandedRounds, setExpandedRounds] = useState<Set<number>>(new Set())
 
   // Fetch match data
-  const { data: matchData, loading: matchLoading, error: matchError } = useApi(
-    () => matchId ? apiService.getMatch(matchId) : Promise.reject(new Error("No match ID provided")),
-    [matchId]
-  );
+  const {
+    data: matchData,
+    loading: matchLoading,
+    error: matchError,
+  } = useApi(
+    () => (matchId ? apiService.getMatch(matchId) : Promise.reject(new Error("No match ID provided"))),
+    [matchId],
+  )
 
   // Fetch kills data
-  const { data: kills, loading: killsLoading, error: killsError } = useApi(
-    () => matchId ? apiService.getMatchKills(matchId, selectedUser.value) : Promise.reject(new Error("No match ID provided")),
-    [matchId, selectedUser.value]
-  );
+  const {
+    data: kills,
+    loading: killsLoading,
+    error: killsError,
+  } = useApi(
+    () =>
+      matchId
+        ? apiService.getMatchKills(matchId, selectedUser.value)
+        : Promise.reject(new Error("No match ID provided")),
+    [matchId, selectedUser.value],
+  )
 
   // Fetch chat messages
-  const { data: chatMessages, loading: chatLoading, error: chatError, refetch: refetchChat } = useApi(
-    () => matchId ? apiService.getMatchChat(matchId) : Promise.reject(new Error("No match ID provided")),
-    [matchId]
-  );
+  const {
+    data: chatMessages,
+    loading: chatLoading,
+    error: chatError,
+    refetch: refetchChat,
+  } = useApi(
+    () => (matchId ? apiService.getMatchChat(matchId) : Promise.reject(new Error("No match ID provided"))),
+    [matchId],
+  )
 
   // Actualizar mensajes cuando se cargan del backend
   React.useEffect(() => {
     if (chatMessages) {
-      setChatMessagesData(chatMessages);
+      setChatMessagesData(chatMessages)
     }
-  }, [chatMessages]);
+  }, [chatMessages])
 
   // Loading state
   if (matchLoading || killsLoading || chatLoading) {
@@ -58,7 +72,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
           <span className="text-white">Cargando detalles de la partida...</span>
         </div>
       </div>
-    );
+    )
   }
 
   // Error state
@@ -73,12 +87,10 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
           <h1 className="text-3xl font-bold font-heading text-white">Error al cargar la partida</h1>
         </div>
         <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-          <p className="text-sm text-white">
-            {matchError || killsError || chatError}
-          </p>
+          <p className="text-sm text-white">{matchError || killsError || chatError}</p>
         </div>
       </div>
-    );
+    )
   }
 
   // No match data
@@ -93,63 +105,63 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
           <h1 className="text-3xl font-bold font-heading text-white">Partida no encontrada</h1>
         </div>
       </div>
-    );
+    )
   }
 
-  const killsData = kills || [];
+  const killsData = kills || []
 
   const handleDeleteMatch = async () => {
-    if (!matchId) return;
-    
+    if (!matchId) return
+
     if (confirm("¿Estás seguro de que quieres eliminar esta partida?")) {
       try {
-        await apiService.deleteMatch(matchId);
-        onBack(); // Go back to dashboard
+        await apiService.deleteMatch(matchId)
+        onBack() // Go back to dashboard
       } catch (error) {
-        console.error("Error deleting match:", error);
-        alert("Error al eliminar la partida");
+        console.error("Error deleting match:", error)
+        alert("Error al eliminar la partida")
       }
     }
-  };
+  }
 
   // Función para agrupar kills por rondas
   const groupKillsByRounds = (kills: Kill[]) => {
-    const roundsMap = new Map<number, Kill[]>();
-    
-    kills.forEach(kill => {
-      const round = kill.round;
+    const roundsMap = new Map<number, Kill[]>()
+
+    kills.forEach((kill) => {
+      const round = kill.round
       if (!roundsMap.has(round)) {
-        roundsMap.set(round, []);
+        roundsMap.set(round, [])
       }
-      roundsMap.get(round)!.push(kill);
-    });
-    
+      roundsMap.get(round)!.push(kill)
+    })
+
     // Ordenar las rondas y los kills dentro de cada ronda
-    const sortedRounds = Array.from(roundsMap.entries()).sort(([a], [b]) => a - b);
+    const sortedRounds = Array.from(roundsMap.entries()).sort(([a], [b]) => a - b)
     sortedRounds.forEach(([, kills]) => {
-      kills.sort((a, b) => a.time.localeCompare(b.time));
-    });
-    
-    return sortedRounds;
-  };
+      kills.sort((a, b) => a.time.localeCompare(b.time))
+    })
+
+    return sortedRounds
+  }
 
   // Función para alternar la expansión de una ronda
   const toggleRound = (roundNumber: number) => {
-    const newExpanded = new Set(expandedRounds);
+    const newExpanded = new Set(expandedRounds)
     if (newExpanded.has(roundNumber)) {
-      newExpanded.delete(roundNumber);
+      newExpanded.delete(roundNumber)
     } else {
-      newExpanded.add(roundNumber);
+      newExpanded.add(roundNumber)
     }
-    setExpandedRounds(newExpanded);
-  };
+    setExpandedRounds(newExpanded)
+  }
 
   // Función para calcular estadísticas de una ronda
   const getRoundStats = (kills: Kill[]) => {
-    const goodPlays = kills.filter(kill => kill.isGoodPlay).length;
-    const badPlays = kills.filter(kill => !kill.isGoodPlay).length;
-    return { goodPlays, badPlays, totalKills: kills.length };
-  };
+    const goodPlays = kills.filter((kill) => kill.isGoodPlay).length
+    const badPlays = kills.filter((kill) => !kill.isGoodPlay).length
+    return { goodPlays, badPlays, totalKills: kills.length }
+  }
 
   return (
     <div className="space-y-6">
@@ -217,32 +229,35 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
               <p className="text-3xl font-bold text-primary">{matchData.score.toFixed(1)}/10</p>
               <p className="text-sm text-white">Puntaje Final</p>
             </div>
+
+            <div className="mt-6">
+              <div className="relative w-full max-w-md mx-auto">
+                <KillMap
+                  mapName={matchData.map}
+                  kills={killsData}
+                  selectedUser={selectedUser.value}
+                  className="w-full"
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         {/* Chat con Bot */}
         <Card className="h-fit">
           <CardContent className="p-4">
-            <BotChat 
+            <BotChat
               matchData={matchData}
               killsData={killsData}
               initialMessages={chatMessagesData}
               onNewMessage={(message) => {
                 // Agregar el mensaje a la lista local
-                setChatMessagesData(prev => [...prev, message]);
+                setChatMessagesData((prev) => [...prev, message])
               }}
             />
           </CardContent>
         </Card>
       </div>
-
-      {/* Mapa de Kills */}
-      <KillMap 
-        mapName={matchData.map}
-        kills={killsData}
-        selectedUser={selectedUser.value}
-        className="w-full"
-      />
 
       {/* Mapa por Rondas */}
       <RoundMap
@@ -266,13 +281,13 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
           ) : (
             <div className="space-y-4">
               {groupKillsByRounds(killsData).map(([roundNumber, roundKills]) => {
-                const stats = getRoundStats(roundKills);
-                const isExpanded = expandedRounds.has(roundNumber);
-                
+                const stats = getRoundStats(roundKills)
+                const isExpanded = expandedRounds.has(roundNumber)
+
                 return (
                   <div key={roundNumber} className="border border-border rounded-lg">
                     {/* Header de la ronda */}
-                    <div 
+                    <div
                       className="flex items-center justify-between p-4 cursor-pointer hover:bg-accent/50 transition-colors"
                       onClick={() => toggleRound(roundNumber)}
                     >
@@ -289,7 +304,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
                           </Badge>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
                           <TrendingUp className="h-4 w-4 text-green-400" />
@@ -301,7 +316,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Contenido de la ronda */}
                     {isExpanded && (
                       <div className="border-t border-border p-4">
@@ -347,7 +362,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
                       </div>
                     )}
                   </div>
-                );
+                )
               })}
             </div>
           )}
