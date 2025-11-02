@@ -252,7 +252,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
                     variant={showAttackerPositions ? "default" : "outline"}
                     size="sm"
                     onClick={() => setShowAttackerPositions(!showAttackerPositions)}
-                    className="gap-1"
+                    className={`gap-1 ${showAttackerPositions ? "bg-blue-500 hover:bg-blue-600" : ""}`}
                   >
                     {showAttackerPositions ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                     Atacantes
@@ -261,7 +261,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
                     variant={showVictimPositions ? "default" : "outline"}
                     size="sm"
                     onClick={() => setShowVictimPositions(!showVictimPositions)}
-                    className="gap-1"
+                    className={`gap-1 ${showVictimPositions ? "bg-blue-500 hover:bg-blue-600" : ""}`}
                   >
                     {showVictimPositions ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                     Víctimas
