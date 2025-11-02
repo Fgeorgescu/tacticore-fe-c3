@@ -238,7 +238,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
               </div>
             </div>
 
-            <div className="mt-6 flex justify-between items-center gap-6">
+            <div className="mt-6 flex justify-center items-center gap-8">
               {/* Left side: Final Score */}
               <div className="text-center">
                 <p className="text-3xl font-bold text-primary">{matchData.score.toFixed(1)}/10</p>
