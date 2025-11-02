@@ -54,6 +54,21 @@ const generateExtensiveMockKills = (): Kill[] => {
 
 export const mockMatches: Match[] = [
   {
+    id: "processing-1",
+    fileName: "Partida Competitiva - Ancient",
+    hasVideo: true,
+    map: "de_ancient",
+    gameType: "Ranked",
+    kills: 0,
+    deaths: 0,
+    goodPlays: 0,
+    badPlays: 0,
+    duration: "00:00",
+    score: 0,
+    date: new Date(Date.now() - 5 * 60 * 1000).toISOString().slice(0, -1), // 5 minutos atrás
+    status: "processing",
+  },
+  {
     id: "1",
     fileName: "Partida Competitiva - Dust2",
     hasVideo: true,
@@ -66,6 +81,7 @@ export const mockMatches: Match[] = [
     duration: "45:32",
     score: 8.5,
     date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString().slice(0, -1), // 2 horas atrás
+    status: "completed",
   },
   {
     id: "2",
@@ -80,6 +96,7 @@ export const mockMatches: Match[] = [
     duration: "38:15",
     score: 9.2,
     date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, -1), // 1 día atrás
+    status: "completed",
   },
   {
     id: "3",
@@ -94,6 +111,7 @@ export const mockMatches: Match[] = [
     duration: "42:18",
     score: 6.3,
     date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, -1), // 3 días atrás
+    status: "completed",
   },
   {
     id: "4",
@@ -108,6 +126,7 @@ export const mockMatches: Match[] = [
     duration: "48:45",
     score: 7.8,
     date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, -1), // 5 días atrás
+    status: "completed",
   },
   {
     id: "5",
@@ -122,6 +141,7 @@ export const mockMatches: Match[] = [
     duration: "51:22",
     score: 8.9,
     date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, -1), // 7 días atrás
+    status: "completed",
   },
 ]
 

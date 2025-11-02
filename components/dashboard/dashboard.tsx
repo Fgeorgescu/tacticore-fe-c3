@@ -17,6 +17,7 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  AlertCircle,
 } from "lucide-react"
 import { useApi } from "@/hooks/useApi"
 import { useUser } from "@/contexts/UserContext"
@@ -93,6 +94,9 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
     kdr: 0,
   }
 
+  const processingMatches = matchesData.filter((m) => m.status === "processing")
+  const completedMatches = matchesData.filter((m) => m.status !== "processing")
+
   const getScoreColor = (score: number) => {
     if (score >= 8) return "text-green-400"
     if (score >= 6) return "text-yellow-400"
@@ -115,7 +119,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
   }
 
   // Ordenar partidas por fecha (más recientes primero)
-  const sortedMatches = [...matchesData].sort((a, b) => {
+  const sortedMatches = [...completedMatches].sort((a, b) => {
     const dateA = new Date(a.date + "Z") // Agregar 'Z' para UTC
     const dateB = new Date(b.date + "Z") // Agregar 'Z' para UTC
     return dateB.getTime() - dateA.getTime()
@@ -186,12 +190,71 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
           </Button>
         </div>
 
+        {processingMatches.length > 0 && (
+          <Card className="bg-blue-500/10 border-blue-500/30">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <Loader2 className="h-5 w-5 animate-spin text-blue-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <AlertCircle className="h-4 w-4 text-blue-400" />
+                    <h3 className="font-semibold text-blue-400">
+                      {processingMatches.length === 1
+                        ? "Tienes una partida en proceso"
+                        : `Tienes ${processingMatches.length} partidas en proceso`}
+                    </h3>
+                  </div>
+                  <p className="text-sm text-blue-300 mb-3">
+                    Estamos analizando {processingMatches.length === 1 ? "tu archivo" : "tus archivos"} DEM y generando
+                    estadísticas. Esto puede tomar algunos minutos.
+                  </p>
+                  <div className="space-y-2">
+                    {processingMatches.map((match) => (
+                      <div
+                        key={match.id}
+                        className="flex items-center justify-between bg-blue-500/5 rounded-lg p-3 border border-blue-500/20"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
+                          <div>
+                            <p className="text-sm font-medium text-blue-200">{match.fileName}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge
+                                variant="outline"
+                                className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs"
+                              >
+                                {match.map}
+                              </Badge>
+                              <span className="text-xs text-blue-300">{getRelativeTime(match.date)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+                          Procesando...
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {matchesData.length === 0 ? (
           <Card className="bg-card/50 border-card-border">
             <CardContent className="p-8 text-center">
               <Trophy className="h-12 w-12 text-white mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-white mb-2">No hay partidas</h3>
               <p className="text-white">Sube tu primera partida para comenzar a analizar tu rendimiento.</p>
+            </CardContent>
+          </Card>
+        ) : sortedMatches.length === 0 ? (
+          <Card className="bg-card/50 border-card-border">
+            <CardContent className="p-8 text-center">
+              <Loader2 className="h-12 w-12 text-blue-400 mx-auto mb-4 animate-spin" />
+              <h3 className="text-lg font-semibold text-white mb-2">Todas las partidas están en proceso</h3>
+              <p className="text-white">Espera a que termine el procesamiento para ver tus estadísticas.</p>
             </CardContent>
           </Card>
         ) : (

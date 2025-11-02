@@ -14,6 +14,7 @@ export interface Match {
   duration: string
   score: number
   date: string
+  status?: "processing" | "completed" | "failed"
 }
 
 export interface Kill {
@@ -209,36 +210,36 @@ export class ApiService {
           ? `${this.baseUrl}/api/matches/${id}/kills?user=${encodeURIComponent(user)}`
           : `${this.baseUrl}/api/matches/${id}/kills`
         const response = await fetch(url)
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
-        
+
         // Leer la respuesta una sola vez
         const data = await response.json()
-        
+
         console.log(`[api] getMatchKills response for match ${id}:`, {
           hasPredictions: !!data.predictions,
           predictionsCount: data.predictions?.length || 0,
           hasKills: !!data.kills,
           killsCount: data.kills?.length || 0,
           totalKills: data.total_kills,
-          map: data.map
+          map: data.map,
         })
-        
+
         // Verificar si tiene el formato nuevo con predictions
         if (data.predictions && Array.isArray(data.predictions)) {
           const processed = processBackendResponse(data)
           console.log(`[api] Processed ${processed.kills.length} kills from predictions`)
           return processed.kills
         }
-        
+
         // Formato anterior con kills directamente
         if (data.kills && Array.isArray(data.kills)) {
           console.log(`[api] Returning ${data.kills.length} kills from old format`)
           return data.kills
         }
-        
+
         // Si no tiene ninguno de los formatos esperados, retornar array vacío
         console.warn("[api] Unknown response format for kills:", data)
         return []
@@ -354,7 +355,7 @@ export class ApiService {
         const url = `${this.baseUrl}/api/users/${encodeURIComponent(username)}`
         const response = await fetch(url)
         const userDto = await handleResponse<any>(response)
-        
+
         // Mapear UserDto del backend a UserProfile del frontend
         return this.mapUserDtoToProfile(userDto, username)
       },
@@ -370,13 +371,13 @@ export class ApiService {
     const totalBadPlays = Math.floor((userDto.totalKills || 0) * 0.15) // 15% de kills son malas jugadas
     const winRate = Math.min(Math.max((userDto.kdr || 0) * 45, 30), 85) // Estimar win rate basado en KDR
     const hoursPlayed = Math.floor((userDto.totalMatches || 0) * 0.8) // ~48 min por match
-    
+
     // Mapas y armas favoritas simuladas basadas en el usuario
     const maps = ["de_dust2", "de_mirage", "de_inferno", "de_cache", "de_overpass"]
     const weapons = ["AK-47", "M4A4", "AWP", "Glock-18", "USP-S"]
     const favoriteMap = maps[username.length % maps.length]
     const favoriteWeapon = weapons[username.length % weapons.length]
-    
+
     return {
       id: userDto.id?.toString() || `user_${username}`,
       username: username,
@@ -406,7 +407,7 @@ export class ApiService {
       preferences: {
         theme: "dark",
         notifications: true,
-      }
+      },
     }
   }
 
