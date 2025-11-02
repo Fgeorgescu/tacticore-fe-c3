@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ArrowLeft, Target, Users, TrendingUp, TrendingDown, Send, MessageCircle, Loader2, Trash2, ChevronDown, ChevronRight } from "lucide-react"
 import { BotChat } from "@/components/chat/bot-chat"
+import { KillMap } from "@/components/match-details/kill-map"
+import { RoundMap } from "@/components/match-details/round-map"
 import { useApi } from "@/hooks/useApi"
 import { useUser } from "@/contexts/UserContext"
 import { apiService, Match, Kill, ChatMessage } from "@/lib/api"
@@ -233,6 +235,22 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Mapa de Kills */}
+      <KillMap 
+        mapName={matchData.map}
+        kills={killsData}
+        selectedUser={selectedUser.value}
+        className="w-full"
+      />
+
+      {/* Mapa por Rondas */}
+      <RoundMap
+        mapName={matchData.map}
+        killsByRound={groupKillsByRounds(killsData)}
+        selectedUser={selectedUser.value}
+        className="w-full"
+      />
 
       {/* Kills Timeline */}
       <Card>
