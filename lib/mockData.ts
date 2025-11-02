@@ -55,9 +55,9 @@ const generateExtensiveMockKills = (): Kill[] => {
 export const mockMatches: Match[] = [
   {
     id: "processing-1",
-    fileName: "Partida Competitiva - Ancient",
+    fileName: "nuke_processing.dem",
     hasVideo: true,
-    map: "de_ancient",
+    map: "Unknown",
     gameType: "Ranked",
     kills: 0,
     deaths: 0,
