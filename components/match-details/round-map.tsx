@@ -326,29 +326,29 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
             {currentRoundKills.length > 0 && (
               <div className="col-span-1 space-y-2">
                 <h4 className="text-sm font-semibold text-white">Kills</h4>
-                <div className="space-y-1 max-h-[600px] overflow-y-auto pr-2">
+                <div className="space-y-0.5 max-h-[600px] overflow-y-auto pr-2">
                   {currentRoundKills.map((kill) => (
                     <div
                       key={kill.id}
-                      className={`flex flex-col gap-1 p-2 rounded border text-xs ${
+                      className={`flex flex-col gap-0.5 p-1.5 rounded border text-xs ${
                         kill.isGoodPlay ? "bg-green-500/10 border-green-500/20" : "bg-red-500/10 border-red-500/20"
                       }`}
                     >
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1 flex-1 min-w-0">
                           <span className="font-semibold text-foreground truncate">{kill.killer}</span>
                           <span className="text-white">→</span>
+                          <span className="text-foreground truncate">{kill.victim}</span>
                         </div>
-                        <span className="text-foreground truncate">{kill.victim}</span>
-                      </div>
-                      <Badge variant="outline" className="text-xs w-fit">
-                        {kill.weapon}
-                      </Badge>
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-xs text-white">{kill.time}</span>
-                        <Badge variant={kill.isGoodPlay ? "default" : "destructive"} className="text-xs">
+                        <Badge variant={kill.isGoodPlay ? "default" : "destructive"} className="text-xs shrink-0">
                           {kill.isGoodPlay ? "✓" : "✗"}
                         </Badge>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {kill.weapon}
+                        </Badge>
+                        <span className="text-xs text-gray-400">{kill.time}</span>
                       </div>
                     </div>
                   ))}
