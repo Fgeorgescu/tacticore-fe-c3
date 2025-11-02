@@ -8,6 +8,8 @@ interface SimpleMapViewProps {
   mapName: string
   kills: Kill[]
   selectedUser?: string
+  showAttackerPositions?: boolean
+  showVictimPositions?: boolean
   className?: string
 }
 
@@ -186,7 +188,14 @@ function adjustCoordinatesForMap(
   return { x, y }
 }
 
-export function SimpleMapView({ mapName, kills, selectedUser, className = "" }: SimpleMapViewProps) {
+export function SimpleMapView({
+  mapName,
+  kills,
+  selectedUser,
+  showAttackerPositions = true,
+  showVictimPositions = true,
+  className = "",
+}: SimpleMapViewProps) {
   const [mapDataJson, setMapDataJson] = useState<Record<string, MapData> | null>(null)
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number }>({
     width: 1024,
@@ -244,7 +253,7 @@ export function SimpleMapView({ mapName, kills, selectedUser, className = "" }: 
     // Dibujar cada kill
     killsWithCoordinates.forEach((kill) => {
       // Dibujar posición del atacante
-      if (kill.attackerImagePosition) {
+      if (showAttackerPositions && kill.attackerImagePosition) {
         let { x, y } = kill.attackerImagePosition
         const adjusted = adjustCoordinatesForMap(
           mapName,
@@ -274,7 +283,7 @@ export function SimpleMapView({ mapName, kills, selectedUser, className = "" }: 
       }
 
       // Dibujar posición de la víctima (con X)
-      if (kill.victimImagePosition) {
+      if (showVictimPositions && kill.victimImagePosition) {
         let { x, y } = kill.victimImagePosition
         const adjusted = adjustCoordinatesForMap(
           mapName,
@@ -314,7 +323,15 @@ export function SimpleMapView({ mapName, kills, selectedUser, className = "" }: 
         ctx.stroke()
       }
     })
-  }, [killsWithCoordinates, selectedUser, imageDimensions, mapName, mapConfig.mapData])
+  }, [
+    killsWithCoordinates,
+    showAttackerPositions,
+    showVictimPositions,
+    selectedUser,
+    imageDimensions,
+    mapName,
+    mapConfig.mapData,
+  ])
 
   if (killsWithCoordinates.length === 0) {
     return (

@@ -4,7 +4,18 @@ import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Target, TrendingUp, TrendingDown, Loader2, Trash2, ChevronDown, ChevronRight } from "lucide-react"
+import {
+  ArrowLeft,
+  Target,
+  TrendingUp,
+  TrendingDown,
+  Loader2,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  Eye,
+  EyeOff,
+} from "lucide-react"
 import { BotChat } from "@/components/chat/bot-chat"
 import { RoundMap } from "@/components/match-details/round-map"
 import { useApi } from "@/hooks/useApi"
@@ -21,6 +32,8 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
   const { selectedUser } = useUser()
   const [chatMessagesData, setChatMessagesData] = useState<ChatMessage[]>([])
   const [expandedRounds, setExpandedRounds] = useState<Set<number>>(new Set())
+  const [showAttackerPositions, setShowAttackerPositions] = useState(true)
+  const [showVictimPositions, setShowVictimPositions] = useState(true)
 
   // Fetch match data
   const {
@@ -225,9 +238,56 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
               </div>
             </div>
 
-            <div className="mt-6 text-center">
-              <p className="text-3xl font-bold text-primary">{matchData.score.toFixed(1)}/10</p>
-              <p className="text-sm text-white">Puntaje Final</p>
+            <div className="mt-6 flex justify-between items-center gap-6">
+              {/* Left side: Final Score */}
+              <div className="text-center">
+                <p className="text-3xl font-bold text-primary">{matchData.score.toFixed(1)}/10</p>
+                <p className="text-sm text-white">Puntaje Final</p>
+              </div>
+
+              {/* Right side: Buttons and legend */}
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <Button
+                    variant={showAttackerPositions ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setShowAttackerPositions(!showAttackerPositions)}
+                    className="gap-1"
+                  >
+                    {showAttackerPositions ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                    Atacantes
+                  </Button>
+                  <Button
+                    variant={showVictimPositions ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setShowVictimPositions(!showVictimPositions)}
+                    className="gap-1"
+                  >
+                    {showVictimPositions ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                    Víctimas
+                  </Button>
+                </div>
+
+                {/* Leyenda de colores */}
+                <div className="flex gap-3 items-center text-xs bg-black/40 px-2 py-1 rounded">
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#64b5f6" }}></div>
+                    <span className="text-gray-300">CT</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ff9800" }}></div>
+                    <span className="text-gray-300">T</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div
+                      className="w-3 h-3 rounded-full border border-white"
+                      style={{ backgroundColor: "#4fc3f7" }}
+                    ></div>
+                    <span className="text-white text-[10px]">X</span>
+                    <span className="text-gray-300">Víctima</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="mt-6">
@@ -236,6 +296,8 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
                   mapName={matchData.map}
                   kills={killsData}
                   selectedUser={selectedUser.value}
+                  showAttackerPositions={showAttackerPositions}
+                  showVictimPositions={showVictimPositions}
                   className="w-full"
                 />
               </div>
