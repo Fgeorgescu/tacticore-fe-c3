@@ -17,34 +17,31 @@ interface RoundMapProps {
 
 export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }: RoundMapProps) {
   const [currentRoundIndex, setCurrentRoundIndex] = useState(0)
-  const [currentKillIndex, setCurrentKillIndex] = useState<number | null>(null) // null = mostrar todas, número = mostrar solo esa kill
+  const [currentKillIndex, setCurrentKillIndex] = useState<number | null>(null)
   const [showAttackerPositions, setShowAttackerPositions] = useState(true)
   const [showVictimPositions, setShowVictimPositions] = useState(true)
   const [roundSelectorPage, setRoundSelectorPage] = useState(0)
-  const ROUNDS_PER_PAGE = 10
+  const ROUNDS_PER_PAGE = 7
 
   const currentRound = killsByRound[currentRoundIndex]
   const currentRoundNumber = currentRound[0]
   const currentRoundKills = currentRound[1]
 
-  // Filtrar kills que tienen coordenadas de imagen
   const killsWithCoordinates = currentRoundKills.filter(
     (kill) => kill.attackerImagePosition || kill.victimImagePosition,
   )
 
-  // Kills ordenadas por tiempo (ya vienen ordenadas, pero por si acaso)
   const sortedRoundKills = [...currentRoundKills].sort((a, b) => a.time.localeCompare(b.time))
   const currentRoundKillsWithCoords = sortedRoundKills.filter(
     (kill) => kill.attackerImagePosition || kill.victimImagePosition,
   )
 
-  // Determinar qué kills mostrar en el mapa
   const killsToDisplay =
     currentKillIndex === null
-      ? currentRoundKills // Mostrar todas
+      ? currentRoundKills
       : currentRoundKillsWithCoords[currentKillIndex]
-        ? [currentRoundKillsWithCoords[currentKillIndex]] // Mostrar solo la kill seleccionada
-        : currentRoundKills // Fallback: mostrar todas si el índice es inválido
+        ? [currentRoundKillsWithCoords[currentKillIndex]]
+        : currentRoundKills
 
   const currentKill =
     currentKillIndex !== null && currentRoundKillsWithCoords[currentKillIndex]
@@ -57,10 +54,30 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
     (roundSelectorPage + 1) * ROUNDS_PER_PAGE,
   )
 
-  // Reset kill index cuando cambia la ronda
   useEffect(() => {
     setCurrentKillIndex(null)
-  }, [currentRoundIndex])
+
+    // Calculate which page should show to center the selected round
+    const middlePosition = Math.floor(ROUNDS_PER_PAGE / 2) // For 7 elements, this is 3
+    const totalRounds = killsByRound.length
+
+    // Calculate the ideal page to center the current round
+    let idealPage = Math.floor((currentRoundIndex - middlePosition) / ROUNDS_PER_PAGE)
+
+    // Handle border cases
+    if (currentRoundIndex < middlePosition) {
+      // Near the beginning, show first page
+      idealPage = 0
+    } else if (currentRoundIndex >= totalRounds - middlePosition) {
+      // Near the end, show last page
+      idealPage = totalRoundPages - 1
+    }
+
+    // Ensure page is within valid range
+    idealPage = Math.max(0, Math.min(totalRoundPages - 1, idealPage))
+
+    setRoundSelectorPage(idealPage)
+  }, [currentRoundIndex, killsByRound.length, totalRoundPages, ROUNDS_PER_PAGE])
 
   const goToPreviousRound = () => {
     setCurrentRoundIndex(Math.max(0, currentRoundIndex - 1))
@@ -74,7 +91,6 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
     setCurrentRoundIndex(roundIndex)
   }
 
-  // Navegación de kills individuales dentro de la ronda
   const goToPreviousKill = () => {
     if (currentKillIndex === null) {
       setCurrentKillIndex(currentRoundKillsWithCoords.length - 1)
@@ -180,17 +196,6 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
               </div>
 
               <div className="flex items-center gap-2">
-                {totalRoundPages > 1 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setRoundSelectorPage((p) => Math.max(0, p - 1))}
-                    disabled={roundSelectorPage === 0}
-                    className="w-8 h-8 p-0"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                )}
                 <div className="flex gap-1">
                   {visibleRounds.map(([roundNumber], index) => {
                     const actualIndex = roundSelectorPage * ROUNDS_PER_PAGE + index
@@ -207,17 +212,6 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
                     )
                   })}
                 </div>
-                {totalRoundPages > 1 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setRoundSelectorPage((p) => Math.min(totalRoundPages - 1, p + 1))}
-                    disabled={roundSelectorPage === totalRoundPages - 1}
-                    className="w-8 h-8 p-0"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                )}
               </div>
             </div>
 
@@ -303,8 +297,6 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
               </div>
             )}
           </div>
-
-          {/* Estadísticas de la ronda actual */}
 
           {/* Mapa de la ronda actual */}
           {killsWithCoordinates.length > 0 ? (
