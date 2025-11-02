@@ -82,7 +82,7 @@ export const mockKills: Record<string, Kill[]> = {
       victim: "NiKo",
       weapon: "AK-47",
       isGoodPlay: true,
-      round: 3,
+      round: 1, // Changed from round 3 to round 1
       time: "1:45",
       teamAlive: { ct: 4, t: 3 },
       position: "A Site",
@@ -95,7 +95,7 @@ export const mockKills: Record<string, Kill[]> = {
       victim: "s1mple",
       weapon: "AWP",
       isGoodPlay: true,
-      round: 5,
+      round: 2, // Changed from round 5 to round 2
       time: "1:23",
       teamAlive: { ct: 3, t: 4 },
       position: "Mid",
@@ -108,7 +108,7 @@ export const mockKills: Record<string, Kill[]> = {
       victim: "ZywOo",
       weapon: "M4A4",
       isGoodPlay: false,
-      round: 8,
+      round: 3, // Changed from round 8 to round 3
       time: "0:58",
       teamAlive: { ct: 2, t: 2 },
       position: "B Site",
