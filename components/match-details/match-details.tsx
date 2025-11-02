@@ -294,8 +294,8 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
           </CardContent>
         </Card>
 
-        <Card className="h-fit">
-          <CardContent className="p-4">
+        <Card className="lg:col-span-1 flex flex-col">
+          <CardContent className="p-4 flex-1 flex flex-col">
             <BotChat
               matchData={matchData}
               killsData={killsData}
