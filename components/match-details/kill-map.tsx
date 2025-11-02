@@ -522,24 +522,20 @@ export function KillMap({ mapName, kills, selectedUser, className = "" }: KillMa
       </CardHeader>
       <CardContent>
         {/* Statistics and controls side by side */}
-        <div className="flex items-start justify-between gap-6 mb-4">
+        <div className="flex justify-between gap-6 mb-4 items-center">
           {/* Left side: Statistics */}
           <div className="grid grid-cols-3 gap-4 text-center flex-1">
             <div>
-              <p className="text-2xl font-bold text-white">{killsWithCoordinates.length}</p>
-              <p className="text-sm text-gray-300">Total Kills</p>
+              
+              
             </div>
             <div>
-              <p className="text-2xl font-bold text-green-400">
-                {killsWithCoordinates.filter((k) => k.isGoodPlay).length}
-              </p>
-              <p className="text-sm text-gray-300">Buenas Jugadas</p>
+              
+              
             </div>
             <div>
-              <p className="text-2xl font-bold text-red-400">
-                {killsWithCoordinates.filter((k) => !k.isGoodPlay).length}
-              </p>
-              <p className="text-sm text-gray-300">Malas Jugadas</p>
+              
+              
             </div>
           </div>
 
