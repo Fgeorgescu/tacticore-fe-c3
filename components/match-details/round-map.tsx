@@ -309,47 +309,53 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
             )}
           </div>
 
-          {/* Mapa de la ronda actual */}
-          {killsWithCoordinates.length > 0 ? (
-            <KillMap mapName={mapName} kills={killsToDisplay} selectedUser={selectedUser} className="w-full" />
-          ) : (
-            <div className="text-center py-8 text-white border border-border rounded-lg">
-              <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No hay datos de coordenadas para esta ronda.</p>
+          <div className="grid grid-cols-4 gap-4">
+            {/* Mapa de la ronda actual - 3/4 del espacio */}
+            <div className="col-span-3">
+              {killsWithCoordinates.length > 0 ? (
+                <KillMap mapName={mapName} kills={killsToDisplay} selectedUser={selectedUser} className="w-full" />
+              ) : (
+                <div className="text-center py-8 text-white border border-border rounded-lg">
+                  <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No hay datos de coordenadas para esta ronda.</p>
+                </div>
+              )}
             </div>
-          )}
 
-          {/* Lista de kills de la ronda */}
-          {currentRoundKills.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-lg font-semibold text-white">Kills de la Ronda {currentRoundNumber}</h4>
-              <div className="space-y-1 max-h-40 overflow-y-auto">
-                {currentRoundKills.map((kill) => (
-                  <div
-                    key={kill.id}
-                    className={`flex items-center justify-between p-2 rounded border ${
-                      kill.isGoodPlay ? "bg-green-500/10 border-green-500/20" : "bg-red-500/10 border-red-500/20"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-foreground">{kill.killer}</span>
-                      <span className="text-white">→</span>
-                      <span className="text-foreground">{kill.victim}</span>
-                      <Badge variant="outline" className="text-xs">
+            {/* Lista de kills de la ronda - 1/4 del espacio */}
+            {currentRoundKills.length > 0 && (
+              <div className="col-span-1 space-y-2">
+                <h4 className="text-sm font-semibold text-white">Kills</h4>
+                <div className="space-y-1 max-h-[600px] overflow-y-auto pr-2">
+                  {currentRoundKills.map((kill) => (
+                    <div
+                      key={kill.id}
+                      className={`flex flex-col gap-1 p-2 rounded border text-xs ${
+                        kill.isGoodPlay ? "bg-green-500/10 border-green-500/20" : "bg-red-500/10 border-red-500/20"
+                      }`}
+                    >
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1">
+                          <span className="font-semibold text-foreground truncate">{kill.killer}</span>
+                          <span className="text-white">→</span>
+                        </div>
+                        <span className="text-foreground truncate">{kill.victim}</span>
+                      </div>
+                      <Badge variant="outline" className="text-xs w-fit">
                         {kill.weapon}
                       </Badge>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-xs text-white">{kill.time}</span>
+                        <Badge variant={kill.isGoodPlay ? "default" : "destructive"} className="text-xs">
+                          {kill.isGoodPlay ? "✓" : "✗"}
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-white">{kill.time}</span>
-                      <Badge variant={kill.isGoodPlay ? "default" : "destructive"} className="text-xs">
-                        {kill.isGoodPlay ? "Buena" : "Mala"}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
