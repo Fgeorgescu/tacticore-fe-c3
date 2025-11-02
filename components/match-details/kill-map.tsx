@@ -530,9 +530,7 @@ export function KillMap({ mapName, kills, selectedUser, className = "" }: KillMa
               
             </div>
             <div>
-              <p className="text-2xl font-bold text-green-400">
-                {killsWithCoordinates.filter((k) => k.isGoodPlay).length}
-              </p>
+              
               className="text-2xl font-bold text-red-400">
                 {killsWithCoordinates.filter((k) => !k.isGoodPlay).length}
               </p>
