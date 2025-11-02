@@ -527,23 +527,17 @@ export function KillMap({ mapName, kills, selectedUser, className = "" }: KillMa
           <div className="grid grid-cols-3 gap-4 text-center flex-1">
             <div>
               <p className="text-2xl font-bold text-white">{killsWithCoordinates.length}</p>
-              <p className="text-sm text-gray-300">Total Kills</p>
+              
             </div>
             <div>
               <p className="text-2xl font-bold text-green-400">
                 {killsWithCoordinates.filter((k) => k.isGoodPlay).length}
               </p>
-              <p className="text-sm text-gray-300">Buenas Jugadas</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-red-400">
+              className="text-2xl font-bold text-red-400">
                 {killsWithCoordinates.filter((k) => !k.isGoodPlay).length}
               </p>
               <p className="text-sm text-gray-300">Malas Jugadas</p>
-            </div>
-          </div>
-
-          {/* Right side: Buttons and legend */}
+ht side: Buttons and legend */}
           <div className="flex flex-col gap-2">
             <div className="flex gap-2">
               <Button
