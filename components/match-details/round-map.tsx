@@ -273,30 +273,7 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
           </div>
 
           {/* Estadísticas de la ronda actual */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            <div>
-              <p className="text-xl font-bold text-white">{currentRoundKills.length}</p>
-              <p className="text-sm text-gray-300">Total Kills</p>
-            </div>
-            <div>
-              <p className="text-xl font-bold text-green-400">
-                {currentRoundKills.filter(k => k.isGoodPlay).length}
-              </p>
-              <p className="text-sm text-gray-300">Buenas Jugadas</p>
-            </div>
-            <div>
-              <p className="text-xl font-bold text-red-400">
-                {currentRoundKills.filter(k => !k.isGoodPlay).length}
-              </p>
-              <p className="text-sm text-gray-300">Malas Jugadas</p>
-            </div>
-            <div>
-              <p className="text-xl font-bold text-blue-400">
-                {killsWithCoordinates.length}
-              </p>
-              <p className="text-sm text-gray-300">Con Coordenadas</p>
-            </div>
-          </div>
+          
 
           {/* Mapa de la ronda actual */}
           {killsWithCoordinates.length > 0 ? (
