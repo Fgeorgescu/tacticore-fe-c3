@@ -15,11 +15,14 @@ import {
   Crosshair,
   Loader2,
   Calendar,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 import { useApi } from "@/hooks/useApi"
 import { useUser } from "@/contexts/UserContext"
 import { apiService } from "@/lib/api"
 import { getRelativeTimeFromBackend } from "@/lib/dateUtils"
+import { useState } from "react"
 
 interface DashboardProps {
   onViewDetails: (matchId: string) => void
@@ -27,6 +30,8 @@ interface DashboardProps {
 
 export function Dashboard({ onViewDetails }: DashboardProps) {
   const { selectedUser } = useUser()
+  const [matchesPage, setMatchesPage] = useState(1)
+  const MATCHES_PER_PAGE = 10
 
   // Fetch matches and dashboard stats - se actualizan automáticamente cuando cambia selectedUser
   const {
@@ -116,6 +121,9 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
     return dateB.getTime() - dateA.getTime()
   })
 
+  const totalMatchesPages = Math.ceil(sortedMatches.length / MATCHES_PER_PAGE)
+  const paginatedMatches = sortedMatches.slice((matchesPage - 1) * MATCHES_PER_PAGE, matchesPage * MATCHES_PER_PAGE)
+
   return (
     <div className="space-y-6">
       {/* Header Statistics */}
@@ -187,80 +195,118 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
-            {sortedMatches.map((match) => (
-              <Card key={match.id} className="bg-card/50 border-card-border hover:border-primary/30 transition-colors">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    {/* Información principal */}
-                    <div className="flex items-center gap-4 flex-1">
-                      {/* Indicador de tiempo */}
-                      <div className="flex flex-col items-center min-w-[80px]">
-                        <Calendar className="h-4 w-4 text-white mb-1" />
-                        <span className="text-xs text-white text-center">{getRelativeTime(match.date)}</span>
-                      </div>
+          <>
+            <div className="space-y-3">
+              {paginatedMatches.map((match) => (
+                <Card
+                  key={match.id}
+                  className="bg-card/50 border-card-border hover:border-primary/30 transition-colors"
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      {/* Información principal */}
+                      <div className="flex items-center gap-4 flex-1">
+                        {/* Indicador de tiempo */}
+                        <div className="flex flex-col items-center min-w-[80px]">
+                          <Calendar className="h-4 w-4 text-white mb-1" />
+                          <span className="text-xs text-white text-center">{getRelativeTime(match.date)}</span>
+                        </div>
 
-                      {/* Información de la partida */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-8">
-                          {/* Nombre y badges */}
-                          <div className="flex items-center gap-3">
-                            <h3 className="font-semibold text-foreground">{match.fileName}</h3>
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className={getGameTypeBadge(match.gameType)}>
-                                {match.gameType}
-                              </Badge>
-                              <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                                {match.map}
-                              </Badge>
-                              {match.hasVideo && <Play className="h-4 w-4 text-primary" />}
+                        {/* Información de la partida */}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-8">
+                            {/* Nombre y badges */}
+                            <div className="flex items-center gap-3">
+                              <h3 className="font-semibold text-foreground">{match.fileName}</h3>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className={getGameTypeBadge(match.gameType)}>
+                                  {match.gameType}
+                                </Badge>
+                                <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                                  {match.map}
+                                </Badge>
+                                {match.hasVideo && <Play className="h-4 w-4 text-primary" />}
+                              </div>
                             </div>
-                          </div>
 
-                          {/* Estadísticas en línea */}
-                          <div className="flex items-center gap-4 text-sm">
-                            <div className="flex items-center gap-1">
-                              <Target className="h-4 w-4 text-green-400" />
-                              <span className="text-foreground">{match.kills}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Skull className="h-4 w-4 text-red-400" />
-                              <span className="text-foreground">{match.deaths}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <TrendingUp className="h-4 w-4 text-green-400" />
-                              <span className="text-foreground">{match.goodPlays}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <TrendingDown className="h-4 w-4 text-red-400" />
-                              <span className="text-foreground">{match.badPlays}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-4 w-4 text-white" />
-                              <span className="text-white">{match.duration}</span>
+                            {/* Estadísticas en línea */}
+                            <div className="flex items-center gap-4 text-sm">
+                              <div className="flex items-center gap-1">
+                                <Target className="h-4 w-4 text-green-400" />
+                                <span className="text-foreground">{match.kills}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Skull className="h-4 w-4 text-red-400" />
+                                <span className="text-foreground">{match.deaths}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <TrendingUp className="h-4 w-4 text-green-400" />
+                                <span className="text-foreground">{match.goodPlays}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <TrendingDown className="h-4 w-4 text-red-400" />
+                                <span className="text-foreground">{match.badPlays}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-4 w-4 text-white" />
+                                <span className="text-white">{match.duration}</span>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Score y botón de acción */}
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <div className={`text-lg font-bold ${getScoreColor(match.score)}`}>
-                          {match.score.toFixed(1)}
+                      {/* Score y botón de acción */}
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <div className={`text-lg font-bold ${getScoreColor(match.score)}`}>
+                            {match.score.toFixed(1)}
+                          </div>
+                          <div className="text-xs text-white">Score</div>
                         </div>
-                        <div className="text-xs text-white">Score</div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onViewDetails(match.id)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button variant="ghost" size="sm" onClick={() => onViewDetails(match.id)} className="h-8 w-8 p-0">
-                        <Eye className="h-4 w-4" />
-                      </Button>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {totalMatchesPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMatchesPage((p) => Math.max(1, p - 1))}
+                  disabled={matchesPage === 1}
+                  className="w-8 h-8 p-0"
+                  aria-label="Página anterior"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm text-white">
+                  Página {matchesPage} de {totalMatchesPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMatchesPage((p) => Math.min(totalMatchesPages, p + 1))}
+                  disabled={matchesPage === totalMatchesPages}
+                  className="w-8 h-8 p-0"
+                  aria-label="Página siguiente"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

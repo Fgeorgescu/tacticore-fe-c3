@@ -1,12 +1,14 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Send, Bot, User, Loader2, MessageCircle } from "lucide-react"
-import { ChatMessage, Match, Kill } from "@/lib/api"
-import { chatGPTService, MatchContext, RoundData } from "@/lib/chatgpt"
+import type { ChatMessage, Match, Kill } from "@/lib/api"
+import { chatGPTService, type MatchContext, type RoundData } from "@/lib/chatgpt"
 
 interface BotChatProps {
   matchData: Match
@@ -21,33 +23,33 @@ export function BotChat({ matchData, killsData, initialMessages, onNewMessage }:
 
   // Función para procesar kills y crear datos de rondas
   const processRoundsData = (kills: Kill[]): RoundData[] => {
-    const roundsMap = new Map<number, Kill[]>();
-    
-    kills.forEach(kill => {
-      const round = kill.round;
+    const roundsMap = new Map<number, Kill[]>()
+
+    kills.forEach((kill) => {
+      const round = kill.round
       if (!roundsMap.has(round)) {
-        roundsMap.set(round, []);
+        roundsMap.set(round, [])
       }
-      roundsMap.get(round)!.push(kill);
-    });
-    
+      roundsMap.get(round)!.push(kill)
+    })
+
     return Array.from(roundsMap.entries())
       .sort(([a], [b]) => a - b)
       .map(([roundNumber, roundKills]) => ({
         roundNumber,
         totalKills: roundKills.length,
-        goodPlays: roundKills.filter(kill => kill.isGoodPlay).length,
-        badPlays: roundKills.filter(kill => !kill.isGoodPlay).length,
-        kills: roundKills.map(kill => ({
+        goodPlays: roundKills.filter((kill) => kill.isGoodPlay).length,
+        badPlays: roundKills.filter((kill) => !kill.isGoodPlay).length,
+        kills: roundKills.map((kill) => ({
           killer: kill.killer,
           victim: kill.victim,
           weapon: kill.weapon,
           isGoodPlay: kill.isGoodPlay,
           time: kill.time,
-          position: kill.position
-        }))
-      }));
-  };
+          position: kill.position,
+        })),
+      }))
+  }
 
   const handleSendMessage = async () => {
     if (!message.trim() || isBotTyping) return
@@ -63,7 +65,7 @@ export function BotChat({ matchData, killsData, initialMessages, onNewMessage }:
         user: "Usuario",
         message: userMessage,
         timestamp: new Date().toLocaleTimeString(),
-        isBot: false
+        isBot: false,
       }
       onNewMessage(userChatMessage)
 
@@ -78,35 +80,35 @@ export function BotChat({ matchData, killsData, initialMessages, onNewMessage }:
         badPlays: matchData.badPlays,
         duration: matchData.duration,
         gameType: matchData.gameType,
-        rounds: killsData ? processRoundsData(killsData) : undefined
+        rounds: killsData ? processRoundsData(killsData) : undefined,
       }
 
       // Enviar al bot y obtener respuesta
       const botResponse = await chatGPTService.sendMessage(userMessage, matchContext)
-      
+
       // Crear mensaje del bot
       const botChatMessage: ChatMessage = {
         id: Date.now() + 1,
         user: "TACTICORE Bot",
         message: botResponse,
         timestamp: new Date().toLocaleTimeString(),
-        isBot: true
+        isBot: true,
       }
-      
-      onNewMessage(botChatMessage)
 
+      onNewMessage(botChatMessage)
     } catch (error) {
       console.error("Error sending message to bot:", error)
-      
+
       // Mensaje de error del bot
       const errorMessage: ChatMessage = {
         id: Date.now() + 1,
         user: "TACTICORE Bot",
-        message: "Lo siento, no pude procesar tu solicitud en este momento. Esto puede deberse a límites de uso de la API. Inténtalo de nuevo en unos minutos.",
+        message:
+          "Lo siento, no pude procesar tu solicitud en este momento. Esto puede deberse a límites de uso de la API. Inténtalo de nuevo en unos minutos.",
         timestamp: new Date().toLocaleTimeString(),
-        isBot: true
+        isBot: true,
       }
-      
+
       onNewMessage(errorMessage)
     } finally {
       setIsBotTyping(false)
@@ -121,9 +123,9 @@ export function BotChat({ matchData, killsData, initialMessages, onNewMessage }:
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full gap-4">
       {/* Header del chat */}
-      <div className="flex items-center gap-2 pb-2 border-b border-border">
+      <div className="flex items-center gap-2 pb-2 border-b border-border flex-shrink-0">
         <MessageCircle className="h-5 w-5 text-primary" />
         <h3 className="font-semibold text-white">Chat de Análisis</h3>
         <div className="flex items-center gap-1 ml-auto">
@@ -133,29 +135,25 @@ export function BotChat({ matchData, killsData, initialMessages, onNewMessage }:
       </div>
 
       {/* Área de mensajes */}
-      <ScrollArea className="h-64 mb-4">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="space-y-3 pr-4">
           {initialMessages.map((msg) => (
             <div key={msg.id} className="flex flex-col">
               <div className="flex items-center gap-2">
-                {msg.isBot ? (
-                  <Bot className="h-4 w-4 text-primary" />
-                ) : (
-                  <User className="h-4 w-4 text-secondary" />
-                )}
+                {msg.isBot ? <Bot className="h-4 w-4 text-primary" /> : <User className="h-4 w-4 text-secondary" />}
                 <span className="text-sm font-semibold text-primary">{msg.user}</span>
                 <span className="text-xs text-white">{msg.timestamp}</span>
               </div>
-              <div className={`ml-6 p-2 rounded-lg ${
-                msg.isBot 
-                  ? "bg-primary/10 border border-primary/20" 
-                  : "bg-secondary/10 border border-secondary/20"
-              }`}>
+              <div
+                className={`ml-6 p-2 rounded-lg ${
+                  msg.isBot ? "bg-primary/10 border border-primary/20" : "bg-secondary/10 border border-secondary/20"
+                }`}
+              >
                 <p className="text-sm text-white whitespace-pre-wrap">{msg.message}</p>
               </div>
             </div>
           ))}
-          
+
           {isBotTyping && (
             <div className="flex items-center gap-2">
               <Bot className="h-4 w-4 text-primary" />
@@ -170,7 +168,7 @@ export function BotChat({ matchData, killsData, initialMessages, onNewMessage }:
       </ScrollArea>
 
       {/* Input de mensaje */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-shrink-0">
         <Input
           placeholder="Pregunta al bot sobre esta partida..."
           value={message}
@@ -179,17 +177,8 @@ export function BotChat({ matchData, killsData, initialMessages, onNewMessage }:
           disabled={isBotTyping}
           className="flex-1"
         />
-        <Button 
-          size="sm" 
-          onClick={handleSendMessage}
-          disabled={!message.trim() || isBotTyping}
-          className="gap-2"
-        >
-          {isBotTyping ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
+        <Button size="sm" onClick={handleSendMessage} disabled={!message.trim() || isBotTyping} className="gap-2">
+          {isBotTyping ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
       </div>
     </div>

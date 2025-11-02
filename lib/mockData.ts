@@ -1,6 +1,57 @@
 import type { Match, Kill, ChatMessage, AnalyticsData, DashboardStats, UserProfile } from "./api"
 
 // Mock data para desarrollo sin backend
+
+const generateExtensiveMockKills = (): Kill[] => {
+  const kills: Kill[] = []
+  let killId = 1
+
+  const players = ["karrigan", "ropz", "frozen", "Twistzz", "rain"]
+  const opponents = ["NiKo", "s1mple", "ZywOo", "device", "electronic"]
+  const weapons = ["AK-47", "M4A4", "M4A1-S", "AWP", "Desert Eagle", "USP-S", "Glock-18"]
+  const positions = ["A Site", "B Site", "Mid", "Long A", "Catwalk", "Tunnels", "Connector"]
+
+  for (let round = 1; round <= 20; round++) {
+    for (let killNum = 0; killNum < 10; killNum++) {
+      const killer = players[Math.floor(Math.random() * players.length)]
+      const victim = opponents[Math.floor(Math.random() * opponents.length)]
+      const weapon = weapons[Math.floor(Math.random() * weapons.length)]
+      const position = positions[Math.floor(Math.random() * positions.length)]
+      const isGoodPlay = Math.random() > 0.3 // 70% good plays
+
+      // Generate time in format "M:SS"
+      const minutes = Math.floor(Math.random() * 2)
+      const seconds = Math.floor(Math.random() * 60)
+      const time = `${minutes}:${seconds.toString().padStart(2, "0")}`
+
+      // Generate random positions on map (1024x1024 image)
+      const attackerX = Math.floor(Math.random() * 900) + 50
+      const attackerY = Math.floor(Math.random() * 900) + 50
+      const victimX = attackerX + (Math.random() * 100 - 50)
+      const victimY = attackerY + (Math.random() * 100 - 50)
+
+      kills.push({
+        id: killId++,
+        killer,
+        victim,
+        weapon,
+        isGoodPlay,
+        round,
+        time,
+        teamAlive: {
+          ct: Math.floor(Math.random() * 5) + 1,
+          t: Math.floor(Math.random() * 5) + 1,
+        },
+        position,
+        attackerImagePosition: { x: attackerX, y: attackerY },
+        victimImagePosition: { x: victimX, y: victimY },
+      })
+    }
+  }
+
+  return kills
+}
+
 export const mockMatches: Match[] = [
   {
     id: "1",
@@ -8,10 +59,10 @@ export const mockMatches: Match[] = [
     hasVideo: true,
     map: "de_dust2",
     gameType: "Ranked",
-    kills: 24,
+    kills: 200, // Updated to reflect 200 kills
     deaths: 18,
-    goodPlays: 8,
-    badPlays: 3,
+    goodPlays: 140, // Approximately 70% of 200
+    badPlays: 60,
     duration: "45:32",
     score: 8.5,
     date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString().slice(0, -1), // 2 horas atrás
@@ -75,41 +126,8 @@ export const mockMatches: Match[] = [
 ]
 
 export const mockKills: Record<string, Kill[]> = {
-  "1": [
-    {
-      id: 1,
-      killer: "karrigan",
-      victim: "NiKo",
-      weapon: "AK-47",
-      isGoodPlay: true,
-      round: 3,
-      time: "1:45",
-      teamAlive: { ct: 4, t: 3 },
-      position: "A Site",
-    },
-    {
-      id: 2,
-      killer: "karrigan",
-      victim: "s1mple",
-      weapon: "AWP",
-      isGoodPlay: true,
-      round: 5,
-      time: "1:23",
-      teamAlive: { ct: 3, t: 4 },
-      position: "Mid",
-    },
-    {
-      id: 3,
-      killer: "karrigan",
-      victim: "ZywOo",
-      weapon: "M4A4",
-      isGoodPlay: false,
-      round: 8,
-      time: "0:58",
-      teamAlive: { ct: 2, t: 2 },
-      position: "B Site",
-    },
-  ],
+  "1": generateExtensiveMockKills(), // Using generated extensive mock data
+  "2": generateExtensiveMockKills(), // Using generated extensive mock data
 }
 
 export const mockChatMessages: Record<string, ChatMessage[]> = {

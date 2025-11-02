@@ -1,0 +1,417 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { MapPin, Eye, EyeOff, ChevronLeft, ChevronRight } from "lucide-react"
+import { KillMap } from "./kill-map"
+import type { Kill } from "@/lib/api"
+
+interface RoundMapProps {
+  mapName: string
+  killsByRound: Array<[number, Kill[]]>
+  selectedUser?: string
+  className?: string
+}
+
+export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }: RoundMapProps) {
+  const [currentRoundIndex, setCurrentRoundIndex] = useState(0)
+  const [currentKillIndex, setCurrentKillIndex] = useState<number | null>(null)
+  const [showAttackerPositions, setShowAttackerPositions] = useState(true)
+  const [showVictimPositions, setShowVictimPositions] = useState(true)
+  const [roundSelectorPage, setRoundSelectorPage] = useState(0)
+  const ROUNDS_PER_PAGE = 7
+
+  const currentRound = killsByRound[currentRoundIndex]
+  const currentRoundNumber = currentRound[0]
+  const currentRoundKills = currentRound[1]
+
+  const killsWithCoordinates = currentRoundKills.filter(
+    (kill) => kill.attackerImagePosition || kill.victimImagePosition,
+  )
+
+  const sortedRoundKills = [...currentRoundKills].sort((a, b) => a.time.localeCompare(b.time))
+  const currentRoundKillsWithCoords = sortedRoundKills.filter(
+    (kill) => kill.attackerImagePosition || kill.victimImagePosition,
+  )
+
+  const killsToDisplay =
+    currentKillIndex === null
+      ? currentRoundKills
+      : currentRoundKillsWithCoords[currentKillIndex]
+        ? [currentRoundKillsWithCoords[currentKillIndex]]
+        : currentRoundKills
+
+  const currentKill =
+    currentKillIndex !== null && currentRoundKillsWithCoords[currentKillIndex]
+      ? currentRoundKillsWithCoords[currentKillIndex]
+      : null
+
+  const totalRoundPages = Math.ceil(killsByRound.length / ROUNDS_PER_PAGE)
+  const visibleRounds = killsByRound.slice(
+    roundSelectorPage * ROUNDS_PER_PAGE,
+    (roundSelectorPage + 1) * ROUNDS_PER_PAGE,
+  )
+
+  useEffect(() => {
+    setCurrentKillIndex(null)
+  }, [currentRoundIndex])
+
+  const goToPreviousRound = () => {
+    setCurrentRoundIndex(Math.max(0, currentRoundIndex - 1))
+  }
+
+  const goToNextRound = () => {
+    setCurrentRoundIndex(Math.min(killsByRound.length - 1, currentRoundIndex + 1))
+  }
+
+  const goToRound = (roundIndex: number) => {
+    setCurrentRoundIndex(roundIndex)
+  }
+
+  const goToPreviousKill = () => {
+    if (currentKillIndex === null) {
+      setCurrentKillIndex(currentRoundKillsWithCoords.length - 1)
+    } else {
+      setCurrentKillIndex(Math.max(0, currentKillIndex - 1))
+    }
+  }
+
+  const goToNextKill = () => {
+    if (currentKillIndex === null) {
+      setCurrentKillIndex(0)
+    } else {
+      setCurrentKillIndex(Math.min(currentRoundKillsWithCoords.length - 1, currentKillIndex + 1))
+    }
+  }
+
+  const goToKill = (killIndex: number | null) => {
+    setCurrentKillIndex(killIndex)
+  }
+
+  const showAllKills = () => {
+    setCurrentKillIndex(null)
+  }
+
+  const goToPreviousRoundPage = () => {
+    setRoundSelectorPage(Math.max(0, roundSelectorPage - 1))
+  }
+
+  const goToNextRoundPage = () => {
+    setRoundSelectorPage(Math.min(totalRoundPages - 1, roundSelectorPage + 1))
+  }
+
+  if (killsByRound.length === 0) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            Mapa por Rondas - {mapName}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-white">
+            <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No hay datos de rondas disponibles.</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className={className}>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            Mapa por Rondas - {mapName}
+          </CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {/* Navegación de rondas */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToPreviousRound}
+                  disabled={currentRoundIndex === 0}
+                  className="w-8 h-8 p-0 bg-transparent"
+                  aria-label="Ronda anterior"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-white font-medium">
+                  Ronda {currentRoundNumber} ({currentRoundIndex + 1} de {killsByRound.length})
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToNextRound}
+                  disabled={currentRoundIndex === killsByRound.length - 1}
+                  className="w-8 h-8 p-0 bg-transparent"
+                  aria-label="Ronda siguiente"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {totalRoundPages > 1 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToPreviousRoundPage}
+                    disabled={roundSelectorPage === 0}
+                    className="w-8 h-8 p-0 bg-transparent"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                )}
+
+                <div className="flex gap-1">
+                  {visibleRounds.map(([roundNumber], index) => {
+                    const actualIndex = roundSelectorPage * ROUNDS_PER_PAGE + index
+                    return (
+                      <Button
+                        key={roundNumber}
+                        variant={actualIndex === currentRoundIndex ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => goToRound(actualIndex)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {roundNumber}
+                      </Button>
+                    )
+                  })}
+                </div>
+
+                {totalRoundPages > 1 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToNextRoundPage}
+                    disabled={roundSelectorPage === totalRoundPages - 1}
+                    className="w-8 h-8 p-0 bg-transparent"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Navegación de kills individuales dentro de la ronda */}
+            {currentRoundKillsWithCoords.length > 0 && (
+              <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-border">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToPreviousKill}
+                    disabled={currentKillIndex !== null && currentKillIndex === 0}
+                    className="w-8 h-8 p-0 bg-transparent"
+                    aria-label="Kill anterior"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-white font-medium">
+                    {currentKillIndex === null
+                      ? `Todas las kills (${currentRoundKillsWithCoords.length} total)`
+                      : `Kill ${currentKillIndex + 1} de ${currentRoundKillsWithCoords.length}`}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToNextKill}
+                    disabled={currentKillIndex !== null && currentKillIndex === currentRoundKillsWithCoords.length - 1}
+                    className="w-8 h-8 p-0 bg-transparent"
+                    aria-label="Kill siguiente"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={currentKillIndex === null ? "default" : "outline"}
+                    size="sm"
+                    onClick={showAllKills}
+                    className="text-xs"
+                  >
+                    Ver Todas
+                  </Button>
+
+                  {/* Selector de kill individual */}
+                  <div className="flex gap-1 max-w-xs overflow-x-auto">
+                    {currentRoundKillsWithCoords.map((kill, index) => (
+                      <Button
+                        key={kill.id}
+                        variant={currentKillIndex === index ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => goToKill(index)}
+                        className="w-8 h-8 p-0 text-xs"
+                        title={`${kill.killer} → ${kill.victim} (${kill.time})`}
+                      >
+                        {index + 1}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Información de la kill actual si está seleccionada */}
+            {currentKill && (
+              <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold text-foreground">{currentKill.killer}</span>
+                    <span className="text-white">→</span>
+                    <span className="text-foreground">{currentKill.victim}</span>
+                    <Badge variant="outline" className="text-xs">
+                      {currentKill.weapon}
+                    </Badge>
+                    <Badge variant={currentKill.isGoodPlay ? "default" : "destructive"} className="text-xs">
+                      {currentKill.isGoodPlay ? "Buena" : "Mala"}
+                    </Badge>
+                  </div>
+                  <div className="text-sm text-gray-300">
+                    Ronda {currentKill.round} • {currentKill.time} • {currentKill.position}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-between gap-6 p-4 bg-gray-800/30 rounded-lg border border-border items-center">
+            {/* Left side: Statistics */}
+            <div className="grid grid-cols-3 gap-4 text-center flex-1">
+              <div>
+                <p className="text-2xl font-bold text-white">{killsWithCoordinates.length}</p>
+                <p className="text-sm text-gray-300">Total Kills</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-green-400">
+                  {killsWithCoordinates.filter((k) => k.isGoodPlay).length}
+                </p>
+                <p className="text-sm text-gray-300">Buenas Jugadas</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-red-400">
+                  {killsWithCoordinates.filter((k) => !k.isGoodPlay).length}
+                </p>
+                <p className="text-sm text-gray-300">Malas Jugadas</p>
+              </div>
+            </div>
+
+            {/* Right side: Buttons and legend */}
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <Button
+                  variant={showAttackerPositions ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowAttackerPositions(!showAttackerPositions)}
+                  className="gap-1"
+                >
+                  {showAttackerPositions ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  Atacantes
+                </Button>
+                <Button
+                  variant={showVictimPositions ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowVictimPositions(!showVictimPositions)}
+                  className="gap-1"
+                >
+                  {showVictimPositions ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  Víctimas
+                </Button>
+              </div>
+
+              {/* Leyenda de colores */}
+              <div className="flex gap-3 items-center text-xs bg-black/40 px-2 py-1 rounded">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#64b5f6" }}></div>
+                  <span className="text-gray-300">CT</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ff9800" }}></div>
+                  <span className="text-gray-300">T</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div
+                    className="w-3 h-3 rounded-full border border-white"
+                    style={{ backgroundColor: "#4fc3f7" }}
+                  ></div>
+                  <span className="text-white text-[10px]">X</span>
+                  <span className="text-gray-300">Víctima</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 gap-4">
+            {/* Mapa de la ronda actual - 75% del espacio */}
+            <div className="col-span-3">
+              {killsWithCoordinates.length > 0 ? (
+                <KillMap
+                  mapName={mapName}
+                  kills={killsToDisplay}
+                  selectedUser={selectedUser}
+                  className="w-full"
+                  showHeader={false}
+                  showAttackerPositions={showAttackerPositions}
+                  showVictimPositions={showVictimPositions}
+                />
+              ) : (
+                <div className="text-center py-8 text-white border border-border rounded-lg">
+                  <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No hay datos de coordenadas para esta ronda.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Lista de kills de la ronda - 25% del espacio */}
+            {currentRoundKills.length > 0 && (
+              <div className="col-span-1 space-y-2">
+                <h4 className="text-sm font-semibold text-white">Kills</h4>
+                <div className="space-y-0.5">
+                  {currentRoundKills.map((kill) => (
+                    <div
+                      key={kill.id}
+                      className={`flex flex-col gap-0.5 p-1.5 rounded border text-xs ${
+                        kill.isGoodPlay ? "bg-green-500/10 border-green-500/20" : "bg-red-500/10 border-red-500/20"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1 flex-1 min-w-0">
+                          <span className="font-semibold text-foreground truncate">{kill.killer}</span>
+                          <span className="text-white">→</span>
+                          <span className="text-foreground truncate">{kill.victim}</span>
+                        </div>
+                        <Badge variant={kill.isGoodPlay ? "default" : "destructive"} className="text-xs shrink-0">
+                          {kill.isGoodPlay ? "✓" : "✗"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {kill.weapon}
+                        </Badge>
+                        <span className="text-xs text-gray-400">{kill.time}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}

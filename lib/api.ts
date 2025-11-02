@@ -26,6 +26,28 @@ export interface Kill {
   time: string
   teamAlive: { ct: number; t: number }
   position: string
+  // Lado del atacante (ct o t)
+  attackerSide?: "ct" | "t"
+  // Coordenadas para visualización en mapa
+  attackerPosition?: {
+    x: number
+    y: number
+    z: number
+  }
+  victimPosition?: {
+    x: number
+    y: number
+    z: number
+  }
+  // Coordenadas de imagen para mapas 2D
+  attackerImagePosition?: {
+    x: number
+    y: number
+  }
+  victimImagePosition?: {
+    x: number
+    y: number
+  }
 }
 
 export interface ChatMessage {
@@ -115,6 +137,7 @@ import {
   mockUsersList,
   createMockUserValidation,
 } from "./mockData"
+import { processBackendResponse } from "./killDataMapper"
 
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true"
 
@@ -186,8 +209,39 @@ export class ApiService {
           ? `${this.baseUrl}/api/matches/${id}/kills?user=${encodeURIComponent(user)}`
           : `${this.baseUrl}/api/matches/${id}/kills`
         const response = await fetch(url)
-        const result = await handleResponse<{ kills: Kill[] }>(response)
-        return result.kills
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        // Leer la respuesta una sola vez
+        const data = await response.json()
+        
+        console.log(`[api] getMatchKills response for match ${id}:`, {
+          hasPredictions: !!data.predictions,
+          predictionsCount: data.predictions?.length || 0,
+          hasKills: !!data.kills,
+          killsCount: data.kills?.length || 0,
+          totalKills: data.total_kills,
+          map: data.map
+        })
+        
+        // Verificar si tiene el formato nuevo con predictions
+        if (data.predictions && Array.isArray(data.predictions)) {
+          const processed = processBackendResponse(data)
+          console.log(`[api] Processed ${processed.kills.length} kills from predictions`)
+          return processed.kills
+        }
+        
+        // Formato anterior con kills directamente
+        if (data.kills && Array.isArray(data.kills)) {
+          console.log(`[api] Returning ${data.kills.length} kills from old format`)
+          return data.kills
+        }
+        
+        // Si no tiene ninguno de los formatos esperados, retornar array vacío
+        console.warn("[api] Unknown response format for kills:", data)
+        return []
       },
       mockKills[id] || mockKills["1"],
       `getMatchKills(${id})`,
