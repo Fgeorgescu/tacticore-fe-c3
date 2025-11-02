@@ -26,6 +26,8 @@ export interface Kill {
   time: string
   teamAlive: { ct: number; t: number }
   position: string
+  // Lado del atacante (ct o t)
+  attackerSide?: "ct" | "t"
   // Coordenadas para visualización en mapa
   attackerPosition?: {
     x: number
@@ -208,20 +210,38 @@ export class ApiService {
           : `${this.baseUrl}/api/matches/${id}/kills`
         const response = await fetch(url)
         
-        // Intentar procesar como respuesta del backend con coordenadas
-        try {
-          const backendResponse = await response.json()
-          if (backendResponse.predictions) {
-            const processed = processBackendResponse(backendResponse)
-            return processed.kills
-          }
-        } catch (e) {
-          // Si falla, intentar el formato anterior
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
         }
         
-        // Formato anterior
-        const result = await handleResponse<{ kills: Kill[] }>(response)
-        return result.kills
+        // Leer la respuesta una sola vez
+        const data = await response.json()
+        
+        console.log(`[api] getMatchKills response for match ${id}:`, {
+          hasPredictions: !!data.predictions,
+          predictionsCount: data.predictions?.length || 0,
+          hasKills: !!data.kills,
+          killsCount: data.kills?.length || 0,
+          totalKills: data.total_kills,
+          map: data.map
+        })
+        
+        // Verificar si tiene el formato nuevo con predictions
+        if (data.predictions && Array.isArray(data.predictions)) {
+          const processed = processBackendResponse(data)
+          console.log(`[api] Processed ${processed.kills.length} kills from predictions`)
+          return processed.kills
+        }
+        
+        // Formato anterior con kills directamente
+        if (data.kills && Array.isArray(data.kills)) {
+          console.log(`[api] Returning ${data.kills.length} kills from old format`)
+          return data.kills
+        }
+        
+        // Si no tiene ninguno de los formatos esperados, retornar array vacío
+        console.warn("[api] Unknown response format for kills:", data)
+        return []
       },
       mockKills[id] || mockKills["1"],
       `getMatchKills(${id})`,
