@@ -6,11 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Target, TrendingUp, TrendingDown, Loader2, Trash2, ChevronDown, ChevronRight } from "lucide-react"
 import { BotChat } from "@/components/chat/bot-chat"
-import { KillMap } from "@/components/match-details/kill-map"
 import { RoundMap } from "@/components/match-details/round-map"
 import { useApi } from "@/hooks/useApi"
 import { useUser } from "@/contexts/UserContext"
 import { apiService, type Kill, type ChatMessage } from "@/lib/api"
+import { SimpleMapView } from "@/components/match-details/simple-map-view"
 
 interface MatchDetailsProps {
   matchId: string | null
@@ -225,7 +225,6 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
               </div>
             </div>
 
-            {/* Final Score and KillMap inside Match Statistics card */}
             <div className="mt-6 text-center">
               <p className="text-3xl font-bold text-primary">{matchData.score.toFixed(1)}/10</p>
               <p className="text-sm text-white">Puntaje Final</p>
@@ -233,7 +232,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
 
             <div className="mt-6">
               <div className="relative w-full max-w-md mx-auto">
-                <KillMap
+                <SimpleMapView
                   mapName={matchData.map}
                   kills={killsData}
                   selectedUser={selectedUser.value}
