@@ -34,8 +34,9 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
   const [expandedRounds, setExpandedRounds] = useState<Set<number>>(new Set())
   const [showAttackerPositions, setShowAttackerPositions] = useState(true)
   const [showVictimPositions, setShowVictimPositions] = useState(true)
+  const [roundsPage, setRoundsPage] = useState(1)
+  const ROUNDS_PER_PAGE = 5
 
-  // Fetch match data
   const {
     data: matchData,
     loading: matchLoading,
@@ -45,7 +46,6 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
     [matchId],
   )
 
-  // Fetch kills data
   const {
     data: kills,
     loading: killsLoading,
@@ -58,7 +58,6 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
     [matchId, selectedUser.value],
   )
 
-  // Fetch chat messages
   const {
     data: chatMessages,
     loading: chatLoading,
@@ -69,14 +68,12 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
     [matchId],
   )
 
-  // Actualizar mensajes cuando se cargan del backend
   React.useEffect(() => {
     if (chatMessages) {
       setChatMessagesData(chatMessages)
     }
   }, [chatMessages])
 
-  // Loading state
   if (matchLoading || killsLoading || chatLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -88,7 +85,6 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
     )
   }
 
-  // Error state
   if (matchError || killsError || chatError) {
     return (
       <div className="space-y-6">
@@ -106,7 +102,6 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
     )
   }
 
-  // No match data
   if (!matchData) {
     return (
       <div className="space-y-6">
@@ -137,7 +132,6 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
     }
   }
 
-  // Función para agrupar kills por rondas
   const groupKillsByRounds = (kills: Kill[]) => {
     const roundsMap = new Map<number, Kill[]>()
 
@@ -149,7 +143,6 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
       roundsMap.get(round)!.push(kill)
     })
 
-    // Ordenar las rondas y los kills dentro de cada ronda
     const sortedRounds = Array.from(roundsMap.entries()).sort(([a], [b]) => a - b)
     sortedRounds.forEach(([, kills]) => {
       kills.sort((a, b) => a.time.localeCompare(b.time))
@@ -158,7 +151,6 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
     return sortedRounds
   }
 
-  // Función para alternar la expansión de una ronda
   const toggleRound = (roundNumber: number) => {
     const newExpanded = new Set(expandedRounds)
     if (newExpanded.has(roundNumber)) {
@@ -169,16 +161,18 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
     setExpandedRounds(newExpanded)
   }
 
-  // Función para calcular estadísticas de una ronda
   const getRoundStats = (kills: Kill[]) => {
     const goodPlays = kills.filter((kill) => kill.isGoodPlay).length
     const badPlays = kills.filter((kill) => !kill.isGoodPlay).length
     return { goodPlays, badPlays, totalKills: kills.length }
   }
 
+  const allRounds = groupKillsByRounds(killsData)
+  const totalRoundsPages = Math.ceil(allRounds.length / ROUNDS_PER_PAGE)
+  const paginatedRounds = allRounds.slice((roundsPage - 1) * ROUNDS_PER_PAGE, roundsPage * ROUNDS_PER_PAGE)
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="outline" onClick={onBack} className="gap-2 bg-transparent">
@@ -193,9 +187,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
         </Button>
       </div>
 
-      {/* Match Info */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Match Statistics */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -239,13 +231,11 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
             </div>
 
             <div className="mt-6 flex justify-center items-center gap-8">
-              {/* Left side: Final Score */}
               <div className="text-center">
                 <p className="text-3xl font-bold text-primary">{matchData.score.toFixed(1)}/10</p>
                 <p className="text-sm text-white">Puntaje Final</p>
               </div>
 
-              {/* Right side: Buttons and legend */}
               <div className="flex flex-col gap-2">
                 <div className="flex gap-2">
                   <Button
@@ -268,7 +258,6 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
                   </Button>
                 </div>
 
-                {/* Leyenda de colores */}
                 <div className="flex gap-3 items-center text-xs bg-black/40 px-2 py-1 rounded">
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#64b5f6" }}></div>
@@ -305,7 +294,6 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
           </CardContent>
         </Card>
 
-        {/* Chat con Bot */}
         <Card className="h-fit">
           <CardContent className="p-4">
             <BotChat
@@ -313,7 +301,6 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
               killsData={killsData}
               initialMessages={chatMessagesData}
               onNewMessage={(message) => {
-                // Agregar el mensaje a la lista local
                 setChatMessagesData((prev) => [...prev, message])
               }}
             />
@@ -321,7 +308,6 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
         </Card>
       </div>
 
-      {/* Mapa por Rondas */}
       <RoundMap
         mapName={matchData.map}
         killsByRound={groupKillsByRounds(killsData)}
@@ -329,7 +315,6 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
         className="w-full"
       />
 
-      {/* Kills Timeline */}
       <Card>
         <CardHeader>
           <CardTitle>Timeline de Kills por Rondas</CardTitle>
@@ -342,13 +327,12 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
             </div>
           ) : (
             <div className="space-y-4">
-              {groupKillsByRounds(killsData).map(([roundNumber, roundKills]) => {
+              {paginatedRounds.map(([roundNumber, roundKills]) => {
                 const stats = getRoundStats(roundKills)
                 const isExpanded = expandedRounds.has(roundNumber)
 
                 return (
                   <div key={roundNumber} className="border border-border rounded-lg">
-                    {/* Header de la ronda */}
                     <div
                       className="flex items-center justify-between p-4 cursor-pointer hover:bg-accent/50 transition-colors"
                       onClick={() => toggleRound(roundNumber)}
@@ -379,7 +363,6 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
                       </div>
                     </div>
 
-                    {/* Contenido de la ronda */}
                     {isExpanded && (
                       <div className="border-t border-border p-4">
                         <div className="space-y-2">
@@ -426,6 +409,30 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
                   </div>
                 )
               })}
+
+              {totalRoundsPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRoundsPage((p) => Math.max(1, p - 1))}
+                    disabled={roundsPage === 1}
+                  >
+                    Anterior
+                  </Button>
+                  <span className="text-sm text-white">
+                    Página {roundsPage} de {totalRoundsPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRoundsPage((p) => Math.min(totalRoundsPages, p + 1))}
+                    disabled={roundsPage === totalRoundsPages}
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
