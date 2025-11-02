@@ -15,6 +15,8 @@ import {
   Crosshair,
   Loader2,
   Calendar,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 import { useApi } from "@/hooks/useApi"
 import { useUser } from "@/contexts/UserContext"
@@ -284,8 +286,10 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
                   size="sm"
                   onClick={() => setMatchesPage((p) => Math.max(1, p - 1))}
                   disabled={matchesPage === 1}
+                  className="w-8 h-8 p-0"
+                  aria-label="Página anterior"
                 >
-                  Anterior
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <span className="text-sm text-white">
                   Página {matchesPage} de {totalMatchesPages}
@@ -295,8 +299,10 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
                   size="sm"
                   onClick={() => setMatchesPage((p) => Math.min(totalMatchesPages, p + 1))}
                   disabled={matchesPage === totalMatchesPages}
+                  className="w-8 h-8 p-0"
+                  aria-label="Página siguiente"
                 >
-                  Siguiente
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             )}

@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
+  ChevronLeft,
 } from "lucide-react"
 import { BotChat } from "@/components/chat/bot-chat"
 import { RoundMap } from "@/components/match-details/round-map"
@@ -417,8 +418,10 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
                     size="sm"
                     onClick={() => setRoundsPage((p) => Math.max(1, p - 1))}
                     disabled={roundsPage === 1}
+                    className="w-8 h-8 p-0"
+                    aria-label="Página anterior"
                   >
-                    Anterior
+                    <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <span className="text-sm text-white">
                     Página {roundsPage} de {totalRoundsPages}
@@ -428,8 +431,10 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
                     size="sm"
                     onClick={() => setRoundsPage((p) => Math.min(totalRoundsPages, p + 1))}
                     disabled={roundsPage === totalRoundsPages}
+                    className="w-8 h-8 p-0"
+                    aria-label="Página siguiente"
                   >
-                    Siguiente
+                    <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
               )}

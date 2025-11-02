@@ -156,10 +156,10 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
                   size="sm"
                   onClick={goToPreviousRound}
                   disabled={currentRoundIndex === 0}
-                  className="gap-1 bg-transparent"
+                  className="w-8 h-8 p-0 bg-transparent"
+                  aria-label="Ronda anterior"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  Anterior
                 </Button>
                 <span className="text-white font-medium">
                   Ronda {currentRoundNumber} ({currentRoundIndex + 1} de {killsByRound.length})
@@ -169,9 +169,9 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
                   size="sm"
                   onClick={goToNextRound}
                   disabled={currentRoundIndex === killsByRound.length - 1}
-                  className="gap-1 bg-transparent"
+                  className="w-8 h-8 p-0 bg-transparent"
+                  aria-label="Ronda siguiente"
                 >
-                  Siguiente
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -229,10 +229,10 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
                     size="sm"
                     onClick={goToPreviousKill}
                     disabled={currentKillIndex !== null && currentKillIndex === 0}
-                    className="gap-1 bg-transparent"
+                    className="w-8 h-8 p-0 bg-transparent"
+                    aria-label="Kill anterior"
                   >
                     <ChevronLeft className="h-4 w-4" />
-                    Kill Anterior
                   </Button>
                   <span className="text-white font-medium">
                     {currentKillIndex === null
@@ -244,9 +244,9 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
                     size="sm"
                     onClick={goToNextKill}
                     disabled={currentKillIndex !== null && currentKillIndex === currentRoundKillsWithCoords.length - 1}
-                    className="gap-1 bg-transparent"
+                    className="w-8 h-8 p-0 bg-transparent"
+                    aria-label="Kill siguiente"
                   >
-                    Kill Siguiente
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
