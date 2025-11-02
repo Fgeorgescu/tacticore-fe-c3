@@ -69,6 +69,21 @@ export const mockMatches: Match[] = [
     status: "processing",
   },
   {
+    id: "processing-2",
+    fileName: "mirage_competitive.dem",
+    hasVideo: true,
+    map: "Unknown",
+    gameType: "Ranked",
+    kills: 0,
+    deaths: 0,
+    goodPlays: 0,
+    badPlays: 0,
+    duration: "00:00",
+    score: 0,
+    date: new Date(Date.now() - 12 * 60 * 1000).toISOString().slice(0, -1), // 12 minutos atrás
+    status: "processing",
+  },
+  {
     id: "1",
     fileName: "Partida Competitiva - Dust2",
     hasVideo: true,
