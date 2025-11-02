@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Target, TrendingUp, TrendingDown, Loader2, Trash2, ChevronDown, ChevronRight } from "lucide-react"
 import { BotChat } from "@/components/chat/bot-chat"
-import { KillMap } from "@/components/match-details/kill-map"
+import { GlobalKillMap } from "@/components/match-details/global-kill-map"
 import { RoundMap } from "@/components/match-details/round-map"
 import { useApi } from "@/hooks/useApi"
 import { useUser } from "@/contexts/UserContext"
@@ -224,22 +224,6 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
                 <p className="text-sm text-white">Duración</p>
               </div>
             </div>
-
-            <div className="mt-6 text-center">
-              <p className="text-3xl font-bold text-primary">{matchData.score.toFixed(1)}/10</p>
-              <p className="text-sm text-white">Puntaje Final</p>
-            </div>
-
-            <div className="mt-6">
-              <div className="relative w-full max-w-md mx-auto">
-                <KillMap
-                  mapName={matchData.map}
-                  kills={killsData}
-                  selectedUser={selectedUser.value}
-                  className="w-full"
-                />
-              </div>
-            </div>
           </CardContent>
         </Card>
 
@@ -257,6 +241,20 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
             />
           </CardContent>
         </Card>
+      </div>
+
+      {/* Final Score and Global Kill Map */}
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
+        {/* Puntaje Final */}
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-8">
+            <p className="text-4xl font-bold text-primary">{matchData.score.toFixed(1)}/10</p>
+            <p className="text-sm text-white mt-2">Puntaje Final</p>
+          </CardContent>
+        </Card>
+
+        {/* Global Kill Map - simplified view */}
+        <GlobalKillMap mapName={matchData.map} kills={killsData} selectedUser={selectedUser.value} className="w-full" />
       </div>
 
       {/* Mapa por Rondas */}
