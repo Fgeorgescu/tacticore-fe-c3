@@ -21,9 +21,7 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
   const [showAttackerPositions, setShowAttackerPositions] = useState(true)
   const [showVictimPositions, setShowVictimPositions] = useState(true)
   const [roundSelectorPage, setRoundSelectorPage] = useState(0)
-  const [killsListPage, setKillsListPage] = useState(0)
   const ROUNDS_PER_PAGE = 7
-  const KILLS_PER_PAGE = 3
 
   const currentRound = killsByRound[currentRoundIndex]
   const currentRoundNumber = currentRound[0]
@@ -56,12 +54,8 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
     (roundSelectorPage + 1) * ROUNDS_PER_PAGE,
   )
 
-  const totalKillsPages = Math.ceil(currentRoundKills.length / KILLS_PER_PAGE)
-  const visibleKills = currentRoundKills.slice(killsListPage * KILLS_PER_PAGE, (killsListPage + 1) * KILLS_PER_PAGE)
-
   useEffect(() => {
     setCurrentKillIndex(null)
-    setKillsListPage(0)
   }, [currentRoundIndex])
 
   const goToPreviousRound = () => {
@@ -106,14 +100,6 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
 
   const goToNextRoundPage = () => {
     setRoundSelectorPage(Math.min(totalRoundPages - 1, roundSelectorPage + 1))
-  }
-
-  const goToPreviousKillsPage = () => {
-    setKillsListPage(Math.max(0, killsListPage - 1))
-  }
-
-  const goToNextKillsPage = () => {
-    setKillsListPage(Math.min(totalKillsPages - 1, killsListPage + 1))
   }
 
   if (killsByRound.length === 0) {
@@ -393,38 +379,9 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
             {/* Lista de kills de la ronda - 25% del espacio */}
             {currentRoundKills.length > 0 && (
               <div className="col-span-1 space-y-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-white">Kills</h4>
-                  {totalKillsPages > 1 && (
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={goToPreviousKillsPage}
-                        disabled={killsListPage === 0}
-                        className="h-6 w-6 p-0"
-                      >
-                        <ChevronLeft className="h-3 w-3" />
-                      </Button>
-                      <span className="text-xs text-gray-400">
-                        {killsListPage * KILLS_PER_PAGE + 1}-
-                        {Math.min((killsListPage + 1) * KILLS_PER_PAGE, currentRoundKills.length)} de{" "}
-                        {currentRoundKills.length}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={goToNextKillsPage}
-                        disabled={killsListPage === totalKillsPages - 1}
-                        className="h-6 w-6 p-0"
-                      >
-                        <ChevronRight className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <h4 className="text-sm font-semibold text-white">Kills</h4>
                 <div className="space-y-0.5">
-                  {visibleKills.map((kill) => (
+                  {currentRoundKills.map((kill) => (
                     <div
                       key={kill.id}
                       className={`flex flex-col gap-0.5 p-1.5 rounded border text-xs ${
