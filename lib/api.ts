@@ -228,7 +228,7 @@ export class ApiService {
         
         // Verificar si tiene el formato nuevo con predictions
         if (data.predictions && Array.isArray(data.predictions)) {
-          const processed = processBackendResponse(data)
+          const processed = await processBackendResponse(data)
           console.log(`[api] Processed ${processed.kills.length} kills from predictions`)
           return processed.kills
         }

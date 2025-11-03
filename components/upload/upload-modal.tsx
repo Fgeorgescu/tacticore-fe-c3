@@ -144,12 +144,20 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
             pollIntervalRef.current = null
           }
           setIsProcessing(false)
-          setCurrentMatchId(null)
           
-          // Wait a bit to show success state
+          // Show success message
+          setDemFile(prev => prev ? { ...prev, status: "success", progress: 100 } : null)
+          if (videoFile) {
+            setVideoFile(prev => prev ? { ...prev, status: "success", progress: 100 } : null)
+          }
+          
+          // Wait a bit to show success state before closing
           setTimeout(() => {
+            setCurrentMatchId(null)
             handleClose()
-          }, 1000)
+            // Refresh page to show the new match in the dashboard
+            window.location.reload()
+          }, 2000)
         } else if (statusResult.status === "failed") {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current)
