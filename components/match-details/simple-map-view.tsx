@@ -224,7 +224,7 @@ export function SimpleMapView({
       width: img.naturalWidth,
       height: img.naturalHeight,
     })
-    imageRef.current = img
+    // Nota: imageRef se actualiza automáticamente por React cuando se usa ref={imageRef} en el JSX
   }
 
   const killsWithCoordinates = kills.filter((kill) => kill.attackerImagePosition || kill.victimImagePosition)

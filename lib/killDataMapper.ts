@@ -112,7 +112,7 @@ export function mapBackendKillData(backendData: BackendKillData[]): Kill[] {
     
     // Obtener el lado del atacante
     const attackerSide = kill.context?.side
-    const validSide = attackerSide === "ct" || attackerSide === "t" ? attackerSide : undefined
+    const validSide: "ct" | "t" | undefined = (attackerSide === "ct" || attackerSide === "t") ? attackerSide : undefined
     
     // Determinar isGoodPlay: verificar múltiples fuentes en orden de prioridad
     let isGoodPlay = false

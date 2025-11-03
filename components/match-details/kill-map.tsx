@@ -337,7 +337,7 @@ export function KillMap({
       width: img.naturalWidth,
       height: img.naturalHeight,
     })
-    imageRef.current = img
+    // Nota: imageRef se actualiza automáticamente por React cuando se usa ref={imageRef} en el JSX
   }
 
   // Filtrar kills que tienen coordenadas de imagen
