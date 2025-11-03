@@ -1,99 +1,5 @@
 import { Kill } from "./api"
 
-// Interfaz para los datos de map-data.json
-interface MapDataConfig {
-  pos_x: number
-  pos_y: number
-  scale: number
-}
-
-// Cache para map-data.json
-let mapDataCache: Record<string, MapDataConfig> | null = null
-
-// Cargar map-data.json
-async function loadMapData(): Promise<Record<string, MapDataConfig> | null> {
-  if (mapDataCache) {
-    return mapDataCache
-  }
-  
-  try {
-    const response = await fetch("/maps/map-data.json")
-    if (!response.ok) {
-      console.warn("[killDataMapper] No se pudo cargar map-data.json")
-      return null
-    }
-    mapDataCache = await response.json()
-    return mapDataCache
-  } catch (error) {
-    console.warn("[killDataMapper] Error cargando map-data.json:", error)
-    return null
-  }
-}
-
-// Calcular coordenadas de imagen desde coordenadas del juego usando map-data.json
-function calculateImageCoordinates(
-  gameX: number,
-  gameY: number,
-  mapName: string,
-  mapData: Record<string, MapDataConfig> | null,
-  imageWidth: number = 1024,
-  imageHeight: number = 1024
-): { x: number; y: number } | null {
-  if (!mapData) {
-    console.warn(`[killDataMapper] No hay mapData disponible para calcular coordenadas`)
-    return null
-  }
-  
-  // Normalizar el nombre del mapa
-  let normalizedMapName = mapName.toLowerCase()
-  
-  // Si no tiene prefijo "de_", intentar agregarlo
-  if (!normalizedMapName.startsWith("de_") && !normalizedMapName.startsWith("cs_") && !normalizedMapName.startsWith("ar_")) {
-    normalizedMapName = `de_${normalizedMapName}`
-  }
-  
-  const mapConfig = mapData[normalizedMapName]
-  
-  if (!mapConfig) {
-    // Intentar sin prefijo también
-    const nameWithoutPrefix = normalizedMapName.replace(/^(de_|cs_|ar_)/, "")
-    const altConfig = mapData[nameWithoutPrefix] || mapData[mapName.toLowerCase()]
-    
-    if (!altConfig) {
-      console.warn(`[killDataMapper] No hay configuración para mapa: ${mapName} (intentó: ${normalizedMapName}, ${nameWithoutPrefix})`, {
-        availableMaps: Object.keys(mapData)
-      })
-      return null
-    }
-    
-    // Usar la configuración alternativa encontrada
-    const centeredX = gameX - altConfig.pos_x
-    const centeredY = gameY - altConfig.pos_y
-    const scaledX = centeredX / altConfig.scale
-    const scaledY = centeredY / altConfig.scale
-    const imageX = (imageWidth / 2) + scaledX
-    const imageY = (imageHeight / 2) + scaledY
-    
-    console.log(`[killDataMapper] Calculated coords for ${mapName} using alt config:`, { gameX, gameY, imageX, imageY })
-    return { x: imageX, y: imageY }
-  }
-  
-  // Calcular coordenadas de imagen usando la fórmula del backend
-  // Basado en: pos_x, pos_y (centro del mapa en coordenadas del juego) y scale
-  const centeredX = gameX - mapConfig.pos_x
-  const centeredY = gameY - mapConfig.pos_y
-  
-  // Escalar
-  const scaledX = centeredX / mapConfig.scale
-  const scaledY = centeredY / mapConfig.scale
-  
-  // Centrar en la imagen
-  const imageX = (imageWidth / 2) + scaledX
-  const imageY = (imageHeight / 2) + scaledY
-  
-  return { x: imageX, y: imageY }
-}
-
 // Interfaz para los datos JSON que vienen del backend
 interface BackendKillData {
   kill_id: string
@@ -162,22 +68,11 @@ function isValidCoordinate(value: number | null | undefined): value is number {
 }
 
 // Función para mapear datos del backend a la estructura del frontend
-export async function mapBackendKillData(
-  backendData: BackendKillData[], 
-  mapName: string = "Unknown"
-): Promise<Kill[]> {
-  // Cargar map-data.json una sola vez
-  const mapData = await loadMapData()
-  
-  console.log(`[killDataMapper] Processing ${backendData.length} kills for map: ${mapName}`)
-  console.log(`[killDataMapper] Map data loaded:`, mapData ? `Yes (${Object.keys(mapData).length} maps)` : "No")
-  
+export function mapBackendKillData(backendData: BackendKillData[]): Kill[] {
   let killsWithoutCoords = 0
   let killsWithCoords = 0
-  let killsWithCalculatedCoords = 0
   
-  const mapped = await Promise.all(
-    backendData.map(async (kill, index) => {
+  const mapped = backendData.map((kill, index) => {
     // Preferir datos del contexto cuando estén disponibles
     const killer = kill.context?.attacker_name || kill.attacker
     const victim = kill.context?.victim_name || kill.victim
@@ -188,72 +83,13 @@ export async function mapBackendKillData(
     const timeInRound = kill.context?.time_in_round_s ?? kill.time_in_round
     
     // Validar y extraer coordenadas de imagen
-    let attackerImageX = kill.context?.attacker_image_x
-    let attackerImageY = kill.context?.attacker_image_y
-    let victimImageX = kill.context?.victim_image_x
-    let victimImageY = kill.context?.victim_image_y
+    const attackerImageX = kill.context?.attacker_image_x
+    const attackerImageY = kill.context?.attacker_image_y
+    const victimImageX = kill.context?.victim_image_x
+    const victimImageY = kill.context?.victim_image_y
     
-    let hasAttackerImageCoords = isValidCoordinate(attackerImageX) && isValidCoordinate(attackerImageY)
-    let hasVictimImageCoords = isValidCoordinate(victimImageX) && isValidCoordinate(victimImageY)
-    
-    // Si no hay coordenadas de imagen pero hay coordenadas del juego, calcularlas usando map-data.json
-    if (!hasAttackerImageCoords && kill.context && 
-        isValidCoordinate(kill.context.attacker_x) && isValidCoordinate(kill.context.attacker_y)) {
-      const calculated = calculateImageCoordinates(
-        kill.context.attacker_x,
-        kill.context.attacker_y,
-        mapName,
-        mapData
-      )
-      if (calculated) {
-        attackerImageX = calculated.x
-        attackerImageY = calculated.y
-        hasAttackerImageCoords = true
-        killsWithCalculatedCoords++
-        console.log(`[killDataMapper] ✅ Calculated attacker image coords for kill ${index + 1} (${killer} -> ${victim}):`, {
-          gameCoords: { x: kill.context.attacker_x, y: kill.context.attacker_y },
-          imageCoords: calculated,
-          mapName
-        })
-      } else {
-        if (index < 3) {
-          console.warn(`[killDataMapper] ❌ Failed to calculate attacker coords for kill ${index + 1}:`, {
-            gameCoords: { x: kill.context.attacker_x, y: kill.context.attacker_y },
-            mapName,
-            hasMapData: !!mapData
-          })
-        }
-      }
-    }
-    
-    if (!hasVictimImageCoords && kill.context && 
-        isValidCoordinate(kill.context.victim_x) && isValidCoordinate(kill.context.victim_y)) {
-      const calculated = calculateImageCoordinates(
-        kill.context.victim_x,
-        kill.context.victim_y,
-        mapName,
-        mapData
-      )
-      if (calculated) {
-        victimImageX = calculated.x
-        victimImageY = calculated.y
-        hasVictimImageCoords = true
-        killsWithCalculatedCoords++
-        console.log(`[killDataMapper] ✅ Calculated victim image coords for kill ${index + 1} (${killer} -> ${victim}):`, {
-          gameCoords: { x: kill.context.victim_x, y: kill.context.victim_y },
-          imageCoords: calculated,
-          mapName
-        })
-      } else {
-        if (index < 3) {
-          console.warn(`[killDataMapper] ❌ Failed to calculate victim coords for kill ${index + 1}:`, {
-            gameCoords: { x: kill.context.victim_x, y: kill.context.victim_y },
-            mapName,
-            hasMapData: !!mapData
-          })
-        }
-      }
-    }
+    const hasAttackerImageCoords = isValidCoordinate(attackerImageX) && isValidCoordinate(attackerImageY)
+    const hasVictimImageCoords = isValidCoordinate(victimImageX) && isValidCoordinate(victimImageY)
     
     if (hasAttackerImageCoords || hasVictimImageCoords) {
       killsWithCoords++
@@ -269,8 +105,6 @@ export async function mapBackendKillData(
           attackerImageY,
           victimImageX,
           victimImageY,
-          hasGameCoords: kill.context ? 
-            (isValidCoordinate(kill.context.attacker_x) && isValidCoordinate(kill.context.attacker_y)) : false,
           contextKeys: kill.context ? Object.keys(kill.context) : []
         })
       }
@@ -336,11 +170,10 @@ export async function mapBackendKillData(
         y: victimImageY!
       } : undefined
     }
-    })
-  )
-
-  console.log(`[killDataMapper] Image coordinate stats: ${killsWithCoords} with coords (${killsWithCalculatedCoords} calculated), ${killsWithoutCoords} without`)
-
+  })
+  
+  console.log(`[killDataMapper] Image coordinate stats: ${killsWithCoords} with coords, ${killsWithoutCoords} without`)
+  
   return mapped
 }
 
@@ -352,21 +185,20 @@ function formatTimeInRound(timeInSeconds: number): string {
 }
 
 // Función para procesar la respuesta completa del backend
-export async function processBackendResponse(response: any): Promise<{
+export function processBackendResponse(response: any): {
   kills: Kill[]
   totalKills: number
   map: string
   tickrate: number
-}> {
+} {
   if (!response || response.status !== "success") {
     throw new Error("Invalid response format")
   }
 
   const predictions = response.predictions || []
-  const mapName = response.map || "Unknown"
-  console.log(`[killDataMapper] Processing ${predictions.length} predictions from backend for map: ${mapName}`)
+  console.log(`[killDataMapper] Processing ${predictions.length} predictions from backend`)
   
-  const kills = await mapBackendKillData(predictions, mapName)
+  const kills = mapBackendKillData(predictions)
   
   // Log de kills con coordenadas
   const killsWithImageCoords = kills.filter(k => k.attackerImagePosition || k.victimImagePosition)
@@ -375,7 +207,7 @@ export async function processBackendResponse(response: any): Promise<{
   return {
     kills,
     totalKills: response.total_kills || 0,
-    map: mapName,
+    map: response.map || "Unknown",
     tickrate: response.tickrate || 64
   }
 }

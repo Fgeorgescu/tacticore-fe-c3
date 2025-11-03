@@ -4,13 +4,12 @@ import { useState, useRef } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Upload, File, Video, X, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
+import { Upload, File, X, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
 import { apiService } from "@/lib/api"
 
 interface FileUpload {
@@ -30,7 +29,7 @@ interface UploadModalProps {
 const AVAILABLE_MAPS = [
   // Mapas competitivos principales
   "Ancient",
-  "Anubis", 
+  "Anubis",
   "Dust II",
   "Inferno",
   "Mirage",
@@ -41,17 +40,16 @@ const AVAILABLE_MAPS = [
   // Mapas adicionales
   "Agency",
   "Grail",
-  "Jura", 
+  "Jura",
   "Office",
   "Italy",
   // Mapas de modo casual
   "Dogtown",
-  "Pool Day"
+  "Pool Day",
 ]
 
 export function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [demFile, setDemFile] = useState<FileUpload | null>(null)
-  const [videoFile, setVideoFile] = useState<FileUpload | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [currentMatchId, setCurrentMatchId] = useState<string | null>(null)
@@ -62,10 +60,9 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
   })
 
   const demInputRef = useRef<HTMLInputElement>(null)
-  const videoInputRef = useRef<HTMLInputElement>(null)
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  const handleFileSelect = (files: FileList | null, type: "dem" | "video") => {
+  const handleFileSelect = (files: FileList | null) => {
     if (!files || files.length === 0) return
 
     const file = files[0]
@@ -75,14 +72,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
       progress: 0,
     }
 
-    if (type === "dem") {
-      setDemFile(fileUpload)
-    } else {
-      // Create preview for video files
-      const preview = URL.createObjectURL(file)
-      fileUpload.preview = preview
-      setVideoFile(fileUpload)
-    }
+    setDemFile(fileUpload)
   }
 
   const handleUpload = async () => {
@@ -94,34 +84,30 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
       // Prepare metadata for the new endpoint
       const matchMetadata = {
         playerName: "Player", // Default value
-        notes: metadata.map || metadata.description || "Unknown map"
+        notes: metadata.map || metadata.description || "Unknown map",
       }
 
-      // Upload match using the new endpoint
       const result = await apiService.uploadMatch(
-        demFile.file, 
-        videoFile?.file, 
-        matchMetadata
+        demFile.file,
+        undefined, // No video file
+        matchMetadata,
       )
 
       if (result.status === "processing") {
         setCurrentMatchId(result.id)
         setIsProcessing(true)
-        setDemFile(prev => prev ? { ...prev, status: "success", progress: 100 } : null)
-        
-        if (videoFile) {
-          setVideoFile(prev => prev ? { ...prev, status: "success", progress: 100 } : null)
-        }
+        setDemFile((prev) => (prev ? { ...prev, status: "success", progress: 100 } : null))
 
         // Start polling for status updates
         startPolling(result.id)
       } else {
         throw new Error(result.message)
       }
-
     } catch (error) {
       console.error("Upload error:", error)
-      setDemFile(prev => prev ? { ...prev, status: "error", error: error instanceof Error ? error.message : "Upload failed" } : null)
+      setDemFile((prev) =>
+        prev ? { ...prev, status: "error", error: error instanceof Error ? error.message : "Upload failed" } : null,
+      )
     } finally {
       setIsUploading(false)
     }
@@ -133,25 +119,20 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current)
     }
-    
+
     pollIntervalRef.current = setInterval(async () => {
       try {
         const statusResult = await apiService.getMatchStatus(matchId)
-        
+
         if (statusResult.status === "completed") {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current)
             pollIntervalRef.current = null
           }
           setIsProcessing(false)
-          
-          // Show success message
-          setDemFile(prev => prev ? { ...prev, status: "success", progress: 100 } : null)
-          if (videoFile) {
-            setVideoFile(prev => prev ? { ...prev, status: "success", progress: 100 } : null)
-          }
-          
-          // Wait a bit to show success state before closing
+          setCurrentMatchId(null)
+
+          // Wait a bit to show success state
           setTimeout(() => {
             setCurrentMatchId(null)
             handleClose()
@@ -165,7 +146,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
           }
           setIsProcessing(false)
           setCurrentMatchId(null)
-          setDemFile(prev => prev ? { ...prev, status: "error", error: statusResult.message } : null)
+          setDemFile((prev) => (prev ? { ...prev, status: "error", error: statusResult.message } : null))
         }
         // If still processing, continue polling
       } catch (error) {
@@ -176,7 +157,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
         }
         setIsProcessing(false)
         setCurrentMatchId(null)
-        setDemFile(prev => prev ? { ...prev, status: "error", error: "Error checking status" } : null)
+        setDemFile((prev) => (prev ? { ...prev, status: "error", error: "Error checking status" } : null))
       }
     }, 2000) // Poll every 2 seconds
 
@@ -200,12 +181,8 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
       clearInterval(pollIntervalRef.current)
       pollIntervalRef.current = null
     }
-    
-    if (videoFile?.preview) {
-      URL.revokeObjectURL(videoFile.preview)
-    }
+
     setDemFile(null)
-    setVideoFile(null)
     setIsUploading(false)
     setIsProcessing(false)
     setCurrentMatchId(null)
@@ -213,22 +190,15 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     onClose()
   }
 
-  const removeFile = (type: "dem" | "video") => {
-    if (type === "dem") {
-      setDemFile(null)
-    } else {
-      if (videoFile?.preview) {
-        URL.revokeObjectURL(videoFile.preview)
-      }
-      setVideoFile(null)
-    }
+  const removeFile = () => {
+    setDemFile(null)
   }
 
   const canUpload = demFile && demFile.status !== "error" && !isUploading && !isProcessing
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
@@ -238,147 +208,55 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
 
         <div className="space-y-6">
           {/* File Upload Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* DEM File Upload */}
-            <Card>
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <File className="h-4 w-4" />
-                    <Label htmlFor="dem-file">Archivo DEM (Requerido)</Label>
-                  </div>
-
-                  {!demFile ? (
-                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center">
-                      <input
-                        ref={demInputRef}
-                        type="file"
-                        id="dem-file"
-                        accept=".dem"
-                        onChange={(e) => handleFileSelect(e.target.files, "dem")}
-                        className="hidden"
-                      />
-                      <Button
-                        variant="outline"
-                        onClick={() => demInputRef.current?.click()}
-                        className="w-full"
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Seleccionar archivo .dem
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <File className="h-4 w-4 text-black dark:text-white" />
-                          <span className="text-sm font-medium text-black dark:text-white">{demFile.file.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {demFile.status === "success" && (
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                          )}
-                          {demFile.status === "error" && (
-                            <AlertCircle className="h-4 w-4 text-red-500" />
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeFile("dem")}
-                            disabled={isUploading || isProcessing}
-                          >
-                            <X className="h-4 w-4 text-black dark:text-white" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      {demFile.status === "uploading" && (
-                        <Progress value={demFile.progress} className="h-2" />
-                      )}
-
-                      {demFile.status === "error" && demFile.error && (
-                        <p className="text-sm text-red-500">{demFile.error}</p>
-                      )}
-                    </div>
-                  )}
+          <Card>
+            <CardContent className="p-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <File className="h-4 w-4" />
+                  <Label htmlFor="dem-file">Archivo DEM (Requerido)</Label>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Video File Upload */}
-            <Card>
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Video className="h-4 w-4" />
-                    <Label htmlFor="video-file">Video (Opcional)</Label>
+                {!demFile ? (
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center">
+                    <input
+                      ref={demInputRef}
+                      type="file"
+                      id="dem-file"
+                      accept=".dem"
+                      onChange={(e) => handleFileSelect(e.target.files)}
+                      className="hidden"
+                    />
+                    <Button variant="outline" onClick={() => demInputRef.current?.click()} className="w-full">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Seleccionar archivo .dem
+                    </Button>
                   </div>
-
-                  {!videoFile ? (
-                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center">
-                      <input
-                        ref={videoInputRef}
-                        type="file"
-                        id="video-file"
-                        accept="video/*"
-                        onChange={(e) => handleFileSelect(e.target.files, "video")}
-                        className="hidden"
-                      />
-                      <Button
-                        variant="outline"
-                        onClick={() => videoInputRef.current?.click()}
-                        className="w-full"
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Seleccionar video
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <Video className="h-4 w-4 text-black dark:text-white" />
-                          <span className="text-sm font-medium text-black dark:text-white">{videoFile.file.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {videoFile.status === "success" && (
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                          )}
-                          {videoFile.status === "error" && (
-                            <AlertCircle className="h-4 w-4 text-red-500" />
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeFile("video")}
-                            disabled={isUploading || isProcessing}
-                          >
-                            <X className="h-4 w-4 text-black dark:text-white" />
-                          </Button>
-                        </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <File className="h-4 w-4 text-black dark:text-white" />
+                        <span className="text-sm font-medium text-black dark:text-white">{demFile.file.name}</span>
                       </div>
-
-                      {videoFile.preview && (
-                        <video
-                          src={videoFile.preview}
-                          className="w-full h-32 object-cover rounded-lg"
-                          controls
-                        />
-                      )}
-
-                      {videoFile.status === "uploading" && (
-                        <Progress value={videoFile.progress} className="h-2" />
-                      )}
-
-                      {videoFile.status === "error" && videoFile.error && (
-                        <p className="text-sm text-red-500">{videoFile.error}</p>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {demFile.status === "success" && <CheckCircle className="h-4 w-4 text-green-500" />}
+                        {demFile.status === "error" && <AlertCircle className="h-4 w-4 text-red-500" />}
+                        <Button variant="ghost" size="sm" onClick={removeFile} disabled={isUploading || isProcessing}>
+                          <X className="h-4 w-4 text-black dark:text-white" />
+                        </Button>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+
+                    {demFile.status === "uploading" && <Progress value={demFile.progress} className="h-2" />}
+
+                    {demFile.status === "error" && demFile.error && (
+                      <p className="text-sm text-red-500">{demFile.error}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Metadata Section */}
           <Card>
@@ -393,9 +271,13 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                       list="map-options"
                       placeholder="Seleccionar mapa..."
                       value={metadata.map}
-                      onChange={(e) => setMetadata(prev => ({ ...prev, map: e.target.value }))}
+                      onChange={(e) => setMetadata((prev) => ({ ...prev, map: e.target.value }))}
                       disabled={isUploading}
-                      className={!AVAILABLE_MAPS.includes(metadata.map) && metadata.map !== "" ? "border-red-500 focus-visible:ring-red-500" : ""}
+                      className={
+                        !AVAILABLE_MAPS.includes(metadata.map) && metadata.map !== ""
+                          ? "border-red-500 focus-visible:ring-red-500"
+                          : ""
+                      }
                     />
                     <datalist id="map-options">
                       {AVAILABLE_MAPS.map((map) => (
@@ -403,9 +285,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                       ))}
                     </datalist>
                     {!AVAILABLE_MAPS.includes(metadata.map) && metadata.map !== "" && (
-                      <p className="text-sm text-red-500 mt-1">
-                        ⚠️ Mapa no reconocido. Verifica el nombre.
-                      </p>
+                      <p className="text-sm text-red-500 mt-1">⚠️ Mapa no reconocido. Verifica el nombre.</p>
                     )}
                   </div>
                 </div>
@@ -413,17 +293,21 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                   <Label>Tipo de Juego</Label>
                   <RadioGroup
                     value={metadata.gameType}
-                    onValueChange={(value) => setMetadata(prev => ({ ...prev, gameType: value }))}
+                    onValueChange={(value) => setMetadata((prev) => ({ ...prev, gameType: value }))}
                     disabled={isUploading}
                     className="flex gap-6"
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="Ranked" id="ranked" />
-                      <Label htmlFor="ranked" className="cursor-pointer">Ranked</Label>
+                      <Label htmlFor="ranked" className="cursor-pointer">
+                        Ranked
+                      </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="Casual" id="casual" />
-                      <Label htmlFor="casual" className="cursor-pointer">Casual</Label>
+                      <Label htmlFor="casual" className="cursor-pointer">
+                        Casual
+                      </Label>
                     </div>
                   </RadioGroup>
                 </div>
@@ -434,7 +318,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                   id="description"
                   placeholder="Notas sobre la partida..."
                   value={metadata.description}
-                  onChange={(e) => setMetadata(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) => setMetadata((prev) => ({ ...prev, description: e.target.value }))}
                   disabled={isUploading}
                   rows={3}
                 />
@@ -450,12 +334,8 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                   <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
                   <div>
                     <h3 className="font-semibold text-blue-600">Procesando partida...</h3>
-                    <p className="text-sm text-muted-foreground">
-                      ID: {currentMatchId}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Analizando archivo DEM y generando estadísticas
-                    </p>
+                    <p className="text-sm text-muted-foreground">ID: {currentMatchId}</p>
+                    <p className="text-sm text-muted-foreground">Analizando archivo DEM y generando estadísticas</p>
                   </div>
                 </div>
               </CardContent>
@@ -467,11 +347,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
             <Button variant="outline" onClick={handleClose} disabled={isUploading || isProcessing}>
               Cancelar
             </Button>
-            <Button
-              onClick={handleUpload}
-              disabled={!canUpload}
-              className="gap-2"
-            >
+            <Button onClick={handleUpload} disabled={!canUpload} className="gap-2">
               {isUploading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
