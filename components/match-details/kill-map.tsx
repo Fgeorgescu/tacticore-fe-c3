@@ -215,62 +215,21 @@ function adjustCoordinatesForMap(
       const adjustedX = centerX + scaledX
       const adjustedY = centerY + scaledY
 
-      // Log para debug (solo los primeros 3 kills)
-      if (kill && kill.id <= 3) {
-        const beforeFlip = { x: centeredX / scale, y: centeredY / scale }
-        console.log(
-          `[${normalizedName} Transform] Kill ${kill.id} ${isVictim ? "(victim)" : "(attacker)"} (${kill.position}):`,
-          {
-            gamePos: { x: gamePos.x, y: gamePos.y },
-            centered: { x: centeredX, y: centeredY },
-            scaledBeforeFlip: beforeFlip,
-            scaledAfterFlip: { x: scaledX, y: scaledY },
-            centerImage: { x: centerX, y: centerY },
-            final: { x: adjustedX, y: adjustedY },
-            scale,
-            centerGame: { x: centerGameX, y: centerGameY },
-            imageDimensions: { width: imageWidth, height: imageHeight },
-          },
-        )
-      }
 
       return { x: adjustedX, y: adjustedY }
     }
 
-    // Si no tenemos coordenadas originales del juego válidas, verificar si las coordenadas de imagen son razonables
-    // Las coordenadas problemáticas suelen ser todas iguales (ej: 989, 928)
-    // Si son diferentes y están dentro de un rango razonable, usarlas directamente
     const isProblematicCoords = normalizedName === "de_nuke" && ((x > 900 && x < 1000) || (y > 900 && y < 1000))
 
     if (!isProblematicCoords && x > 0 && x < imageWidth && y > 0 && y < imageHeight) {
-      // Las coordenadas de imagen parecen válidas, usarlas directamente
-      console.warn(
-        `[${normalizedName} Transform] Kill ${kill?.id || "unknown"} ${isVictim ? "(victim)" : "(attacker)"}: Usando coordenadas de imagen directamente (no hay coordenadas del juego)`,
-        { x, y },
-      )
       return { x, y }
     }
-
-    // Si las coordenadas son problemáticas y no tenemos coordenadas del juego, loggear y usar fallback
-    console.warn(
-      `[${normalizedName} Transform] Kill ${kill?.id || "unknown"} ${isVictim ? "(victim)" : "(attacker)"}: Sin coordenadas del juego válidas, usando fallback`,
-      {
-        imageCoords: { x, y },
-        gamePos: gamePos ? { x: gamePos.x, y: gamePos.y } : null,
-        killId: kill?.id,
-      },
-    )
-
-    // Fallback: intentar una transformación simple pero mejor posicionada
     const adjustedX = x * 0.35 + imageWidth * 0.3
     const adjustedY = y * 0.5 + imageHeight * 0.25
 
     return { x: adjustedX, y: adjustedY }
   }
 
-  // Para otros mapas (como de_mirage), las coordenadas de imagen ya vienen correctas del backend
-  // No necesitamos aplicar transformación compleja, solo devolver las coordenadas originales
-  // El map-data.json se mantiene para referencia futura pero no se usa en esta transformación
   return { x, y }
 }
 
@@ -316,43 +275,26 @@ export function KillMap({
   const containerRef = useRef<HTMLDivElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
 
-  // Cargar map-data.json al montar el componente
   useEffect(() => {
     fetch("/maps/map-data.json")
       .then((response) => response.json())
       .then((data) => setMapDataJson(data))
-      .catch((error) => {
-        console.warn("No se pudo cargar map-data.json:", error)
+      .catch(() => {
         setMapDataJson(null)
       })
   }, [])
 
-  // Obtener configuración del mapa
   const mapConfig = getMapConfig(mapName, mapDataJson)
 
-  // Manejar carga de imagen para obtener dimensiones reales
   const handleImageLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
     const img = event.currentTarget
     setImageDimensions({
       width: img.naturalWidth,
       height: img.naturalHeight,
     })
-    // Nota: imageRef se actualiza automáticamente por React cuando se usa ref={imageRef} en el JSX
   }
 
-  // Filtrar kills que tienen coordenadas de imagen
   const killsWithCoordinates = kills.filter((kill) => kill.attackerImagePosition || kill.victimImagePosition)
-
-  // Log para debug
-  useEffect(() => {
-    const withCoords = kills.filter((kill) => kill.attackerImagePosition || kill.victimImagePosition)
-    console.log(`[KillMap] Total kills: ${kills.length}, Kills with coordinates: ${withCoords.length}`)
-    if (kills.length > 0 && withCoords.length === 0) {
-      console.warn(`[KillMap] No kills have image coordinates! Sample kill:`, kills[0])
-    }
-  }, [kills])
-
-  // Dibujar el mapa y los puntos
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas || killsWithCoordinates.length === 0 || imageDimensions.width === 0) return
@@ -360,7 +302,6 @@ export function KillMap({
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
-    // Asegurar que el canvas tenga las dimensiones correctas
     const container = containerRef.current
     if (container) {
       const containerWidth = container.clientWidth
@@ -369,19 +310,14 @@ export function KillMap({
       canvas.height = containerHeight
     }
 
-    // Calcular la escala para ajustar las coordenadas de imagen al tamaño del canvas
     const scaleX = canvas.width / imageDimensions.width
     const scaleY = canvas.height / imageDimensions.height
 
-    // Limpiar canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    // Dibujar cada kill
     killsWithCoordinates.forEach((kill) => {
-      // Dibujar posición del atacante
       if (showAttackerPositions && kill.attackerImagePosition) {
         let { x, y } = kill.attackerImagePosition
-        // Aplicar corrección específica del mapa (ej: Inferno)
         const adjusted = adjustCoordinatesForMap(
           mapName,
           x,
@@ -409,10 +345,8 @@ export function KillMap({
         ctx.stroke()
       }
 
-      // Dibujar posición de la víctima (con X)
       if (showVictimPositions && kill.victimImagePosition) {
         let { x, y } = kill.victimImagePosition
-        // Aplicar corrección específica del mapa (ej: Inferno)
         const adjusted = adjustCoordinatesForMap(
           mapName,
           x,
@@ -439,15 +373,12 @@ export function KillMap({
         ctx.strokeStyle = "white"
         ctx.lineWidth = 2
         ctx.stroke()
-        // Dibujar X sobre la víctima
         ctx.strokeStyle = "white"
         ctx.lineWidth = 2
-        const xSize = size * 0.6 // Tamaño de la X (60% del radio del círculo)
+        const xSize = size * 0.6
         ctx.beginPath()
-        // Línea diagonal 1: \
         ctx.moveTo(scaledX - xSize, scaledY - xSize)
         ctx.lineTo(scaledX + xSize, scaledY + xSize)
-        // Línea diagonal 2: /
         ctx.moveTo(scaledX + xSize, scaledY - xSize)
         ctx.lineTo(scaledX - xSize, scaledY + xSize)
         ctx.stroke()
@@ -636,8 +567,6 @@ export function KillMap({
             className="absolute inset-0 w-full h-full object-cover opacity-30"
             onLoad={handleImageLoad}
             onError={(e) => {
-              // Si la imagen no existe, mostrar un placeholder
-              console.warn(`No se pudo cargar la imagen del mapa: ${mapConfig.imagePath}`)
               e.currentTarget.style.display = "none"
             }}
           />

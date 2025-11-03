@@ -34,7 +34,6 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
   const [matchesPage, setMatchesPage] = useState(1)
   const MATCHES_PER_PAGE = 10
 
-  // Fetch matches and dashboard stats - se actualizan automáticamente cuando cambia selectedUser
   const {
     data: matches,
     loading: matchesLoading,
@@ -49,13 +48,11 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
     refetch: refetchStats,
   } = useApi(() => apiService.getDashboardStats(selectedUser.value), [selectedUser.value])
 
-  // Función para actualizar ambos datos
   const handleRefresh = () => {
     refetchMatches()
     refetchStats()
   }
 
-  // Loading state
   if (matchesLoading || statsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -67,7 +64,6 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
     )
   }
 
-  // Error state
   if (matchesError || statsError) {
     return (
       <div className="space-y-6">
@@ -82,7 +78,6 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
     )
   }
 
-  // Use real data or fallback to empty arrays/objects
   const matchesData = matches || []
   const statsData = stats || {
     totalMatches: 0,
