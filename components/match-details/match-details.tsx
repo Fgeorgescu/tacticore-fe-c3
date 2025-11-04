@@ -285,7 +285,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
                 <SimpleMapView
                   mapName={matchData.map}
                   kills={killsData}
-                  selectedUser={selectedUser.value}
+                  selectedUser={selectedUser.value ?? undefined}
                   showAttackerPositions={showAttackerPositions}
                   showVictimPositions={showVictimPositions}
                   className="w-full"
@@ -312,7 +312,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
       <RoundMap
         mapName={matchData.map}
         killsByRound={groupKillsByRounds(killsData)}
-        selectedUser={selectedUser.value}
+        selectedUser={selectedUser.value ?? undefined}
         className="w-full"
       />
 
