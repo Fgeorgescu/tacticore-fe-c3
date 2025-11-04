@@ -210,8 +210,7 @@ export function SimpleMapView({
     fetch("/maps/map-data.json")
       .then((response) => response.json())
       .then((data) => setMapDataJson(data))
-      .catch((error) => {
-        console.warn("No se pudo cargar map-data.json:", error)
+      .catch(() => {
         setMapDataJson(null)
       })
   }, [])
@@ -224,7 +223,6 @@ export function SimpleMapView({
       width: img.naturalWidth,
       height: img.naturalHeight,
     })
-    imageRef.current = img
   }
 
   const killsWithCoordinates = kills.filter((kill) => kill.attackerImagePosition || kill.victimImagePosition)
@@ -355,7 +353,6 @@ export function SimpleMapView({
         className="absolute inset-0 w-full h-full object-cover opacity-30"
         onLoad={handleImageLoad}
         onError={(e) => {
-          console.warn(`No se pudo cargar la imagen del mapa: ${mapConfig.imagePath}`)
           e.currentTarget.style.display = "none"
         }}
       />
