@@ -24,7 +24,7 @@ Se ha integrado un bot de ChatGPT directamente en el frontend que puede analizar
 
 Crea un archivo `.env.local` en la raíz del proyecto frontend:
 
-una ```bash
+\`\`\`bash
 # Copia el archivo de ejemplo
 cp .env.example .env.local
 
@@ -39,7 +39,7 @@ Contenido del archivo `.env.local`:
 NEXT_PUBLIC_API_URL=http://localhost:8080
 
 # OpenAI API Key
-NEXT_PUBLIC_OPENAI_API_KEY=tu_api_key_aqui
+OPENAI_API_KEY=your_openai_api_key_here
 
 # Configuración de ChatGPT (opcional)
 NEXT_PUBLIC_CHATGPT_MODEL=gpt-3.5-turbo
