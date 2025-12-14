@@ -42,9 +42,9 @@ NEXT_PUBLIC_API_URL=http://localhost:8080
 OPENAI_API_KEY=your_openai_api_key_here
 
 # Configuración de ChatGPT (opcional)
-NEXT_PUBLIC_CHATGPT_MODEL=gpt-3.5-turbo
-NEXT_PUBLIC_CHATGPT_MAX_TOKENS=300
-NEXT_PUBLIC_CHATGPT_TEMPERATURE=0.7
+CHATGPT_MODEL=gpt-3.5-turbo
+CHATGPT_MAX_TOKENS=300
+CHATGPT_TEMPERATURE=0.7
 \`\`\`
 
 ### 3. Reiniciar Servicios
