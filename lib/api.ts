@@ -188,9 +188,22 @@ export class ApiService {
         console.log("[v0] API Request: getMatches -", { user, url })
         const response = await fetch(url)
 
-        const result = await handleResponse<Match[]>(response)
+        const result = await handleResponse<Match[] | { matches: Match[] }>(response)
         console.log("[v0] getMatches result:", result)
-        return result
+
+        // If backend returns { matches: [...] }, extract the array
+        if (result && typeof result === "object" && "matches" in result && Array.isArray(result.matches)) {
+          return result.matches
+        }
+
+        // If backend returns [...] directly
+        if (Array.isArray(result)) {
+          return result
+        }
+
+        // Fallback to empty array
+        console.warn("[v0] getMatches: Unexpected response format, returning empty array")
+        return []
       },
       mockMatches,
       "getMatches",
@@ -410,7 +423,20 @@ export class ApiService {
           : `${this.baseUrl}/api/matches`
         console.log("[v0] API Request: getDashboardStats (using matches endpoint) -", { user, url })
         const response = await fetch(url)
-        const matches = await handleResponse<Match[]>(response)
+
+        const result = await handleResponse<Match[] | { matches: Match[] }>(response)
+
+        let matches: Match[] = []
+
+        // Extract matches array from response
+        if (result && typeof result === "object" && "matches" in result && Array.isArray(result.matches)) {
+          matches = result.matches
+        } else if (Array.isArray(result)) {
+          matches = result
+        } else {
+          console.warn("[v0] getDashboardStats: Unexpected response format")
+          matches = []
+        }
 
         console.log("[v0] getDashboardStats: Computing stats from matches:", matches)
 

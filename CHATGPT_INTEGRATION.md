@@ -24,17 +24,17 @@ Se ha integrado un bot de ChatGPT directamente en el frontend que puede analizar
 
 Crea un archivo `.env.local` en la raíz del proyecto frontend:
 
-\`\`\`bash
+```bash
 # Copia el archivo de ejemplo
 cp .env.example .env.local
 
 # Edita el archivo con tus credenciales reales
 nano .env.local
-\`\`\`
+```
 
 Contenido del archivo `.env.local`:
 
-\`\`\`bash
+```bash
 # API del backend
 NEXT_PUBLIC_API_URL=http://localhost:8080
 
@@ -45,14 +45,14 @@ OPENAI_API_KEY=your_openai_api_key_here
 CHATGPT_MODEL=gpt-3.5-turbo
 CHATGPT_MAX_TOKENS=300
 CHATGPT_TEMPERATURE=0.7
-\`\`\`
+```
 
 ### 3. Reiniciar Servicios
 
-\`\`\`bash
+```bash
 docker-compose down
 docker-compose up --build -d
-\`\`\`
+```
 
 ## 🎯 Uso del Bot
 
@@ -83,13 +83,13 @@ El bot proporcionará:
 
 ### Flujo de Datos
 
-\`\`\`
+```
 Frontend Chat → ChatGPT Service → OpenAI API
      ↓
 Match Context (kills, deaths, score, etc.)
      ↓
 Personalized Response
-\`\`\`
+```
 
 ### Componentes Principales
 

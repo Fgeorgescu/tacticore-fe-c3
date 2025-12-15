@@ -79,28 +79,28 @@
 
 ### Configuración
 1. Crear archivo `.env.local` en la raíz del proyecto:
-\`\`\`env
+```env
 NEXT_PUBLIC_API_URL=http://localhost:8080
-\`\`\`
+```
 
 ### Desarrollo
-\`\`\`bash
+```bash
 # Instalar dependencias
 pnpm install
 
 # Ejecutar en modo desarrollo
 pnpm dev
-\`\`\`
+```
 
 ### Docker
-\`\`\`bash
+```bash
 # Ejecutar con Docker Compose
 docker-compose up
-\`\`\`
+```
 
 ## Estructura de Archivos
 
-\`\`\`
+```
 tacticore-fe-c3/
 ├── lib/
 │   └── api.ts                 # Servicio de API
@@ -119,7 +119,7 @@ tacticore-fe-c3/
 │       └── connection-status.tsx  # Estado de conexión
 └── app/
     └── page.tsx               # Página principal actualizada
-\`\`\`
+```
 
 ## Notas Técnicas
 
