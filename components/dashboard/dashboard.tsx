@@ -84,15 +84,18 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
 
   // Use real data or fallback to empty arrays/objects
   const matchesData = matches || []
-  const statsData = stats || {
-    totalMatches: 0,
-    totalKills: 0,
-    totalDeaths: 0,
-    totalGoodPlays: 0,
-    totalBadPlays: 0,
-    averageScore: 0,
-    kdr: 0,
-  }
+  const statsData =
+    stats && typeof stats === "object" && "totalMatches" in stats
+      ? stats
+      : {
+          totalMatches: 0,
+          totalKills: 0,
+          totalDeaths: 0,
+          totalGoodPlays: 0,
+          totalBadPlays: 0,
+          averageScore: 0,
+          kdr: 0,
+        }
 
   const processingMatches = matchesData.filter((m) => m.status === "processing")
   const completedMatches = matchesData.filter((m) => m.status !== "processing")
