@@ -187,9 +187,10 @@ export class ApiService {
           : `${this.baseUrl}/api/matches`
         console.log("[v0] API Request: getMatches -", { user, url })
         const response = await fetch(url)
-        const result = await handleResponse<{ matches: Match[] }>(response)
+
+        const result = await handleResponse<Match[]>(response)
         console.log("[v0] getMatches result:", result)
-        return result.matches
+        return result
       },
       mockMatches,
       "getMatches",
@@ -354,39 +355,28 @@ export class ApiService {
     return fetchWithFallback(
       async () => {
         const url = user
-          ? `${this.baseUrl}/api/analytics/dashboard?user=${encodeURIComponent(user)}`
-          : `${this.baseUrl}/api/analytics/dashboard`
-        console.log("[v0] API Request: getDashboardStats -", { user, url })
+          ? `${this.baseUrl}/api/matches?user=${encodeURIComponent(user)}`
+          : `${this.baseUrl}/api/matches`
+        console.log("[v0] API Request: getDashboardStats (using matches endpoint) -", { user, url })
         const response = await fetch(url)
-        const rawData = await response.json()
+        const matches = await handleResponse<Match[]>(response)
 
-        console.log("[v0] getDashboardStats RAW response:", rawData)
+        console.log("[v0] getDashboardStats: Computing stats from matches:", matches)
 
-        if (Array.isArray(rawData)) {
-          console.warn(
-            "[v0] getDashboardStats: Backend returned matches array instead of stats object. Computing stats from matches...",
-          )
-
-          // Calculate stats from matches array
-          const matches = rawData as Match[]
-          const stats: DashboardStats = {
-            totalMatches: matches.length,
-            totalKills: matches.reduce((sum, m) => sum + m.kills, 0),
-            totalDeaths: matches.reduce((sum, m) => sum + m.deaths, 0),
-            totalGoodPlays: matches.reduce((sum, m) => sum + m.goodPlays, 0),
-            totalBadPlays: matches.reduce((sum, m) => sum + m.badPlays, 0),
-            averageScore: matches.length > 0 ? matches.reduce((sum, m) => sum + m.score, 0) / matches.length : 0,
-            kdr: 0,
-          }
-          stats.kdr = stats.totalDeaths > 0 ? stats.totalKills / stats.totalDeaths : stats.totalKills
-
-          console.log("[v0] getDashboardStats: Computed stats from matches:", stats)
-          return stats
+        // Calculate stats from matches array
+        const stats: DashboardStats = {
+          totalMatches: matches.length,
+          totalKills: matches.reduce((sum, m) => sum + m.kills, 0),
+          totalDeaths: matches.reduce((sum, m) => sum + m.deaths, 0),
+          totalGoodPlays: matches.reduce((sum, m) => sum + m.goodPlays, 0),
+          totalBadPlays: matches.reduce((sum, m) => sum + m.badPlays, 0),
+          averageScore: matches.length > 0 ? matches.reduce((sum, m) => sum + m.score, 0) / matches.length : 0,
+          kdr: 0,
         }
+        stats.kdr = stats.totalDeaths > 0 ? stats.totalKills / stats.totalDeaths : stats.totalKills
 
-        const result = rawData as DashboardStats
-        console.log("[v0] getDashboardStats result:", result)
-        return result
+        console.log("[v0] getDashboardStats: Computed stats:", stats)
+        return stats
       },
       mockDashboardStats,
       "getDashboardStats",
