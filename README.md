@@ -38,28 +38,28 @@ Continue building your app on:
 ### Installation & Setup
 
 1. **Clone the repository**
-   \`\`\`bash
+   ```bash
    git clone <your-repo-url>
    cd tacticore-fe-c3
-   \`\`\`
+   ```
 
 2. **Install dependencies**
-   \`\`\`bash
+   ```bash
    npm install
    # or
    yarn install
    # or
    pnpm install
-   \`\`\`
+   ```
 
 3. **Run the development server**
-   \`\`\`bash
+   ```bash
    npm run dev
    # or
    yarn dev
    # or
    pnpm dev
-   \`\`\`
+   ```
 
 4. **Open your browser**
    Navigate to [http://localhost:3000](http://localhost:3000) to see the application.

@@ -4,6 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* Updated color tokens to match TACTICORE brand design */
   --background: #001f3f;
   --foreground: #ffffff;
   --card: #374151;
@@ -40,6 +41,7 @@
 }
 
 .dark {
+  /* Dark mode uses same colors as TACTICORE is inherently dark themed */
   --background: #001f3f;
   --foreground: #ffffff;
   --card: #374151;
@@ -76,6 +78,7 @@
 }
 
 @theme inline {
+  /* Updated font variables for TACTICORE typography */
   --font-sans: var(--font-open-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-montserrat);
