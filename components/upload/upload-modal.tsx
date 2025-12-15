@@ -134,11 +134,8 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
 
           // Wait a bit to show success state
           setTimeout(() => {
-            setCurrentMatchId(null)
             handleClose()
-            // Refresh page to show the new match in the dashboard
-            window.location.reload()
-          }, 2000)
+          }, 1000)
         } else if (statusResult.status === "failed") {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current)

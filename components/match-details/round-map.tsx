@@ -246,6 +246,7 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
                   >
                     Ver Todas
                   </Button>
+
                   {/* Selector de kill individual */}
                   <div className="flex gap-1 max-w-xs overflow-x-auto">
                     {currentRoundKillsWithCoords.map((kill, index) => (
