@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://65ov51asvd.execute-api.us-east-1.amazonaws.com/prod"
 
 // Tipos de datos
 export interface Match {
@@ -234,9 +234,9 @@ export class ApiService {
           return processed.kills
         }
 
-        // Formato anterior con kills directamente
+        // Formato del backend: { kills: [...], matchId: "...", filteredBy: "..." }
         if (data.kills && Array.isArray(data.kills)) {
-          console.log(`[api] Returning ${data.kills.length} kills from old format`)
+          console.log(`[api] Returning ${data.kills.length} kills from backend format`)
           return data.kills
         }
 
@@ -260,7 +260,7 @@ export class ApiService {
     )
   }
 
-  async addChatMessage(matchId: string, message: string): Promise<ChatMessage> {
+  async addChatMessage(matchId: string, message: string, user = "Usuario"): Promise<ChatMessage> {
     return fetchWithFallback(
       async () => {
         const response = await fetch(`${this.baseUrl}/api/matches/${matchId}/chat`, {
@@ -268,13 +268,13 @@ export class ApiService {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ message }),
+          body: JSON.stringify({ user, message }),
         })
         return handleResponse<ChatMessage>(response)
       },
       {
         id: Date.now(),
-        user: "Usuario",
+        user: user,
         message: message,
         timestamp: new Date().toISOString(),
         isBot: false,
@@ -302,14 +302,26 @@ export class ApiService {
     }
   }
 
+  async getMatchStatus(matchId: string): Promise<{
+    id: string
+    status: string
+    message: string
+  }> {
+    const response = await fetch(`${this.baseUrl}/api/matches/${matchId}/status`)
+    return handleResponse<{ id: string; status: string; message: string }>(response)
+  }
+
   // Analytics
-  async getHistoricalAnalytics(user?: string | null): Promise<AnalyticsData[]> {
+  async getHistoricalAnalytics(user?: string | null, timeRange?: string, metric?: string): Promise<AnalyticsData[]> {
     return fetchWithFallback(
       async () => {
-        const url = user
-          ? `${this.baseUrl}/api/analytics/historical?user=${encodeURIComponent(user)}`
-          : `${this.baseUrl}/api/analytics/historical`
-        console.log("API: getHistoricalAnalytics called with user:", user, "URL:", url)
+        const params = new URLSearchParams()
+        if (user) params.append("user", user)
+        if (timeRange) params.append("timeRange", timeRange)
+        if (metric) params.append("metric", metric)
+
+        const url = `${this.baseUrl}/api/analytics/historical${params.toString() ? `?${params.toString()}` : ""}`
+        console.log("API: getHistoricalAnalytics called with params:", { user, timeRange, metric })
         const response = await fetch(url)
         const result = await handleResponse<{ data: AnalyticsData[] }>(response)
         return result.data
@@ -345,6 +357,252 @@ export class ApiService {
     return handleResponse<string[]>(response)
   }
 
+  async getUsers(): Promise<
+    Array<{
+      id: number
+      name: string
+      role: string
+      averageScore: number
+      totalKills: number
+      totalDeaths: number
+      totalMatches: number
+      kdr: number
+    }>
+  > {
+    const response = await fetch(`${this.baseUrl}/api/users`)
+    return handleResponse<
+      Array<{
+        id: number
+        name: string
+        role: string
+        averageScore: number
+        totalKills: number
+        totalDeaths: number
+        totalMatches: number
+        kdr: number
+      }>
+    >(response)
+  }
+
+  async getUser(name: string): Promise<{
+    id: number
+    name: string
+    role: string
+    averageScore: number
+    totalKills: number
+    totalDeaths: number
+    totalMatches: number
+    kdr: number
+  }> {
+    const response = await fetch(`${this.baseUrl}/api/users/${encodeURIComponent(name)}`)
+    return handleResponse<{
+      id: number
+      name: string
+      role: string
+      averageScore: number
+      totalKills: number
+      totalDeaths: number
+      totalMatches: number
+      kdr: number
+    }>(response)
+  }
+
+  async userExists(name: string): Promise<boolean> {
+    const response = await fetch(`${this.baseUrl}/api/users/exists/${encodeURIComponent(name)}`)
+    return handleResponse<boolean>(response)
+  }
+
+  async getUsersByRole(role: string): Promise<
+    Array<{
+      id: number
+      name: string
+      role: string
+      averageScore: number
+      totalKills: number
+      totalDeaths: number
+      totalMatches: number
+      kdr: number
+    }>
+  > {
+    const response = await fetch(`${this.baseUrl}/api/users/role/${encodeURIComponent(role)}`)
+    return handleResponse<
+      Array<{
+        id: number
+        name: string
+        role: string
+        averageScore: number
+        totalKills: number
+        totalDeaths: number
+        totalMatches: number
+        kdr: number
+      }>
+    >(response)
+  }
+
+  async getTopPlayersByScore(): Promise<
+    Array<{
+      id: number
+      name: string
+      role: string
+      averageScore: number
+      totalKills: number
+      totalDeaths: number
+      totalMatches: number
+      kdr: number
+    }>
+  > {
+    const response = await fetch(`${this.baseUrl}/api/users/top/score`)
+    return handleResponse<
+      Array<{
+        id: number
+        name: string
+        role: string
+        averageScore: number
+        totalKills: number
+        totalDeaths: number
+        totalMatches: number
+        kdr: number
+      }>
+    >(response)
+  }
+
+  async getTopPlayersByKills(): Promise<
+    Array<{
+      id: number
+      name: string
+      role: string
+      averageScore: number
+      totalKills: number
+      totalDeaths: number
+      totalMatches: number
+      kdr: number
+    }>
+  > {
+    const response = await fetch(`${this.baseUrl}/api/users/top/kills`)
+    return handleResponse<
+      Array<{
+        id: number
+        name: string
+        role: string
+        averageScore: number
+        totalKills: number
+        totalDeaths: number
+        totalMatches: number
+        kdr: number
+      }>
+    >(response)
+  }
+
+  async getTopPlayersByKDR(): Promise<
+    Array<{
+      id: number
+      name: string
+      role: string
+      averageScore: number
+      totalKills: number
+      totalDeaths: number
+      totalMatches: number
+      kdr: number
+    }>
+  > {
+    const response = await fetch(`${this.baseUrl}/api/users/top/kdr`)
+    return handleResponse<
+      Array<{
+        id: number
+        name: string
+        role: string
+        averageScore: number
+        totalKills: number
+        totalDeaths: number
+        totalMatches: number
+        kdr: number
+      }>
+    >(response)
+  }
+
+  async getTopPlayersByMatches(minMatches = 5): Promise<
+    Array<{
+      id: number
+      name: string
+      role: string
+      averageScore: number
+      totalKills: number
+      totalDeaths: number
+      totalMatches: number
+      kdr: number
+    }>
+  > {
+    const response = await fetch(`${this.baseUrl}/api/users/top/matches?minMatches=${minMatches}`)
+    return handleResponse<
+      Array<{
+        id: number
+        name: string
+        role: string
+        averageScore: number
+        totalKills: number
+        totalDeaths: number
+        totalMatches: number
+        kdr: number
+      }>
+    >(response)
+  }
+
+  async createUser(
+    name: string,
+    role: string,
+  ): Promise<{
+    id: number
+    name: string
+    role: string
+    averageScore: number
+    totalKills: number
+    totalDeaths: number
+    totalMatches: number
+    kdr: number
+  }> {
+    const response = await fetch(`${this.baseUrl}/api/users`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name, role }),
+    })
+    return handleResponse<{
+      id: number
+      name: string
+      role: string
+      averageScore: number
+      totalKills: number
+      totalDeaths: number
+      totalMatches: number
+      kdr: number
+    }>(response)
+  }
+
+  async getRoles(): Promise<string[]> {
+    const response = await fetch(`${this.baseUrl}/api/users/roles`)
+    return handleResponse<string[]>(response)
+  }
+
+  async getUserStats(): Promise<{
+    totalUsers: number
+    averageScore: number
+    totalKills: number
+    totalDeaths: number
+    totalMatches: number
+    roleStats: Array<[string, number, number, number]>
+  }> {
+    const response = await fetch(`${this.baseUrl}/api/users/stats`)
+    return handleResponse<{
+      totalUsers: number
+      averageScore: number
+      totalKills: number
+      totalDeaths: number
+      totalMatches: number
+      roleStats: Array<[string, number, number, number]>
+    }>(response)
+  }
+
   // User Profile
   async getUserProfile(username?: string | null): Promise<UserProfile> {
     return fetchWithFallback(
@@ -352,19 +610,17 @@ export class ApiService {
         if (!username) {
           throw new Error("Username is required for profile lookup")
         }
-        const url = `${this.baseUrl}/api/users/${encodeURIComponent(username)}`
+        const url = `${this.baseUrl}/api/users/${encodeURIComponent(username)}/profile`
         const response = await fetch(url)
-        const userDto = await handleResponse<any>(response)
-
-        // Mapear UserDto del backend a UserProfile del frontend
-        return this.mapUserDtoToProfile(userDto, username)
+        const profile = await handleResponse<UserProfile>(response)
+        return profile
       },
       username ? createMockUserProfile(username) : mockUserProfile,
       "getUserProfile",
     )
   }
 
-  // Función helper para mapear UserDto a UserProfile
+  // Función helper para mapear UserDto del backend a UserProfile del frontend
   private mapUserDtoToProfile(userDto: any, username: string): UserProfile {
     // Calcular estadísticas derivadas
     const totalGoodPlays = Math.floor((userDto.totalKills || 0) * 0.4) // 40% de kills son buenas jugadas
@@ -426,8 +682,20 @@ export class ApiService {
     return fetchWithFallback(
       async () => {
         const response = await fetch(`${this.baseUrl}/api/users/search?name=${encodeURIComponent(query)}`)
-        const result = await handleResponse<{ users: Array<{ name: string }> }>(response)
-        return result.users.map((u) => u.name)
+        const users =
+          await handleResponse<
+            Array<{
+              id: number
+              name: string
+              role: string
+              averageScore: number
+              totalKills: number
+              totalDeaths: number
+              totalMatches: number
+              kdr: number
+            }>
+          >(response)
+        return users.map((u) => u.name)
       },
       mockUsersList.filter((name) => name.toLowerCase().includes(query.toLowerCase())),
       `searchUsers(${query})`,
@@ -493,26 +761,29 @@ export class ApiService {
     }>(response)
   }
 
-  async uploadVideoFile(file: File): Promise<{ success: boolean; message: string }> {
+  async uploadVideoFile(file: File, matchId?: string): Promise<{ id: string; matchId: string; status: string }> {
     const formData = new FormData()
     formData.append("file", file)
+    if (matchId) {
+      formData.append("matchId", matchId)
+    }
 
     const response = await fetch(`${this.baseUrl}/api/upload/video`, {
       method: "POST",
       body: formData,
     })
-    return handleResponse<{ success: boolean; message: string }>(response)
+    return handleResponse<{ id: string; matchId: string; status: string }>(response)
   }
 
-  async processUpload(metadata: any): Promise<{ success: boolean; message: string }> {
+  async processUpload(matchId: string): Promise<{ matchId: string; status: string; estimatedTime: number }> {
     const response = await fetch(`${this.baseUrl}/api/upload/process`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(metadata),
+      body: JSON.stringify({ matchId }),
     })
-    return handleResponse<{ success: boolean; message: string }>(response)
+    return handleResponse<{ matchId: string; status: string; estimatedTime: number }>(response)
   }
 
   // New method for uploading matches with processing status
@@ -540,16 +811,6 @@ export class ApiService {
       method: "POST",
       body: formData,
     })
-    return handleResponse<{ id: string; status: string; message: string }>(response)
-  }
-
-  // Method to check match processing status
-  async getMatchStatus(matchId: string): Promise<{
-    id: string
-    status: string
-    message: string
-  }> {
-    const response = await fetch(`${this.baseUrl}/api/matches/${matchId}/status`)
     return handleResponse<{ id: string; status: string; message: string }>(response)
   }
 
