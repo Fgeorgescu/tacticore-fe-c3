@@ -358,7 +358,33 @@ export class ApiService {
           : `${this.baseUrl}/api/analytics/dashboard`
         console.log("[v0] API Request: getDashboardStats -", { user, url })
         const response = await fetch(url)
-        const result = await handleResponse<DashboardStats>(response)
+        const rawData = await response.json()
+
+        console.log("[v0] getDashboardStats RAW response:", rawData)
+
+        if (Array.isArray(rawData)) {
+          console.warn(
+            "[v0] getDashboardStats: Backend returned matches array instead of stats object. Computing stats from matches...",
+          )
+
+          // Calculate stats from matches array
+          const matches = rawData as Match[]
+          const stats: DashboardStats = {
+            totalMatches: matches.length,
+            totalKills: matches.reduce((sum, m) => sum + m.kills, 0),
+            totalDeaths: matches.reduce((sum, m) => sum + m.deaths, 0),
+            totalGoodPlays: matches.reduce((sum, m) => sum + m.goodPlays, 0),
+            totalBadPlays: matches.reduce((sum, m) => sum + m.badPlays, 0),
+            averageScore: matches.length > 0 ? matches.reduce((sum, m) => sum + m.score, 0) / matches.length : 0,
+            kdr: 0,
+          }
+          stats.kdr = stats.totalDeaths > 0 ? stats.totalKills / stats.totalDeaths : stats.totalKills
+
+          console.log("[v0] getDashboardStats: Computed stats from matches:", stats)
+          return stats
+        }
+
+        const result = rawData as DashboardStats
         console.log("[v0] getDashboardStats result:", result)
         return result
       },
