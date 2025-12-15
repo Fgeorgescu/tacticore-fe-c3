@@ -146,9 +146,12 @@ const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true"
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const errorText = await response.text()
+    console.log(`[v0] API Error Response - Status: ${response.status}, Body:`, errorText)
     throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`)
   }
-  return response.json()
+  const data = await response.json()
+  console.log(`[v0] API Success Response - Status: ${response.status}, Data:`, data)
+  return data
 }
 
 async function fetchWithFallback<T>(fetchFn: () => Promise<T>, mockData: T, operationName: string): Promise<T> {
@@ -182,9 +185,10 @@ export class ApiService {
         const url = user
           ? `${this.baseUrl}/api/matches?user=${encodeURIComponent(user)}`
           : `${this.baseUrl}/api/matches`
-        console.log("API: getMatches called with user:", user, "URL:", url)
+        console.log("[v0] API Request: getMatches -", { user, url })
         const response = await fetch(url)
         const result = await handleResponse<{ matches: Match[] }>(response)
+        console.log("[v0] getMatches result:", result)
         return result.matches
       },
       mockMatches,
@@ -195,8 +199,12 @@ export class ApiService {
   async getMatch(id: string): Promise<Match> {
     return fetchWithFallback(
       async () => {
-        const response = await fetch(`${this.baseUrl}/api/matches/${id}`)
-        return handleResponse<Match>(response)
+        const url = `${this.baseUrl}/api/matches/${id}`
+        console.log("[v0] API Request: getMatch -", { id, url })
+        const response = await fetch(url)
+        const result = await handleResponse<Match>(response)
+        console.log("[v0] getMatch result:", result)
+        return result
       },
       mockMatches.find((m) => m.id === id) || mockMatches[0],
       `getMatch(${id})`,
@@ -209,39 +217,31 @@ export class ApiService {
         const url = user
           ? `${this.baseUrl}/api/matches/${id}/kills?user=${encodeURIComponent(user)}`
           : `${this.baseUrl}/api/matches/${id}/kills`
+        console.log("[v0] API Request: getMatchKills -", { id, user, url })
         const response = await fetch(url)
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
 
-        // Leer la respuesta una sola vez
         const data = await response.json()
-
-        console.log(`[api] getMatchKills response for match ${id}:`, {
-          hasPredictions: !!data.predictions,
-          predictionsCount: data.predictions?.length || 0,
-          hasKills: !!data.kills,
-          killsCount: data.kills?.length || 0,
-          totalKills: data.total_kills,
-          map: data.map,
-        })
+        console.log("[v0] getMatchKills raw response:", data)
 
         // Verificar si tiene el formato nuevo con predictions
         if (data.predictions && Array.isArray(data.predictions)) {
           const processed = processBackendResponse(data)
-          console.log(`[api] Processed ${processed.kills.length} kills from predictions`)
+          console.log(`[v0] Processed ${processed.kills.length} kills from predictions`)
           return processed.kills
         }
 
         // Formato del backend: { kills: [...], matchId: "...", filteredBy: "..." }
         if (data.kills && Array.isArray(data.kills)) {
-          console.log(`[api] Returning ${data.kills.length} kills from backend format`)
+          console.log(`[v0] Returning ${data.kills.length} kills from backend format`)
           return data.kills
         }
 
         // Si no tiene ninguno de los formatos esperados, retornar array vacío
-        console.warn("[api] Unknown response format for kills:", data)
+        console.warn("[v0] Unknown response format for kills:", data)
         return []
       },
       mockKills[id] || mockKills["1"],
@@ -252,8 +252,12 @@ export class ApiService {
   async getMatchChat(id: string): Promise<ChatMessage[]> {
     return fetchWithFallback(
       async () => {
-        const response = await fetch(`${this.baseUrl}/api/matches/${id}/chat`)
-        return handleResponse<ChatMessage[]>(response)
+        const url = `${this.baseUrl}/api/matches/${id}/chat`
+        console.log("[v0] API Request: getMatchChat -", { id, url })
+        const response = await fetch(url)
+        const result = await handleResponse<ChatMessage[]>(response)
+        console.log("[v0] getMatchChat result:", result)
+        return result
       },
       mockChatMessages[id] || mockChatMessages["1"],
       `getMatchChat(${id})`,
@@ -263,14 +267,19 @@ export class ApiService {
   async addChatMessage(matchId: string, message: string, user = "Usuario"): Promise<ChatMessage> {
     return fetchWithFallback(
       async () => {
-        const response = await fetch(`${this.baseUrl}/api/matches/${matchId}/chat`, {
+        const url = `${this.baseUrl}/api/matches/${matchId}/chat`
+        const body = { user, message }
+        console.log("[v0] API Request: addChatMessage -", { matchId, url, body })
+        const response = await fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ user, message }),
+          body: JSON.stringify(body),
         })
-        return handleResponse<ChatMessage>(response)
+        const result = await handleResponse<ChatMessage>(response)
+        console.log("[v0] addChatMessage result:", result)
+        return result
       },
       {
         id: Date.now(),
@@ -290,12 +299,17 @@ export class ApiService {
     }
 
     try {
-      const response = await fetch(`${this.baseUrl}/api/matches/${id}`, {
+      const url = `${this.baseUrl}/api/matches/${id}`
+      console.log("[v0] API Request: deleteMatch -", { id, url })
+      const response = await fetch(url, {
         method: "DELETE",
       })
       if (!response.ok) {
+        const errorText = await response.text()
+        console.log("[v0] deleteMatch error response:", errorText)
         throw new Error(`Failed to delete match: ${response.statusText}`)
       }
+      console.log("[v0] deleteMatch success")
     } catch (error) {
       console.warn(`[v0] Failed to delete match ${id}:`, error)
       throw error
@@ -307,8 +321,12 @@ export class ApiService {
     status: string
     message: string
   }> {
-    const response = await fetch(`${this.baseUrl}/api/matches/${matchId}/status`)
-    return handleResponse<{ id: string; status: string; message: string }>(response)
+    const url = `${this.baseUrl}/api/matches/${matchId}/status`
+    console.log("[v0] API Request: getMatchStatus -", { matchId, url })
+    const response = await fetch(url)
+    const result = await handleResponse<{ id: string; status: string; message: string }>(response)
+    console.log("[v0] getMatchStatus result:", result)
+    return result
   }
 
   // Analytics
@@ -321,9 +339,10 @@ export class ApiService {
         if (metric) params.append("metric", metric)
 
         const url = `${this.baseUrl}/api/analytics/historical${params.toString() ? `?${params.toString()}` : ""}`
-        console.log("API: getHistoricalAnalytics called with params:", { user, timeRange, metric })
+        console.log("[v0] API Request: getHistoricalAnalytics -", { user, timeRange, metric, url })
         const response = await fetch(url)
         const result = await handleResponse<{ data: AnalyticsData[] }>(response)
+        console.log("[v0] getHistoricalAnalytics result:", result)
         return result.data
       },
       mockAnalyticsData,
@@ -337,9 +356,11 @@ export class ApiService {
         const url = user
           ? `${this.baseUrl}/api/analytics/dashboard?user=${encodeURIComponent(user)}`
           : `${this.baseUrl}/api/analytics/dashboard`
-        console.log("API: getDashboardStats called with user:", user, "URL:", url)
+        console.log("[v0] API Request: getDashboardStats -", { user, url })
         const response = await fetch(url)
-        return handleResponse<DashboardStats>(response)
+        const result = await handleResponse<DashboardStats>(response)
+        console.log("[v0] getDashboardStats result:", result)
+        return result
       },
       mockDashboardStats,
       "getDashboardStats",
@@ -348,13 +369,21 @@ export class ApiService {
 
   // Maps and Weapons
   async getMaps(): Promise<string[]> {
-    const response = await fetch(`${this.baseUrl}/api/maps`)
-    return handleResponse<string[]>(response)
+    const url = `${this.baseUrl}/api/maps`
+    console.log("[v0] API Request: getMaps -", { url })
+    const response = await fetch(url)
+    const result = await handleResponse<string[]>(response)
+    console.log("[v0] getMaps result:", result)
+    return result
   }
 
   async getWeapons(): Promise<string[]> {
-    const response = await fetch(`${this.baseUrl}/api/weapons`)
-    return handleResponse<string[]>(response)
+    const url = `${this.baseUrl}/api/weapons`
+    console.log("[v0] API Request: getWeapons -", { url })
+    const response = await fetch(url)
+    const result = await handleResponse<string[]>(response)
+    console.log("[v0] getWeapons result:", result)
+    return result
   }
 
   async getUsers(): Promise<
@@ -369,19 +398,24 @@ export class ApiService {
       kdr: number
     }>
   > {
-    const response = await fetch(`${this.baseUrl}/api/users`)
-    return handleResponse<
-      Array<{
-        id: number
-        name: string
-        role: string
-        averageScore: number
-        totalKills: number
-        totalDeaths: number
-        totalMatches: number
-        kdr: number
-      }>
-    >(response)
+    const url = `${this.baseUrl}/api/users`
+    console.log("[v0] API Request: getUsers -", { url })
+    const response = await fetch(url)
+    const result =
+      await handleResponse<
+        Array<{
+          id: number
+          name: string
+          role: string
+          averageScore: number
+          totalKills: number
+          totalDeaths: number
+          totalMatches: number
+          kdr: number
+        }>
+      >(response)
+    console.log("[v0] getUsers result:", result)
+    return result
   }
 
   async getUser(name: string): Promise<{
@@ -394,8 +428,10 @@ export class ApiService {
     totalMatches: number
     kdr: number
   }> {
-    const response = await fetch(`${this.baseUrl}/api/users/${encodeURIComponent(name)}`)
-    return handleResponse<{
+    const url = `${this.baseUrl}/api/users/${encodeURIComponent(name)}`
+    console.log("[v0] API Request: getUser -", { name, url })
+    const response = await fetch(url)
+    const result = await handleResponse<{
       id: number
       name: string
       role: string
@@ -405,11 +441,17 @@ export class ApiService {
       totalMatches: number
       kdr: number
     }>(response)
+    console.log("[v0] getUser result:", result)
+    return result
   }
 
   async userExists(name: string): Promise<boolean> {
-    const response = await fetch(`${this.baseUrl}/api/users/exists/${encodeURIComponent(name)}`)
-    return handleResponse<boolean>(response)
+    const url = `${this.baseUrl}/api/users/exists/${encodeURIComponent(name)}`
+    console.log("[v0] API Request: userExists -", { name, url })
+    const response = await fetch(url)
+    const result = await handleResponse<boolean>(response)
+    console.log("[v0] userExists result:", result)
+    return result
   }
 
   async getUsersByRole(role: string): Promise<
@@ -424,19 +466,24 @@ export class ApiService {
       kdr: number
     }>
   > {
-    const response = await fetch(`${this.baseUrl}/api/users/role/${encodeURIComponent(role)}`)
-    return handleResponse<
-      Array<{
-        id: number
-        name: string
-        role: string
-        averageScore: number
-        totalKills: number
-        totalDeaths: number
-        totalMatches: number
-        kdr: number
-      }>
-    >(response)
+    const url = `${this.baseUrl}/api/users/role/${encodeURIComponent(role)}`
+    console.log("[v0] API Request: getUsersByRole -", { role, url })
+    const response = await fetch(url)
+    const result =
+      await handleResponse<
+        Array<{
+          id: number
+          name: string
+          role: string
+          averageScore: number
+          totalKills: number
+          totalDeaths: number
+          totalMatches: number
+          kdr: number
+        }>
+      >(response)
+    console.log("[v0] getUsersByRole result:", result)
+    return result
   }
 
   async getTopPlayersByScore(): Promise<
@@ -451,19 +498,24 @@ export class ApiService {
       kdr: number
     }>
   > {
-    const response = await fetch(`${this.baseUrl}/api/users/top/score`)
-    return handleResponse<
-      Array<{
-        id: number
-        name: string
-        role: string
-        averageScore: number
-        totalKills: number
-        totalDeaths: number
-        totalMatches: number
-        kdr: number
-      }>
-    >(response)
+    const url = `${this.baseUrl}/api/users/top/score`
+    console.log("[v0] API Request: getTopPlayersByScore -", { url })
+    const response = await fetch(url)
+    const result =
+      await handleResponse<
+        Array<{
+          id: number
+          name: string
+          role: string
+          averageScore: number
+          totalKills: number
+          totalDeaths: number
+          totalMatches: number
+          kdr: number
+        }>
+      >(response)
+    console.log("[v0] getTopPlayersByScore result:", result)
+    return result
   }
 
   async getTopPlayersByKills(): Promise<
@@ -478,19 +530,24 @@ export class ApiService {
       kdr: number
     }>
   > {
-    const response = await fetch(`${this.baseUrl}/api/users/top/kills`)
-    return handleResponse<
-      Array<{
-        id: number
-        name: string
-        role: string
-        averageScore: number
-        totalKills: number
-        totalDeaths: number
-        totalMatches: number
-        kdr: number
-      }>
-    >(response)
+    const url = `${this.baseUrl}/api/users/top/kills`
+    console.log("[v0] API Request: getTopPlayersByKills -", { url })
+    const response = await fetch(url)
+    const result =
+      await handleResponse<
+        Array<{
+          id: number
+          name: string
+          role: string
+          averageScore: number
+          totalKills: number
+          totalDeaths: number
+          totalMatches: number
+          kdr: number
+        }>
+      >(response)
+    console.log("[v0] getTopPlayersByKills result:", result)
+    return result
   }
 
   async getTopPlayersByKDR(): Promise<
@@ -505,19 +562,24 @@ export class ApiService {
       kdr: number
     }>
   > {
-    const response = await fetch(`${this.baseUrl}/api/users/top/kdr`)
-    return handleResponse<
-      Array<{
-        id: number
-        name: string
-        role: string
-        averageScore: number
-        totalKills: number
-        totalDeaths: number
-        totalMatches: number
-        kdr: number
-      }>
-    >(response)
+    const url = `${this.baseUrl}/api/users/top/kdr`
+    console.log("[v0] API Request: getTopPlayersByKDR -", { url })
+    const response = await fetch(url)
+    const result =
+      await handleResponse<
+        Array<{
+          id: number
+          name: string
+          role: string
+          averageScore: number
+          totalKills: number
+          totalDeaths: number
+          totalMatches: number
+          kdr: number
+        }>
+      >(response)
+    console.log("[v0] getTopPlayersByKDR result:", result)
+    return result
   }
 
   async getTopPlayersByMatches(minMatches = 5): Promise<
@@ -532,19 +594,24 @@ export class ApiService {
       kdr: number
     }>
   > {
-    const response = await fetch(`${this.baseUrl}/api/users/top/matches?minMatches=${minMatches}`)
-    return handleResponse<
-      Array<{
-        id: number
-        name: string
-        role: string
-        averageScore: number
-        totalKills: number
-        totalDeaths: number
-        totalMatches: number
-        kdr: number
-      }>
-    >(response)
+    const url = `${this.baseUrl}/api/users/top/matches?minMatches=${minMatches}`
+    console.log("[v0] API Request: getTopPlayersByMatches -", { minMatches, url })
+    const response = await fetch(url)
+    const result =
+      await handleResponse<
+        Array<{
+          id: number
+          name: string
+          role: string
+          averageScore: number
+          totalKills: number
+          totalDeaths: number
+          totalMatches: number
+          kdr: number
+        }>
+      >(response)
+    console.log("[v0] getTopPlayersByMatches result:", result)
+    return result
   }
 
   async createUser(
@@ -560,14 +627,17 @@ export class ApiService {
     totalMatches: number
     kdr: number
   }> {
-    const response = await fetch(`${this.baseUrl}/api/users`, {
+    const url = `${this.baseUrl}/api/users`
+    const body = { name, role }
+    console.log("[v0] API Request: createUser -", { url, body })
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ name, role }),
+      body: JSON.stringify(body),
     })
-    return handleResponse<{
+    const result = await handleResponse<{
       id: number
       name: string
       role: string
@@ -577,11 +647,17 @@ export class ApiService {
       totalMatches: number
       kdr: number
     }>(response)
+    console.log("[v0] createUser result:", result)
+    return result
   }
 
   async getRoles(): Promise<string[]> {
-    const response = await fetch(`${this.baseUrl}/api/users/roles`)
-    return handleResponse<string[]>(response)
+    const url = `${this.baseUrl}/api/users/roles`
+    console.log("[v0] API Request: getRoles -", { url })
+    const response = await fetch(url)
+    const result = await handleResponse<string[]>(response)
+    console.log("[v0] getRoles result:", result)
+    return result
   }
 
   async getUserStats(): Promise<{
@@ -592,8 +668,10 @@ export class ApiService {
     totalMatches: number
     roleStats: Array<[string, number, number, number]>
   }> {
-    const response = await fetch(`${this.baseUrl}/api/users/stats`)
-    return handleResponse<{
+    const url = `${this.baseUrl}/api/users/stats`
+    console.log("[v0] API Request: getUserStats -", { url })
+    const response = await fetch(url)
+    const result = await handleResponse<{
       totalUsers: number
       averageScore: number
       totalKills: number
@@ -601,6 +679,8 @@ export class ApiService {
       totalMatches: number
       roleStats: Array<[string, number, number, number]>
     }>(response)
+    console.log("[v0] getUserStats result:", result)
+    return result
   }
 
   // User Profile
@@ -611,8 +691,10 @@ export class ApiService {
           throw new Error("Username is required for profile lookup")
         }
         const url = `${this.baseUrl}/api/users/${encodeURIComponent(username)}/profile`
+        console.log("[v0] API Request: getUserProfile -", { username, url })
         const response = await fetch(url)
         const profile = await handleResponse<UserProfile>(response)
+        console.log("[v0] getUserProfile result:", profile)
         return profile
       },
       username ? createMockUserProfile(username) : mockUserProfile,
@@ -668,20 +750,26 @@ export class ApiService {
   }
 
   async updateUserProfile(profile: Partial<UserProfile>): Promise<UserProfile> {
-    const response = await fetch(`${this.baseUrl}/api/user/profile`, {
+    const url = `${this.baseUrl}/api/user/profile`
+    console.log("[v0] API Request: updateUserProfile -", { url, profile })
+    const response = await fetch(url, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(profile),
     })
-    return handleResponse<UserProfile>(response)
+    const result = await handleResponse<UserProfile>(response)
+    console.log("[v0] updateUserProfile result:", result)
+    return result
   }
 
   async searchUsers(query: string): Promise<string[]> {
     return fetchWithFallback(
       async () => {
-        const response = await fetch(`${this.baseUrl}/api/users/search?name=${encodeURIComponent(query)}`)
+        const url = `${this.baseUrl}/api/users/search?name=${encodeURIComponent(query)}`
+        console.log("[v0] API Request: searchUsers -", { query, url })
+        const response = await fetch(url)
         const users =
           await handleResponse<
             Array<{
@@ -695,6 +783,7 @@ export class ApiService {
               kdr: number
             }>
           >(response)
+        console.log("[v0] searchUsers result:", users)
         return users.map((u) => u.name)
       },
       mockUsersList.filter((name) => name.toLowerCase().includes(query.toLowerCase())),
@@ -705,11 +794,15 @@ export class ApiService {
   async validateUser(username: string): Promise<UserValidationResult> {
     return fetchWithFallback(
       async () => {
-        const response = await fetch(`${this.baseUrl}/api/users/${encodeURIComponent(username)}`)
+        const url = `${this.baseUrl}/api/users/${encodeURIComponent(username)}`
+        console.log("[v0] API Request: validateUser -", { username, url })
+        const response = await fetch(url)
         if (response.status === 404) {
+          console.log("[v0] validateUser result: User not found")
           return { isValid: false, error: "Usuario no encontrado" }
         }
         const user = await handleResponse<any>(response)
+        console.log("[v0] validateUser result:", { isValid: true, user })
         return {
           isValid: true,
           user: {
