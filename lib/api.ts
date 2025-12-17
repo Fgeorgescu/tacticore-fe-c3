@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api/proxy"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://54.163.64.8:8443"
 
 // Tipos de datos
 export interface Match {
