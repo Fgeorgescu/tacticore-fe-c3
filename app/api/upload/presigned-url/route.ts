@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import crypto from "crypto"
 
 const S3_CONFIG = {
   bucket: process.env.AWS_S3_BUCKET || "",
@@ -20,13 +19,37 @@ function generateS3Key(fileName: string, fileType: "dem" | "video"): string {
   return `uploads/${fileType}/${timestamp}-${randomString}-${sanitizedName}`
 }
 
-function generatePresignedUrl(
+async function sha256(message: string): Promise<string> {
+  const msgBuffer = new TextEncoder().encode(message)
+  const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("")
+}
+
+async function hmacSha256(key: Uint8Array | string, message: string): Promise<Uint8Array> {
+  const keyData = typeof key === "string" ? new TextEncoder().encode(key) : key
+
+  const cryptoKey = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"])
+
+  const signature = await crypto.subtle.sign("HMAC", cryptoKey, new TextEncoder().encode(message))
+
+  return new Uint8Array(signature)
+}
+
+async function hmacSha256Hex(key: Uint8Array, message: string): Promise<string> {
+  const signature = await hmacSha256(key, message)
+  return Array.from(signature)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+}
+
+async function generatePresignedUrl(
   bucket: string,
   key: string,
   region: string,
   contentType: string,
   expiresIn = 3600,
-): string {
+): Promise<string> {
   const { accessKeyId, secretAccessKey, sessionToken } = S3_CONFIG
 
   const date = new Date()
@@ -70,16 +93,16 @@ function generatePresignedUrl(
   // Create string to sign
   const algorithm = "AWS4-HMAC-SHA256"
   const credentialScope = `${dateStamp}/${region}/s3/aws4_request`
-  const canonicalRequestHash = crypto.createHash("sha256").update(canonicalRequest).digest("hex")
+  const canonicalRequestHash = await sha256(canonicalRequest)
 
   const stringToSign = [algorithm, amzDate, credentialScope, canonicalRequestHash].join("\n")
 
   // Calculate signature
-  const kDate = crypto.createHmac("sha256", `AWS4${secretAccessKey}`).update(dateStamp).digest()
-  const kRegion = crypto.createHmac("sha256", kDate).update(region).digest()
-  const kService = crypto.createHmac("sha256", kRegion).update("s3").digest()
-  const kSigning = crypto.createHmac("sha256", kService).update("aws4_request").digest()
-  const signature = crypto.createHmac("sha256", kSigning).update(stringToSign).digest("hex")
+  const kDate = await hmacSha256(`AWS4${secretAccessKey}`, dateStamp)
+  const kRegion = await hmacSha256(kDate, region)
+  const kService = await hmacSha256(kRegion, "s3")
+  const kSigning = await hmacSha256(kService, "aws4_request")
+  const signature = await hmacSha256Hex(kSigning, stringToSign)
 
   // Build final URL
   const finalQueryString = `${canonicalQueryString}&X-Amz-Signature=${signature}`
@@ -115,7 +138,7 @@ export async function POST(request: NextRequest) {
     const s3Key = generateS3Key(fileName, fileType)
     const finalContentType = contentType || (fileType === "dem" ? "application/octet-stream" : "video/mp4")
 
-    const presignedUrl = generatePresignedUrl(S3_CONFIG.bucket, s3Key, S3_CONFIG.region, finalContentType, 3600)
+    const presignedUrl = await generatePresignedUrl(S3_CONFIG.bucket, s3Key, S3_CONFIG.region, finalContentType, 3600)
 
     console.log(`[Server] Presigned URL generated - Key: ${s3Key}`)
 
