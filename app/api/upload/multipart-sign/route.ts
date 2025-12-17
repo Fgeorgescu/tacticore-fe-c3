@@ -47,30 +47,37 @@ export async function POST(request: NextRequest) {
     const method = "PUT"
     const service = "s3"
     const host = `${bucket}.s3.${region}.amazonaws.com`
-    const canonicalUri = `/${encodeURIComponent(s3Key).replace(/%2F/g, "/")}`
+    const canonicalUri = `/${s3Key}`
 
     const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`
     const credential = `${accessKeyId}/${credentialScope}`
 
-    const queryParams = new URLSearchParams({
+    const queryParamsObj: Record<string, string> = {
       "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
       "X-Amz-Credential": credential,
       "X-Amz-Date": amzDate,
       "X-Amz-Expires": expiresIn.toString(),
       "X-Amz-SignedHeaders": "host",
-      partNumber: partNumber.toString(),
-      uploadId: uploadId,
-    })
-
-    if (sessionToken) {
-      queryParams.set("X-Amz-Security-Token", sessionToken)
     }
 
-    const canonicalQuerystring = queryParams.toString()
+    if (sessionToken) {
+      queryParamsObj["X-Amz-Security-Token"] = sessionToken
+    }
+
+    queryParamsObj["partNumber"] = partNumber.toString()
+    queryParamsObj["uploadId"] = uploadId
+
+    const sortedKeys = Object.keys(queryParamsObj).sort()
+    const canonicalQuerystring = sortedKeys
+      .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(queryParamsObj[key])}`)
+      .join("&")
+
     const canonicalHeaders = `host:${host}\n`
     const signedHeaders = "host"
 
     const canonicalRequest = `${method}\n${canonicalUri}\n${canonicalQuerystring}\n${canonicalHeaders}\n${signedHeaders}\nUNSIGNED-PAYLOAD`
+
+    console.log("[v0] Canonical request:", canonicalRequest.substring(0, 200))
 
     const hashedCanonicalRequest = toHex(await sha256(canonicalRequest))
     const stringToSign = `AWS4-HMAC-SHA256\n${amzDate}\n${credentialScope}\n${hashedCanonicalRequest}`
