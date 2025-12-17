@@ -17,6 +17,7 @@ async function handleRequest(req: NextRequest, method: string) {
     const backendUrl = `${BACKEND_URL}${path}${search}`
 
     console.log(`[v0] Proxy ${method} request to: ${backendUrl}`)
+    console.log(`[v0] HTTPS Agent configured with rejectUnauthorized: false`)
 
     const headers: Record<string, string> = {
       Accept: "*/*",
@@ -44,10 +45,24 @@ async function handleRequest(req: NextRequest, method: string) {
     }
 
     console.log(`[v0] Request headers:`, headers)
+    console.log(`[v0] Fetch options:`, { method, hasAgent: !!options.agent })
 
-    const response = await fetch(backendUrl, options)
-
-    console.log(`[v0] Backend response status: ${response.status}`)
+    let response
+    try {
+      response = await fetch(backendUrl, options)
+      console.log(`[v0] Backend response status: ${response.status}`)
+    } catch (fetchError: any) {
+      console.error(`[v0] Fetch error details:`, {
+        type: fetchError?.constructor?.name,
+        message: fetchError?.message,
+        code: fetchError?.code,
+        errno: fetchError?.errno,
+        syscall: fetchError?.syscall,
+        cause: fetchError?.cause,
+        stack: fetchError?.stack?.split("\n").slice(0, 5),
+      })
+      throw fetchError
+    }
 
     const responseText = await response.text()
     console.log(`[v0] Backend response body:`, responseText.substring(0, 200))
@@ -65,9 +80,20 @@ async function handleRequest(req: NextRequest, method: string) {
       type: error?.constructor?.name,
       message: error?.message,
       code: error?.code,
-      stack: error?.stack?.split("\n").slice(0, 3),
+      errno: error?.errno,
+      syscall: error?.syscall,
+      cause: error?.cause,
+      stack: error?.stack?.split("\n").slice(0, 5),
     })
-    return NextResponse.json({ error: "Proxy request failed", details: error?.message }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: "Proxy request failed",
+        details: error?.message,
+        code: error?.code,
+        syscall: error?.syscall,
+      },
+      { status: 500 },
+    )
   }
 }
 
