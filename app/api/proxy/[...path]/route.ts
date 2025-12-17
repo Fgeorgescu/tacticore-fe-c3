@@ -2,8 +2,13 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 import { type NextRequest, NextResponse } from "next/server"
+import https from "node:https"
 
 const BACKEND_URL = "https://54.163.64.8:8443"
+
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false,
+})
 
 async function handleRequest(req: NextRequest, method: string) {
   try {
@@ -35,42 +40,23 @@ async function handleRequest(req: NextRequest, method: string) {
 
     let response
     try {
-      // Configuración para ignorar certificados SSL auto-firmados
-      const fetchOptions: any = {
+      const fetchOptions: RequestInit & { dispatcher?: any } = {
         method,
         headers,
+        // @ts-ignore - dispatcher es una propiedad de undici
+        dispatcher: httpsAgent,
       }
 
       if (body) {
         fetchOptions.body = body
       }
 
-      // Next.js usa undici internamente, que no soporta el agente HTTPS de Node.js directamente
-      // Vamos a intentar con variable de entorno NODE_TLS_REJECT_UNAUTHORIZED
-      const originalTlsReject = process.env.NODE_TLS_REJECT_UNAUTHORIZED
-      process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
-
-      console.log(`[v0] Attempting fetch with TLS verification disabled`)
+      console.log(`[v0] Attempting fetch with custom HTTPS agent`)
 
       response = await fetch(backendUrl, fetchOptions)
 
-      // Restaurar el valor original
-      if (originalTlsReject !== undefined) {
-        process.env.NODE_TLS_REJECT_UNAUTHORIZED = originalTlsReject
-      } else {
-        delete process.env.NODE_TLS_REJECT_UNAUTHORIZED
-      }
-
       console.log(`[v0] Backend response status: ${response.status}`)
     } catch (fetchError: any) {
-      // Restaurar en caso de error
-      const originalTlsReject = process.env.NODE_TLS_REJECT_UNAUTHORIZED
-      if (originalTlsReject !== undefined) {
-        process.env.NODE_TLS_REJECT_UNAUTHORIZED = originalTlsReject
-      } else {
-        delete process.env.NODE_TLS_REJECT_UNAUTHORIZED
-      }
-
       console.error(`[v0] Fetch error details:`, {
         type: fetchError?.constructor?.name,
         message: fetchError?.message,
