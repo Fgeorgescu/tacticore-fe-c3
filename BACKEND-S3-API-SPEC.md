@@ -2,15 +2,16 @@
 
 ## Resumen
 
-El frontend ahora sube archivos directamente a S3 mediante un endpoint seguro del servidor Next.js, y luego notifica al backend con las referencias de S3. Esto reduce la carga en las lambdas y acelera el procesamiento.
+El frontend ahora sube archivos directamente a S3 con compresión gzip, y luego notifica al backend con las referencias de S3. Esto reduce la carga en las lambdas y acelera el procesamiento.
 
 ## Configuración de S3
 
 - **Bucket**: `tacticore-storage-temp`
 - **Región**: `us-east-1`
-- **Estructura de paths**: `/uploads/{type}/{timestamp}-{random}-{filename}`
+- **Estructura de paths**: `/uploads/{type}/{timestamp}-{random}-{filename}.gz`
   - `{type}`: `dem` o `video`
-  - Ejemplo: `uploads/dem/1734567890123-abc123-match_dust2.dem`
+  - Los archivos se comprimen con gzip antes de subir
+  - Ejemplo: `uploads/dem/1734567890123-abc123-match.dem.gz`
 
 ## Endpoint Nuevo Requerido
 
@@ -22,8 +23,9 @@ Crea una nueva partida usando archivos ya subidos a S3.
 
 ```json
 {
-  "demFileS3Key": "uploads/dem/1734567890123-abc123-match.dem",
-  "videoFileS3Key": "uploads/video/1734567890456-def456-gameplay.mp4",  // opcional
+  "bucket": "tacticore-storage-temp",
+  "key": "uploads/dem/1734567890123-abc123-match.dem.gz",
+  "videoKey": "uploads/video/1734567890456-def456-gameplay.mp4.gz",  // opcional
   "metadata": {
     "playerName": "Player",
     "notes": "Dust II ranked match"
@@ -35,8 +37,9 @@ Crea una nueva partida usando archivos ya subidos a S3.
 
 | Campo | Tipo | Requerido | Descripción |
 |-------|------|-----------|-------------|
-| `demFileS3Key` | string | Sí | Ruta completa del archivo DEM en S3 |
-| `videoFileS3Key` | string | No | Ruta completa del archivo de video en S3 (opcional) |
+| `bucket` | string | Sí | Nombre del bucket S3 |
+| `key` | string | Sí | Ruta completa del archivo DEM en S3 (comprimido con gzip) |
+| `videoKey` | string | No | Ruta completa del archivo de video en S3 (opcional, comprimido) |
 | `metadata` | object | No | Metadata adicional de la partida |
 | `metadata.playerName` | string | No | Nombre del jugador |
 | `metadata.notes` | string | No | Notas sobre la partida |
@@ -51,20 +54,12 @@ Crea una nueva partida usando archivos ya subidos a S3.
 }
 ```
 
-#### Campos de Respuesta
-
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `id` | string | ID único de la partida creada |
-| `status` | string | Estado inicial (`processing`, `completed`, `failed`) |
-| `message` | string | Mensaje descriptivo del estado |
-
 #### Response de Error (400 Bad Request)
 
 ```json
 {
-  "error": "demFileS3Key is required",
-  "code": "MISSING_DEM_FILE"
+  "error": "bucket and key are required",
+  "code": "MISSING_REQUIRED_FIELDS"
 }
 ```
 
@@ -80,13 +75,14 @@ Crea una nueva partida usando archivos ya subidos a S3.
 
 ## Flujo de Procesamiento Backend
 
-1. **Recibir la solicitud** con los S3 keys
+1. **Recibir la solicitud** con bucket y key
 2. **Validar** que el archivo DEM existe en S3
-3. **Descargar** el archivo DEM desde S3 (opcional: procesar directamente desde S3)
-4. **Procesar** el archivo DEM usando la lógica existente
-5. **Si hay video**, descargarlo y asociarlo con la partida
-6. **Guardar** los resultados en la base de datos
-7. **Retornar** el ID de la partida y el estado
+3. **Descargar** el archivo DEM desde S3
+4. **Descomprimir** el archivo gzip
+5. **Procesar** el archivo DEM usando la lógica existente
+6. **Si hay video**, descargarlo, descomprimirlo y asociarlo con la partida
+7. **Guardar** los resultados en la base de datos
+8. **Retornar** el ID de la partida y el estado
 
 ## Permisos de IAM Necesarios
 
@@ -125,11 +121,11 @@ Los siguientes endpoints siguen funcionando como antes:
 
 ```python
 import boto3
+import gzip
 import json
 from typing import Dict, Any
 
 s3_client = boto3.client('s3', region_name='us-east-1')
-BUCKET_NAME = 'tacticore-storage-temp'
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
@@ -138,23 +134,24 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     try:
         # Parse request body
         body = json.loads(event.get('body', '{}'))
-        dem_s3_key = body.get('demFileS3Key')
-        video_s3_key = body.get('videoFileS3Key')
+        bucket = body.get('bucket')
+        dem_key = body.get('key')
+        video_key = body.get('videoKey')
         metadata = body.get('metadata', {})
         
         # Validate required fields
-        if not dem_s3_key:
+        if not bucket or not dem_key:
             return {
                 'statusCode': 400,
                 'body': json.dumps({
-                    'error': 'demFileS3Key is required',
-                    'code': 'MISSING_DEM_FILE'
+                    'error': 'bucket and key are required',
+                    'code': 'MISSING_REQUIRED_FIELDS'
                 })
             }
         
         # Verify DEM file exists in S3
         try:
-            s3_client.head_object(Bucket=BUCKET_NAME, Key=dem_s3_key)
+            s3_client.head_object(Bucket=bucket, Key=dem_key)
         except s3_client.exceptions.NoSuchKey:
             return {
                 'statusCode': 404,
@@ -164,20 +161,26 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 })
             }
         
-        # Download and process DEM file
-        dem_obj = s3_client.get_object(Bucket=BUCKET_NAME, Key=dem_s3_key)
-        dem_content = dem_obj['Body'].read()
+        # Download and decompress DEM file
+        dem_obj = s3_client.get_object(Bucket=bucket, Key=dem_key)
+        compressed_content = dem_obj['Body'].read()
+        
+        # Decompress gzip content
+        dem_content = gzip.decompress(compressed_content)
         
         # Process the DEM file (your existing logic here)
         match_id = process_dem_file(dem_content, metadata)
         
-        # If video exists, associate it with the match
-        if video_s3_key:
+        # If video exists, download and associate it with the match
+        if video_key:
             try:
-                s3_client.head_object(Bucket=BUCKET_NAME, Key=video_s3_key)
-                associate_video_with_match(match_id, video_s3_key)
+                s3_client.head_object(Bucket=bucket, Key=video_key)
+                video_obj = s3_client.get_object(Bucket=bucket, Key=video_key)
+                compressed_video = video_obj['Body'].read()
+                video_content = gzip.decompress(compressed_video)
+                associate_video_with_match(match_id, video_content)
             except s3_client.exceptions.NoSuchKey:
-                print(f"Warning: Video file {video_s3_key} not found, continuing without video")
+                print(f"Warning: Video file {video_key} not found, continuing without video")
         
         # Return success response
         return {
@@ -207,7 +210,7 @@ def process_dem_file(dem_content: bytes, metadata: Dict) -> str:
     # Implementa tu lógica aquí
     pass
 
-def associate_video_with_match(match_id: str, video_s3_key: str):
+def associate_video_with_match(match_id: str, video_content: bytes):
     """
     Asocia un video con una partida
     """
@@ -261,8 +264,9 @@ Tu Lambda ya debe tener acceso a S3 mediante su rol de IAM. No necesitas configu
 curl -X POST https://tu-api.execute-api.us-east-1.amazonaws.com/prod/api/matches/s3 \
   -H "Content-Type: application/json" \
   -d '{
-    "demFileS3Key": "uploads/dem/test-match.dem",
-    "videoFileS3Key": "uploads/video/test-gameplay.mp4",
+    "bucket": "tacticore-storage-temp",
+    "key": "uploads/dem/test-match.dem.gz",
+    "videoKey": "uploads/video/test-gameplay.mp4.gz",
     "metadata": {
       "playerName": "TestPlayer",
       "notes": "Test match"

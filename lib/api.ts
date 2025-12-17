@@ -1120,10 +1120,17 @@ export class ApiService {
     const url = `${this.baseUrl}/api/matches/s3`
     console.log("[v0] API Request: confirmS3Upload -", { demS3Key, videoS3Key, metadata, url })
 
-    const body = {
-      demFileS3Key: demS3Key,
-      ...(videoS3Key && { videoFileS3Key: videoS3Key }),
-      ...(metadata && { metadata }),
+    const bucket = process.env.NEXT_PUBLIC_AWS_S3_BUCKET || "tacticore-storage-temp"
+
+    const body: any = {
+      bucket,
+      key: demS3Key,
+      metadata: metadata || {},
+    }
+
+    // Add video key if present
+    if (videoS3Key) {
+      body.videoKey = videoS3Key
     }
 
     const response = await fetch(url, {
