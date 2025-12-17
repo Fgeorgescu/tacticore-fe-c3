@@ -3,6 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
 import {
   Eye,
   Play,
@@ -232,28 +233,36 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
                     {allUploadingMatches.map((match) => (
                       <div
                         key={match.id}
-                        className="flex items-center justify-between bg-amber-500/5 rounded-lg p-3 border border-amber-500/20"
+                        className="bg-amber-500/5 rounded-lg p-3 border border-amber-500/20 space-y-2"
                       >
-                        <div className="flex items-center gap-3">
-                          <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
-                          <div>
-                            <p className="text-sm font-medium text-amber-200">{match.fileName}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              {match.map !== "Unknown" && (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs"
-                                >
-                                  {match.map}
-                                </Badge>
-                              )}
-                              <span className="text-xs text-amber-300">{getRelativeTime(match.date)}</span>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
+                            <div>
+                              <p className="text-sm font-medium text-amber-200">{match.fileName}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                {match.map !== "Unknown" && (
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs"
+                                  >
+                                    {match.map}
+                                  </Badge>
+                                )}
+                                <span className="text-xs text-amber-300">{getRelativeTime(match.date)}</span>
+                              </div>
                             </div>
                           </div>
+                          <Badge variant="outline" className="bg-amber-500/20 text-amber-300 border-amber-500/30">
+                            Subiendo...
+                          </Badge>
                         </div>
-                        <Badge variant="outline" className="bg-amber-500/20 text-amber-300 border-amber-500/30">
-                          Subiendo...
-                        </Badge>
+                        {match.progress !== undefined && (
+                          <div className="space-y-1">
+                            <Progress value={match.progress} className="h-2 bg-amber-500/20" />
+                            <p className="text-xs text-amber-300 text-right">{match.progress}%</p>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

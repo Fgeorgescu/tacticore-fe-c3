@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useState, type ReactNode } from "react"
 
-// Tipo para matches temporales durante la subida
 export interface UploadingMatch {
   id: string
   fileName: string
@@ -10,12 +9,14 @@ export interface UploadingMatch {
   date: string
   status: "uploading" | "processing"
   gameType: string
+  progress?: number
 }
 
 interface UploadContextType {
   uploadingMatches: UploadingMatch[]
   addUploadingMatch: (match: UploadingMatch) => void
   updateMatchStatus: (id: string, status: "uploading" | "processing") => void
+  updateMatchProgress: (id: string, progress: number) => void
   removeUploadingMatch: (id: string) => void
   clearUploadingMatches: () => void
 }
@@ -35,6 +36,10 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     setUploadingMatches((prev) => prev.map((match) => (match.id === id ? { ...match, status } : match)))
   }
 
+  const updateMatchProgress = (id: string, progress: number) => {
+    setUploadingMatches((prev) => prev.map((match) => (match.id === id ? { ...match, progress } : match)))
+  }
+
   const removeUploadingMatch = (id: string) => {
     console.log("[v0] Removing match from context:", id)
     setUploadingMatches((prev) => prev.filter((match) => match.id !== id))
@@ -51,6 +56,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
         uploadingMatches,
         addUploadingMatch,
         updateMatchStatus,
+        updateMatchProgress,
         removeUploadingMatch,
         clearUploadingMatches,
       }}

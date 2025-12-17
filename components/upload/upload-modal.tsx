@@ -54,7 +54,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     description: "",
   })
 
-  const { addUploadingMatch, updateMatchStatus, removeUploadingMatch } = useUpload()
+  const { addUploadingMatch, updateMatchStatus, updateMatchProgress, removeUploadingMatch } = useUpload()
 
   const demInputRef = useRef<HTMLInputElement>(null)
 
@@ -85,10 +85,13 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
       date: new Date().toISOString(),
       status: "uploading" as const,
       gameType: metadata.gameType,
+      progress: 0,
     }
 
     console.log("[v0] Adding match to upload context:", uploadingMatch)
     addUploadingMatch(uploadingMatch)
+
+    handleClose()
 
     try {
       const matchMetadata = {
@@ -96,24 +99,17 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
         notes: metadata.map || metadata.description || "Unknown map",
       }
 
-      let lastUiUpdate = 0
-      const MIN_UI_UPDATE_INTERVAL = 500
-
-      handleClose()
-
       const uploadPromise = apiService.uploadMatch(demFile.file, undefined, matchMetadata, (progress) => {
-        const now = Date.now()
-        if (now - lastUiUpdate >= MIN_UI_UPDATE_INTERVAL || progress === 100) {
-          lastUiUpdate = now
-          setDemFile((prev) => (prev ? { ...prev, progress } : null))
-        }
+        console.log("[v0] Upload progress:", progress)
+        setDemFile((prev) => (prev ? { ...prev, progress } : null))
+        updateMatchProgress(tempMatchId, progress)
       })
 
       const result = await uploadPromise
 
       console.log("[v0] Upload completed, result:", result)
 
-      if (result.status === "processing") {
+      if (result.status === "processing" || result.id) {
         console.log("[v0] Updating match status to processing")
         updateMatchStatus(tempMatchId, "processing")
 
@@ -122,7 +118,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
           removeUploadingMatch(tempMatchId)
         }, 30000)
       } else {
-        console.log("[v0] Upload did not return processing status, removing from context")
+        console.log("[v0] Upload did not return valid result, removing from context")
         removeUploadingMatch(tempMatchId)
       }
     } catch (error) {

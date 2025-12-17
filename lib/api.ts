@@ -1071,10 +1071,9 @@ export class ApiService {
 
     try {
       let totalProgress = 0
-      const demWeight = videoFile ? 0.5 : 1.0 // If video exists, DEM is 50% of total
+      const demWeight = videoFile ? 0.5 : 1.0
       const videoWeight = videoFile ? 0.5 : 0
 
-      // Upload DEM file to S3
       console.log(`[v0] [${uploadId}] Step 1: Uploading DEM to S3`)
       const demResult = await uploadDemToS3(demFile, (progress) => {
         const demProgress = progress.percentage * demWeight
@@ -1084,7 +1083,6 @@ export class ApiService {
 
       console.log(`[v0] [${uploadId}] DEM uploaded to S3: ${demResult.s3Key}`)
 
-      // Upload video file to S3 (if provided)
       let videoResult: S3UploadResult | undefined
       if (videoFile) {
         console.log(`[v0] [${uploadId}] Step 2: Uploading video to S3`)
@@ -1096,12 +1094,22 @@ export class ApiService {
         console.log(`[v0] [${uploadId}] Video uploaded to S3: ${videoResult.s3Key}`)
       }
 
-      // Confirm upload with backend
+      // TODO: Descomentar cuando el backend implemente POST /api/matches/s3
+      /*
       console.log(`[v0] [${uploadId}] Step 3: Confirming upload with backend`)
       const result = await this.confirmS3Upload(demResult.s3Key, videoResult?.s3Key, metadata)
-
       console.log(`[v0] [${uploadId}] Upload completed successfully:`, result)
       return result
+      */
+
+      console.log(
+        `[v0] [${uploadId}] Upload completed. Backend confirmation endpoint not yet implemented, returning mock result.`,
+      )
+      return {
+        id: `match-${uploadId}`,
+        status: "processing",
+        message: "Match uploaded to S3 and awaiting backend processing",
+      }
     } catch (error) {
       console.error(`[v0] Match upload [${uploadId}] failed:`, error)
       throw error
