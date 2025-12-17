@@ -54,7 +54,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     description: "",
   })
 
-  const { addUploadingMatch, updateMatchStatus, updateMatchProgress, removeUploadingMatch } = useUpload()
+  const { addUploadingMatch, updateMatchStatus, removeUploadingMatch } = useUpload()
 
   const demInputRef = useRef<HTMLInputElement>(null)
 
@@ -78,54 +78,56 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     setDemFile((prev) => (prev ? { ...prev, status: "uploading", progress: 0 } : null))
 
     const tempMatchId = `temp-${Date.now()}`
-    const uploadingMatch = {
-      id: tempMatchId,
-      fileName: demFile.file.name,
-      map: metadata.map || "Unknown",
-      date: new Date().toISOString(),
-      status: "uploading" as const,
-      gameType: metadata.gameType,
-      progress: 0,
-    }
-
-    console.log("[v0] Adding match to upload context:", uploadingMatch)
-    addUploadingMatch(uploadingMatch)
-
-    handleClose()
 
     try {
       const result = await apiService.uploadDemFile(
         demFile.file,
         {
-          playerName: metadata.map, // Using map as player context for now
+          playerName: metadata.map,
           notes: metadata.description || `${metadata.gameType} match on ${metadata.map}`,
         },
         (progress) => {
-          updateMatchProgress(tempMatchId, progress)
+          console.log(`[v0] Upload progress: ${progress}%`)
+          setDemFile((prev) => (prev ? { ...prev, progress } : null))
         },
       )
 
       if (result.success && result.id) {
-        console.log("[v0] Upload successful, updating match status to processing")
-        updateMatchStatus(tempMatchId, "processing")
+        console.log("[v0] Upload successful, adding to processing queue")
+        setDemFile((prev) => (prev ? { ...prev, status: "success", progress: 100 } : null))
+
+        const uploadingMatch = {
+          id: result.id,
+          fileName: demFile.file.name,
+          map: metadata.map || "Unknown",
+          date: new Date().toISOString(),
+          status: "processing" as const,
+          gameType: metadata.gameType,
+          progress: 100,
+        }
+        addUploadingMatch(uploadingMatch)
 
         setTimeout(() => {
-          console.log("[v0] Removing match from upload context after timeout")
-          removeUploadingMatch(tempMatchId)
+          removeUploadingMatch(result.id!)
         }, 60000)
+
+        setTimeout(() => {
+          handleClose()
+        }, 1500)
       } else {
         console.log("[v0] Upload failed:", result.message)
-        removeUploadingMatch(tempMatchId)
+        setDemFile((prev) => (prev ? { ...prev, status: "error", error: result.message } : null))
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("[v0] Upload error:", error)
-      removeUploadingMatch(tempMatchId)
+      setDemFile((prev) => (prev ? { ...prev, status: "error", error: error.message } : null))
     } finally {
       setIsUploading(false)
     }
   }
 
   const handleClose = () => {
+    if (isUploading) return
     setDemFile(null)
     setIsUploading(false)
     setMetadata({ map: "", gameType: "Ranked", description: "" })
@@ -182,16 +184,28 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                       <div className="flex items-center gap-2">
                         {demFile.status === "success" && <CheckCircle className="h-4 w-4 text-green-500" />}
                         {demFile.status === "error" && <AlertCircle className="h-4 w-4 text-red-500" />}
-                        <Button variant="ghost" size="sm" onClick={removeFile} disabled={isUploading}>
-                          <X className="h-4 w-4 text-black dark:text-white" />
-                        </Button>
+                        {demFile.status === "uploading" && <Loader2 className="h-4 w-4 animate-spin" />}
+                        {demFile.status === "idle" && (
+                          <Button variant="ghost" size="sm" onClick={removeFile} disabled={isUploading}>
+                            <X className="h-4 w-4 text-black dark:text-white" />
+                          </Button>
+                        )}
                       </div>
                     </div>
 
-                    {demFile.status === "uploading" && <Progress value={demFile.progress} className="h-2" />}
+                    {demFile.status === "uploading" && (
+                      <div className="space-y-1">
+                        <Progress value={demFile.progress} className="h-2" />
+                        <p className="text-sm text-muted-foreground text-center">{demFile.progress}% completado</p>
+                      </div>
+                    )}
 
                     {demFile.status === "error" && demFile.error && (
                       <p className="text-sm text-red-500">{demFile.error}</p>
+                    )}
+
+                    {demFile.status === "success" && (
+                      <p className="text-sm text-green-500">✓ Archivo subido exitosamente</p>
                     )}
                   </div>
                 )}
