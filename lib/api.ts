@@ -956,8 +956,16 @@ export class ApiService {
       xhr.addEventListener("load", () => {
         console.log(`[v0] Upload completed with status: ${xhr.status}`)
         if (xhr.status === 200 || xhr.status === 201) {
-          resolve(JSON.parse(xhr.responseText))
+          try {
+            const response = JSON.parse(xhr.responseText)
+            console.log("[v0] Upload response:", response)
+            resolve(response)
+          } catch (e) {
+            console.error("[v0] Failed to parse response:", e)
+            reject(new Error("Failed to parse server response"))
+          }
         } else {
+          console.error(`[v0] Upload failed with status: ${xhr.status}`)
           reject(new Error(`Upload failed with status: ${xhr.status}`))
         }
       })
