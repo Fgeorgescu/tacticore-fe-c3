@@ -9,6 +9,8 @@
     "start": "next start"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.953.0",
+    "@aws-sdk/s3-request-presigner": "3.952.0",
     "@hookform/resolvers": "^3.10.0",
     "@opentelemetry/api": "latest",
     "@radix-ui/react-accordion": "1.2.2",
