@@ -1,6 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
+import https from "https"
 
-const BACKEND_URL = "http://54.82.49.78:8080"
+const BACKEND_URL = "https://54.82.49.78:8080"
+
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false,
+})
 
 async function handleResponse(response: Response) {
   const contentType = response.headers.get("content-type")
@@ -32,6 +37,8 @@ export async function GET(request: NextRequest, { params }: { params: { path: st
     const response = await fetch(backendUrl, {
       method: "GET",
       headers,
+      // @ts-ignore - Node.js fetch supports agent option
+      agent: httpsAgent,
     })
 
     const { data, status } = await handleResponse(response)
@@ -63,6 +70,8 @@ export async function POST(request: NextRequest, { params }: { params: { path: s
         "User-Agent": "v0-proxy/1.0",
       },
       body: JSON.stringify(body),
+      // @ts-ignore - Node.js fetch supports agent option
+      agent: httpsAgent,
     })
 
     const { data, status } = await handleResponse(response)
@@ -94,6 +103,8 @@ export async function PUT(request: NextRequest, { params }: { params: { path: st
         "User-Agent": "v0-proxy/1.0",
       },
       body: JSON.stringify(body),
+      // @ts-ignore - Node.js fetch supports agent option
+      agent: httpsAgent,
     })
 
     const { data, status } = await handleResponse(response)
@@ -123,6 +134,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { path:
         Accept: "*/*",
         "User-Agent": "v0-proxy/1.0",
       },
+      // @ts-ignore - Node.js fetch supports agent option
+      agent: httpsAgent,
     })
 
     const { data, status } = await handleResponse(response)
