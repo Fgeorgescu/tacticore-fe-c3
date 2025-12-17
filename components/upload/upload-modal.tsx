@@ -79,6 +79,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     if (!demFile || demFile.status === "error") return
 
     setIsUploading(true)
+    setDemFile((prev) => (prev ? { ...prev, status: "uploading", progress: 0 } : null))
 
     try {
       // Prepare metadata for the new endpoint
@@ -91,6 +92,11 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
         demFile.file,
         undefined, // No video file
         matchMetadata,
+        (progress) => {
+          // Update progress in real-time
+          console.log(`[v0] Upload modal received progress: ${progress}%`)
+          setDemFile((prev) => (prev ? { ...prev, progress } : null))
+        },
       )
 
       if (result.status === "processing") {
