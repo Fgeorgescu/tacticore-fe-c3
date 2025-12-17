@@ -10,7 +10,6 @@ async function handleResponse(response: Response) {
     data = await response.json()
   } else {
     const text = await response.text()
-    console.log("[v0] Proxy non-JSON response:", text)
     data = { message: text, raw: text }
   }
 
@@ -23,26 +22,17 @@ export async function GET(request: NextRequest, { params }: { params: { path: st
     const searchParams = request.nextUrl.searchParams.toString()
     const backendUrl = `${BACKEND_URL}/${path}${searchParams ? `?${searchParams}` : ""}`
 
-    const headers = {
-      "Content-Type": "application/json",
+    const headers: Record<string, string> = {
+      Accept: "*/*",
+      "User-Agent": "v0-proxy/1.0",
     }
 
     console.log("[v0] Proxy GET:", backendUrl)
-    console.log("[v0] Proxy request headers:", JSON.stringify(headers, null, 2))
-    console.log(
-      "[v0] Original request headers:",
-      JSON.stringify(Object.fromEntries(request.headers.entries()), null, 2),
-    )
 
     const response = await fetch(backendUrl, {
       method: "GET",
       headers,
     })
-
-    console.log(
-      "[v0] Backend response headers:",
-      JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2),
-    )
 
     const { data, status } = await handleResponse(response)
     console.log("[v0] Proxy GET response:", { status, data })
@@ -63,12 +53,14 @@ export async function POST(request: NextRequest, { params }: { params: { path: s
     const body = await request.json()
     const backendUrl = `${BACKEND_URL}/${path}`
 
-    console.log("[v0] Proxy POST:", backendUrl, body)
+    console.log("[v0] Proxy POST:", backendUrl)
 
     const response = await fetch(backendUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Accept: "*/*",
+        "User-Agent": "v0-proxy/1.0",
       },
       body: JSON.stringify(body),
     })
@@ -92,12 +84,14 @@ export async function PUT(request: NextRequest, { params }: { params: { path: st
     const body = await request.json()
     const backendUrl = `${BACKEND_URL}/${path}`
 
-    console.log("[v0] Proxy PUT:", backendUrl, body)
+    console.log("[v0] Proxy PUT:", backendUrl)
 
     const response = await fetch(backendUrl, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
+        Accept: "*/*",
+        "User-Agent": "v0-proxy/1.0",
       },
       body: JSON.stringify(body),
     })
@@ -126,6 +120,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { path:
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
+        Accept: "*/*",
+        "User-Agent": "v0-proxy/1.0",
       },
     })
 
