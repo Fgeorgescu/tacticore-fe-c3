@@ -140,6 +140,7 @@ export async function uploadToS3Direct(
       xhr.upload.addEventListener("progress", (event) => {
         if (event.lengthComputable) {
           const percentComplete = Math.round((event.loaded / event.total) * 100)
+          console.log(`[v0] S3 upload progress: ${percentComplete}%`)
           onProgress?.({
             loaded: event.loaded,
             total: event.total,
@@ -152,6 +153,7 @@ export async function uploadToS3Direct(
       xhr.addEventListener("load", () => {
         console.log(`[v0] Direct S3 upload completed with status: ${xhr.status}`)
         if (xhr.status >= 200 && xhr.status < 300) {
+          console.log(`[v0] S3 upload successful for key: ${s3Key}`)
           resolve({
             s3Key,
             bucket,
@@ -160,14 +162,18 @@ export async function uploadToS3Direct(
             contentType: file.type,
           })
         } else {
-          reject(new Error(`S3 upload failed with status ${xhr.status}`))
+          console.error(`[v0] S3 upload failed - Status: ${xhr.status}, Response: ${xhr.responseText}`)
+          reject(new Error(`S3 upload failed with status ${xhr.status}: ${xhr.responseText}`))
         }
       })
 
       // Handle errors
-      xhr.addEventListener("error", () => {
-        console.error("[v0] S3 upload error occurred")
-        reject(new Error("Network error during S3 upload"))
+      xhr.addEventListener("error", (event) => {
+        console.error("[v0] S3 upload network error:", event)
+        console.error("[v0] XHR status:", xhr.status)
+        console.error("[v0] XHR statusText:", xhr.statusText)
+        console.error("[v0] XHR responseText:", xhr.responseText)
+        reject(new Error(`Network error during S3 upload. Status: ${xhr.status}`))
       })
 
       // Handle abort
@@ -176,9 +182,9 @@ export async function uploadToS3Direct(
         reject(new Error("S3 upload aborted"))
       })
 
-      // Start upload with PUT method to presigned URL
       xhr.open("PUT", presignedUrl)
       xhr.setRequestHeader("Content-Type", file.type || (type === "dem" ? "application/octet-stream" : "video/mp4"))
+      console.log(`[v0] Starting XHR PUT to presigned URL`)
       xhr.send(file)
     } catch (error) {
       console.error("[v0] Error in direct S3 upload:", error)

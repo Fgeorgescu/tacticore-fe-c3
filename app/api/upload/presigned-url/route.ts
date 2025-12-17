@@ -57,7 +57,7 @@ async function generatePresignedUrl(
   const dateStamp = amzDate.slice(0, 8)
 
   const host = `${bucket}.s3.${region}.amazonaws.com`
-  const canonicalUri = `/${encodeURIComponent(key).replace(/%2F/g, "/")}`
+  const canonicalUri = `/${key.split("/").map(encodeURIComponent).join("/")}`
 
   // Build query parameters
   const queryParams: Record<string, string> = {
@@ -89,6 +89,8 @@ async function generatePresignedUrl(
     signedHeaders,
     payloadHash,
   ].join("\n")
+
+  console.log(`[Server] Canonical request created for key: ${key}`)
 
   // Create string to sign
   const algorithm = "AWS4-HMAC-SHA256"
