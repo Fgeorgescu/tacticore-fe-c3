@@ -142,7 +142,7 @@ async function uploadWithPresignedUrl(
 }
 
 const CHUNK_SIZE = 10 * 1024 * 1024 // 10MB chunks
-const MAX_CONCURRENT_UPLOADS = 4 // Upload 4 parts at a time
+const MAX_CONCURRENT_UPLOADS = 8 // Upload 8 parts at a time
 
 async function uploadWithMultipart(
   file: File,
