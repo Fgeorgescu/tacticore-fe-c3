@@ -2,6 +2,8 @@ export interface S3UploadProgress {
   loaded: number
   total: number
   percentage: number
+  isCompressing?: boolean
+  compressionProgress?: number
 }
 
 export interface S3UploadResult {
@@ -24,13 +26,48 @@ export async function uploadToS3(
   type: "dem" | "video",
   onProgress?: (progress: S3UploadProgress) => void,
 ): Promise<S3UploadResult> {
-  // Use multipart upload for files larger than 50MB
-  if (file.size > 50 * 1024 * 1024) {
-    console.log("[v0] File is large, using multipart upload")
-    return uploadWithMultipart(file, type, onProgress)
+  // Compress file before uploading
+  console.log("[v0] Compressing file before upload...")
+  onProgress?.({
+    loaded: 0,
+    total: file.size,
+    percentage: 0,
+    isCompressing: true,
+    compressionProgress: 0,
+  })
+
+  const { compressed, originalSize, compressedSize } = await compressFile(file, (compressionProgress) => {
+    onProgress?.({
+      loaded: 0,
+      total: file.size,
+      percentage: 0,
+      isCompressing: true,
+      compressionProgress,
+    })
+  })
+
+  // Create a File object from the compressed blob with .gz extension
+  const compressedFile = new File([compressed], `${file.name}.gz`, {
+    type: "application/gzip",
+  })
+
+  console.log(`[v0] Uploading compressed file (${(compressedSize / 1024 / 1024).toFixed(2)} MB)`)
+
+  // Update progress callback to account for compression
+  const wrappedProgress = (progress: S3UploadProgress) => {
+    onProgress?.({
+      ...progress,
+      isCompressing: false,
+    })
+  }
+
+  // Use multipart upload for files larger than 50MB (after compression)
+  if (compressedFile.size > 50 * 1024 * 1024) {
+    console.log("[v0] Compressed file is large, using multipart upload")
+    return uploadWithMultipart(compressedFile, type, wrappedProgress)
   } else {
-    console.log("[v0] File is small, using single presigned URL")
-    return uploadWithPresignedUrl(file, type, onProgress)
+    console.log("[v0] Compressed file is small, using single presigned URL")
+    return uploadWithPresignedUrl(compressedFile, type, wrappedProgress)
   }
 }
 
@@ -273,6 +310,67 @@ async function uploadWithMultipart(
     region,
     size: file.size,
     contentType: file.type,
+  }
+}
+
+/**
+ * Compress file using gzip compression
+ * @param file - File to compress
+ * @param onProgress - Callback for compression progress
+ * @returns Compressed blob and compression ratio
+ */
+async function compressFile(
+  file: File,
+  onProgress?: (progress: number) => void,
+): Promise<{ compressed: Blob; originalSize: number; compressedSize: number; ratio: number }> {
+  console.log(`[v0] Starting compression of ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`)
+
+  // Read file as array buffer
+  const arrayBuffer = await file.arrayBuffer()
+
+  // Use CompressionStream API (available in modern browsers)
+  const stream = new Blob([arrayBuffer]).stream()
+  const compressedStream = stream.pipeThrough(new CompressionStream("gzip"))
+
+  // Read compressed data
+  const chunks: Uint8Array[] = []
+  const reader = compressedStream.getReader()
+  let totalCompressed = 0
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      if (value) {
+        chunks.push(value)
+        totalCompressed += value.length
+
+        // Estimate progress (compressed size vs original)
+        const progress = Math.min(Math.round((totalCompressed / file.size) * 100), 99)
+        onProgress?.(progress)
+      }
+    }
+
+    onProgress?.(100)
+
+    // Combine chunks into single blob
+    const compressedBlob = new Blob(chunks, { type: "application/gzip" })
+    const ratio = ((1 - compressedBlob.size / file.size) * 100).toFixed(1)
+
+    console.log(
+      `[v0] Compression complete: ${(file.size / 1024 / 1024).toFixed(2)} MB → ${(compressedBlob.size / 1024 / 1024).toFixed(2)} MB (${ratio}% reduction)`,
+    )
+
+    return {
+      compressed: compressedBlob,
+      originalSize: file.size,
+      compressedSize: compressedBlob.size,
+      ratio: Number.parseFloat(ratio),
+    }
+  } catch (error) {
+    console.error("[v0] Compression failed:", error)
+    throw new Error("Failed to compress file")
   }
 }
 

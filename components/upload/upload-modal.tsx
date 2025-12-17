@@ -355,7 +355,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
               {isUploading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Subiendo a S3...
+                  {demFile?.progress === 0 ? "Comprimiendo..." : "Subiendo a S3..."}
                 </>
               ) : isProcessing ? (
                 <>
