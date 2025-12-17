@@ -70,18 +70,27 @@ export async function GET(request: NextRequest, { params }: { params: { path: st
     const backendUrl = `${BACKEND_URL}/${path}${searchParams ? `?${searchParams}` : ""}`.replace(/([^:]\/)\/+/g, "$1")
 
     console.log("[proxy] ===== GET REQUEST =====")
+    console.log("[proxy] BACKEND_URL:", BACKEND_URL)
     console.log("[proxy] Frontend URL:", request.url)
     console.log("[proxy] Backend URL:", backendUrl)
 
     const headers = buildHeaders(request)
     console.log("[proxy] Outbound headers:", JSON.stringify(headers, null, 2))
 
-    const response = await fetch(backendUrl, {
+    const fetchOptions: RequestInit = {
       method: "GET",
       headers,
       redirect: "manual",
-      agent: httpsAgent,
-    })
+      // @ts-ignore - Node.js fetch accepts agent
+      agent: backendUrl.startsWith("https:") ? httpsAgent : undefined,
+    }
+
+    console.log(
+      "[proxy] Fetch options:",
+      JSON.stringify({ ...fetchOptions, agent: fetchOptions.agent ? "httpsAgent" : "none" }),
+    )
+
+    const response = await fetch(backendUrl, fetchOptions)
 
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get("location") || "(none)"
@@ -104,9 +113,17 @@ export async function GET(request: NextRequest, { params }: { params: { path: st
 
     return NextResponse.json(data, { status })
   } catch (err) {
-    console.error("[proxy] GET error", err)
+    console.error("[proxy] GET error - Type:", err instanceof Error ? err.constructor.name : typeof err)
+    console.error("[proxy] GET error - Message:", err instanceof Error ? err.message : String(err))
+    console.error("[proxy] GET error - Stack:", err instanceof Error ? err.stack : "N/A")
+    console.error("[proxy] GET error - Full:", err)
     return NextResponse.json(
-      { error: "proxy_failed", details: err instanceof Error ? err.message : String(err) },
+      {
+        error: "proxy_failed",
+        details: err instanceof Error ? err.message : String(err),
+        errorType: err instanceof Error ? err.constructor.name : typeof err,
+        backendUrl: BACKEND_URL,
+      },
       { status: 500 },
     )
   }
@@ -131,7 +148,8 @@ export async function POST(request: NextRequest, { params }: { params: { path: s
       headers,
       body: JSON.stringify(body),
       redirect: "manual",
-      agent: httpsAgent,
+      // @ts-ignore
+      agent: backendUrl.startsWith("https:") ? httpsAgent : undefined,
     })
 
     if (response.status >= 300 && response.status < 400) {
@@ -153,9 +171,15 @@ export async function POST(request: NextRequest, { params }: { params: { path: s
 
     return NextResponse.json(data, { status })
   } catch (err) {
-    console.error("[proxy] POST error", err)
+    console.error("[proxy] POST error - Type:", err instanceof Error ? err.constructor.name : typeof err)
+    console.error("[proxy] POST error - Message:", err instanceof Error ? err.message : String(err))
+    console.error("[proxy] POST error - Stack:", err instanceof Error ? err.stack : "N/A")
     return NextResponse.json(
-      { error: "proxy_failed", details: err instanceof Error ? err.message : String(err) },
+      {
+        error: "proxy_failed",
+        details: err instanceof Error ? err.message : String(err),
+        errorType: err instanceof Error ? err.constructor.name : typeof err,
+      },
       { status: 500 },
     )
   }
@@ -180,7 +204,8 @@ export async function PUT(request: NextRequest, { params }: { params: { path: st
       headers,
       body: JSON.stringify(body),
       redirect: "manual",
-      agent: httpsAgent,
+      // @ts-ignore
+      agent: backendUrl.startsWith("https:") ? httpsAgent : undefined,
     })
 
     if (response.status >= 300 && response.status < 400) {
@@ -226,7 +251,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { path:
       method: "DELETE",
       headers,
       redirect: "manual",
-      agent: httpsAgent,
+      // @ts-ignore
+      agent: backendUrl.startsWith("https:") ? httpsAgent : undefined,
     })
 
     if (response.status >= 300 && response.status < 400) {
