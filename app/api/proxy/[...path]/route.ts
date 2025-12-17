@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import https from "https"
 
-const BACKEND_URL = "https://54.82.49.78:8080"
+const BACKEND_URL = "https://54.82.49.78:8443"
 
 const httpsAgent = new https.Agent({
   rejectUnauthorized: false,
