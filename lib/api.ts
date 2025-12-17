@@ -924,61 +924,70 @@ export class ApiService {
   // File Uploads
   async uploadDemFile(
     file: File,
+    metadata?: {
+      playerName?: string
+      notes?: string
+    },
     onProgress?: (progress: number) => void,
   ): Promise<{
     success: boolean
     message: string
     id?: string
-    fileName?: string
     status?: string
-    aiResponse?: any
-    totalKills?: number
-    map?: string
-    tickrate?: number
   }> {
-    console.log("[v0] Starting DEM file upload with progress tracking")
+    console.log("[v0] Starting DEM file upload with new S3 flow")
 
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest()
-      const formData = new FormData()
-      formData.append("file", file)
+    try {
+      // Step 1: Upload to S3 directly using s3-upload helper
+      const { uploadToS3 } = await import("./s3-upload")
 
-      // Track upload progress
-      xhr.upload.addEventListener("progress", (event) => {
-        if (event.lengthComputable) {
-          const percentComplete = Math.round((event.loaded / event.total) * 100)
-          console.log(`[v0] Upload progress: ${percentComplete}%`)
-          onProgress?.(percentComplete)
-        }
+      console.log("[v0] Uploading file to S3...")
+      const s3Result = await uploadToS3(file, "dem", (progress) => {
+        // S3 upload is 80% of total progress
+        const percentage = Math.round(progress.percentage * 0.8)
+        console.log(`[v0] S3 upload progress: ${percentage}%`)
+        onProgress?.(percentage)
       })
 
-      // Handle completion
-      xhr.addEventListener("load", () => {
-        console.log(`[v0] Upload completed with status: ${xhr.status}`)
-        if (xhr.status === 200 || xhr.status === 201) {
-          try {
-            const response = JSON.parse(xhr.responseText)
-            console.log("[v0] Upload response:", response)
-            resolve(response)
-          } catch (e) {
-            console.error("[v0] Failed to parse response:", e)
-            reject(new Error("Failed to parse server response"))
-          }
-        } else {
-          console.error(`[v0] Upload failed with status: ${xhr.status}`)
-          reject(new Error(`Upload failed with status: ${xhr.status}`))
-        }
+      console.log("[v0] File uploaded to S3:", s3Result)
+
+      // Step 2: Notify backend to process file from S3
+      onProgress?.(85)
+      console.log("[v0] Notifying backend to process file from S3...")
+
+      const response = await fetch(`${this.baseUrl}/api/matches/s3`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bucket: s3Result.bucket,
+          key: s3Result.s3Key,
+          metadata: metadata || {},
+        }),
       })
 
-      // Handle errors
-      xhr.addEventListener("error", () => {
-        console.error("[v0] Upload failed due to an error")
-        reject(new Error("Upload failed due to an error"))
-      })
+      onProgress?.(100)
 
-      xhr.open("POST", `${this.baseUrl}/api/upload/dem`, true)
-      xhr.send(formData)
-    })
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("[v0] Backend processing failed:", errorData)
+        throw new Error(errorData.message || "Backend processing failed")
+      }
+
+      const result = await response.json()
+      console.log("[v0] Backend processing response:", result)
+
+      return {
+        success: result.status === "completed",
+        message: result.message,
+        id: result.id,
+        status: result.status,
+      }
+    } catch (error: any) {
+      console.error("[v0] Upload error:", error)
+      throw error
+    }
   }
 }
 
