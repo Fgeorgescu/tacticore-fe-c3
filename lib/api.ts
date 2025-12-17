@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://65ov51asvd.execute-api.us-east-1.amazonaws.com/prod"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://54.82.49.7:8080"
 
 // Tipos de datos
 export interface Match {
