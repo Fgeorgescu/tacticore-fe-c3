@@ -1,8 +1,13 @@
 export const runtime = "nodejs"
 
 import { type NextRequest, NextResponse } from "next/server"
+import https from "https"
 
-const BACKEND_URL = (process.env.BACKEND_URL || "http://54.82.49.78:8080").replace(/\/+$/, "")
+const BACKEND_URL = (process.env.BACKEND_URL || "https://54.163.64.8:8443").replace(/\/+$/, "")
+
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false, // Accept self-signed certificates
+})
 
 async function handleResponse(response: Response) {
   const contentType = response.headers.get("content-type") || ""
@@ -24,7 +29,6 @@ async function handleResponse(response: Response) {
 function buildHeaders(request: NextRequest, includeContentType = false): Record<string, string> {
   const headers: Record<string, string> = {}
 
-  // Copy incoming headers, filtering dangerous ones
   request.headers.forEach((v, k) => {
     const kl = k.toLowerCase()
     if (!v) return
@@ -32,7 +36,6 @@ function buildHeaders(request: NextRequest, includeContentType = false): Record<
     headers[k] = v
   })
 
-  // Override and augment headers
   headers["Accept"] = headers["Accept"] || "*/*"
   headers["User-Agent"] = headers["User-Agent"] || "vercel-proxy/1.0"
 
@@ -50,7 +53,7 @@ function buildHeaders(request: NextRequest, includeContentType = false): Record<
     const parsed = new URL(BACKEND_URL)
     headers["Host"] = parsed.port ? `${parsed.hostname}:${parsed.port}` : parsed.hostname
   } catch (e) {
-    headers["Host"] = headers["Host"] || "54.82.49.78:8080"
+    headers["Host"] = headers["Host"] || "54.163.64.8:8443"
   }
 
   if (includeContentType) {
@@ -77,6 +80,7 @@ export async function GET(request: NextRequest, { params }: { params: { path: st
       method: "GET",
       headers,
       redirect: "manual",
+      agent: httpsAgent,
     })
 
     if (response.status >= 300 && response.status < 400) {
@@ -127,6 +131,7 @@ export async function POST(request: NextRequest, { params }: { params: { path: s
       headers,
       body: JSON.stringify(body),
       redirect: "manual",
+      agent: httpsAgent,
     })
 
     if (response.status >= 300 && response.status < 400) {
@@ -175,6 +180,7 @@ export async function PUT(request: NextRequest, { params }: { params: { path: st
       headers,
       body: JSON.stringify(body),
       redirect: "manual",
+      agent: httpsAgent,
     })
 
     if (response.status >= 300 && response.status < 400) {
@@ -220,6 +226,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { path:
       method: "DELETE",
       headers,
       redirect: "manual",
+      agent: httpsAgent,
     })
 
     if (response.status >= 300 && response.status < 400) {
