@@ -94,19 +94,12 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     handleClose()
 
     try {
-      const matchMetadata = {
-        playerName: "Player",
-        notes: metadata.map || metadata.description || "Unknown map",
-      }
-
-      const uploadPromise = apiService.uploadMatch(demFile.file, undefined, matchMetadata, (progress) => {
+      const result = await apiService.uploadDemFile(demFile.file, (progress) => {
         updateMatchProgress(tempMatchId, progress)
       })
 
-      const result = await uploadPromise
-
-      if (result.status === "processing" || result.id) {
-        console.log("[v0] Updating match status to processing")
+      if (result.success && result.id) {
+        console.log("[v0] Upload successful, updating match status to processing")
         updateMatchStatus(tempMatchId, "processing")
 
         setTimeout(() => {
@@ -114,7 +107,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
           removeUploadingMatch(tempMatchId)
         }, 30000)
       } else {
-        console.log("[v0] Upload did not return valid result, removing from context")
+        console.log("[v0] Upload failed:", result.message)
         removeUploadingMatch(tempMatchId)
       }
     } catch (error) {
