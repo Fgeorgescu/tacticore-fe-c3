@@ -100,14 +100,10 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
       }
 
       const uploadPromise = apiService.uploadMatch(demFile.file, undefined, matchMetadata, (progress) => {
-        console.log("[v0] Upload progress:", progress)
-        setDemFile((prev) => (prev ? { ...prev, progress } : null))
         updateMatchProgress(tempMatchId, progress)
       })
 
       const result = await uploadPromise
-
-      console.log("[v0] Upload completed, result:", result)
 
       if (result.status === "processing" || result.id) {
         console.log("[v0] Updating match status to processing")
