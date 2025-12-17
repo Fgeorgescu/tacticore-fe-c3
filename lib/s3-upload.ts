@@ -24,19 +24,44 @@ export async function uploadToS3(
   type: "dem" | "video",
   onProgress?: (progress: S3UploadProgress) => void,
 ): Promise<S3UploadResult> {
+  return uploadWithPresignedUrl(file, type, onProgress)
+}
+
+async function uploadWithPresignedUrl(
+  file: File,
+  type: "dem" | "video",
+  onProgress?: (progress: S3UploadProgress) => void,
+): Promise<S3UploadResult> {
+  // Step 1: Get presigned URL from server
+  console.log(`[v0] Requesting presigned URL for ${type} file: ${file.name}`)
+
+  const response = await fetch("/api/upload/presigned-url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fileName: file.name,
+      fileType: type,
+      contentType: file.type || (type === "dem" ? "application/octet-stream" : "video/mp4"),
+    }),
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || "Failed to get presigned URL")
+  }
+
+  const { presignedUrl, s3Key, bucket, region } = await response.json()
+  console.log(`[v0] Got presigned URL, uploading directly to S3: ${s3Key}`)
+
+  // Step 2: Upload directly to S3 using presigned URL
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
-    const formData = new FormData()
-    formData.append("file", file)
-    formData.append("type", type)
-
-    console.log(`[v0] Starting S3 upload via server - Type: ${type}, Size: ${file.size}`)
 
     // Track upload progress
     xhr.upload.addEventListener("progress", (event) => {
       if (event.lengthComputable) {
         const percentComplete = Math.round((event.loaded / event.total) * 100)
-        console.log(`[v0] Upload progress: ${percentComplete}%`)
+        console.log(`[v0] S3 direct upload progress: ${percentComplete}%`)
         onProgress?.({
           loaded: event.loaded,
           total: event.total,
@@ -47,54 +72,38 @@ export async function uploadToS3(
 
     // Handle completion
     xhr.addEventListener("load", () => {
-      console.log(`[v0] Server upload completed with status: ${xhr.status}`)
+      console.log(`[v0] S3 direct upload completed with status: ${xhr.status}`)
       if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const response = JSON.parse(xhr.responseText)
-          console.log("[v0] Upload response:", response)
-
-          if (response.success) {
-            resolve({
-              s3Key: response.s3Key,
-              bucket: response.bucket,
-              region: response.region,
-              size: response.size,
-              contentType: response.contentType,
-            })
-          } else {
-            reject(new Error(response.error || "Upload failed"))
-          }
-        } catch (error) {
-          console.error("[v0] Error parsing upload response:", error)
-          reject(new Error("Error parsing server response"))
-        }
+        resolve({
+          s3Key,
+          bucket,
+          region,
+          size: file.size,
+          contentType: file.type,
+        })
       } else {
-        try {
-          const errorResponse = JSON.parse(xhr.responseText)
-          reject(new Error(errorResponse.error || `Upload failed with status ${xhr.status}`))
-        } catch {
-          reject(new Error(`Upload failed with status ${xhr.status}`))
-        }
+        console.error(`[v0] S3 upload failed with status: ${xhr.status}`)
+        console.error(`[v0] Response: ${xhr.responseText}`)
+        reject(new Error(`S3 upload failed with status ${xhr.status}`))
       }
     })
 
     // Handle errors
-    xhr.addEventListener("error", () => {
-      console.error("[v0] Upload error occurred")
-      reject(new Error("Network error during upload"))
+    xhr.addEventListener("error", (event) => {
+      console.error("[v0] S3 upload network error:", event)
+      reject(new Error("Network error during S3 upload"))
     })
 
     // Handle abort
     xhr.addEventListener("abort", () => {
-      console.log("[v0] Upload was aborted")
-      reject(new Error("Upload aborted"))
+      console.log("[v0] S3 upload was aborted")
+      reject(new Error("S3 upload aborted"))
     })
 
-    // Start upload with appropriate timeout (increased for large files)
-    const timeout = type === "video" ? 1800000 : 1200000 // 30 min for video, 20 min for DEM
-    xhr.open("POST", "/api/upload/s3")
-    xhr.timeout = timeout
-    xhr.send(formData)
+    // Upload to S3 with PUT method
+    xhr.open("PUT", presignedUrl)
+    xhr.setRequestHeader("Content-Type", file.type || (type === "dem" ? "application/octet-stream" : "video/mp4"))
+    xhr.send(file)
   })
 }
 
