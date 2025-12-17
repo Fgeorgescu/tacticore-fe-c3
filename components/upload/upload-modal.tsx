@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Upload, File, X, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
 import { apiService } from "@/lib/api"
+import { useUpload } from "@/contexts/UploadContext"
 
 interface FileUpload {
   file: File
@@ -25,9 +26,7 @@ interface UploadModalProps {
   onClose: () => void
 }
 
-// Lista de mapas disponibles
 const AVAILABLE_MAPS = [
-  // Mapas competitivos principales
   "Ancient",
   "Anubis",
   "Dust II",
@@ -37,13 +36,11 @@ const AVAILABLE_MAPS = [
   "Overpass",
   "Train",
   "Vertigo",
-  // Mapas adicionales
   "Agency",
   "Grail",
   "Jura",
   "Office",
   "Italy",
-  // Mapas de modo casual
   "Dogtown",
   "Pool Day",
 ]
@@ -53,9 +50,11 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [metadata, setMetadata] = useState({
     map: "",
-    gameType: "Ranked", // Valor por defecto
+    gameType: "Ranked",
     description: "",
   })
+
+  const { addUploadingMatch, updateMatchStatus, removeUploadingMatch } = useUpload()
 
   const demInputRef = useRef<HTMLInputElement>(null)
 
@@ -78,6 +77,19 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     setIsUploading(true)
     setDemFile((prev) => (prev ? { ...prev, status: "uploading", progress: 0 } : null))
 
+    const tempMatchId = `temp-${Date.now()}`
+    const uploadingMatch = {
+      id: tempMatchId,
+      fileName: demFile.file.name,
+      map: metadata.map || "Unknown",
+      date: new Date().toISOString(),
+      status: "uploading" as const,
+      gameType: metadata.gameType,
+    }
+
+    console.log("[v0] Adding match to upload context:", uploadingMatch)
+    addUploadingMatch(uploadingMatch)
+
     try {
       const matchMetadata = {
         playerName: "Player",
@@ -87,6 +99,8 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
       let lastUiUpdate = 0
       const MIN_UI_UPDATE_INTERVAL = 500
 
+      handleClose()
+
       const uploadPromise = apiService.uploadMatch(demFile.file, undefined, matchMetadata, (progress) => {
         const now = Date.now()
         if (now - lastUiUpdate >= MIN_UI_UPDATE_INTERVAL || progress === 100) {
@@ -95,15 +109,25 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
         }
       })
 
-      handleClose()
-
       const result = await uploadPromise
 
-      if (result.status !== "processing") {
-        console.error("[v0] Upload did not return processing status:", result)
+      console.log("[v0] Upload completed, result:", result)
+
+      if (result.status === "processing") {
+        console.log("[v0] Updating match status to processing")
+        updateMatchStatus(tempMatchId, "processing")
+
+        setTimeout(() => {
+          console.log("[v0] Removing match from upload context after timeout")
+          removeUploadingMatch(tempMatchId)
+        }, 30000)
+      } else {
+        console.log("[v0] Upload did not return processing status, removing from context")
+        removeUploadingMatch(tempMatchId)
       }
     } catch (error) {
-      console.error("Upload error:", error)
+      console.error("[v0] Upload error:", error)
+      removeUploadingMatch(tempMatchId)
     } finally {
       setIsUploading(false)
     }
@@ -133,7 +157,6 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* File Upload Section */}
           <Card>
             <CardContent className="p-4">
               <div className="space-y-3">
@@ -184,7 +207,6 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
             </CardContent>
           </Card>
 
-          {/* Metadata Section */}
           <Card>
             <CardContent className="p-4">
               <h3 className="font-semibold mb-4">Información de la Partida</h3>
@@ -252,7 +274,6 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
             </CardContent>
           </Card>
 
-          {/* Upload Button */}
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={handleClose} disabled={isUploading}>
               Cancelar

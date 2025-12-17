@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 import { useApi } from "@/hooks/useApi"
 import { useUser } from "@/contexts/UserContext"
+import { useUpload } from "@/contexts/UploadContext"
 import { apiService } from "@/lib/api"
 import { getRelativeTimeFromBackend } from "@/lib/dateUtils"
 import { useState } from "react"
@@ -31,6 +32,7 @@ interface DashboardProps {
 
 export function Dashboard({ onViewDetails }: DashboardProps) {
   const { selectedUser } = useUser()
+  const { uploadingMatches } = useUpload()
   const [matchesPage, setMatchesPage] = useState(1)
   const MATCHES_PER_PAGE = 10
 
@@ -97,9 +99,21 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
           kdr: 0,
         }
 
-  const uploadingMatches = matchesData.filter((m) => m.status === "uploading")
-  const processingMatches = matchesData.filter((m) => m.status === "processing")
+  const uploadingMatchesFromContext = uploadingMatches.filter((m) => m.status === "uploading")
+  const processingMatchesFromContext = uploadingMatches.filter((m) => m.status === "processing")
+
+  const uploadingMatchesFromBackend = matchesData.filter((m) => m.status === "uploading")
+  const processingMatchesFromBackend = matchesData.filter((m) => m.status === "processing")
+
+  const allUploadingMatches = [...uploadingMatchesFromContext, ...uploadingMatchesFromBackend]
+  const allProcessingMatches = [...processingMatchesFromContext, ...processingMatchesFromBackend]
+
   const completedMatches = matchesData.filter((m) => m.status !== "processing" && m.status !== "uploading")
+
+  console.log("[v0] Dashboard - Uploading matches from context:", uploadingMatchesFromContext.length)
+  console.log("[v0] Dashboard - Processing matches from context:", processingMatchesFromContext.length)
+  console.log("[v0] Dashboard - Total uploading matches:", allUploadingMatches.length)
+  console.log("[v0] Dashboard - Total processing matches:", allProcessingMatches.length)
 
   const getScoreColor = (score: number) => {
     if (score >= 8) return "text-green-400"
@@ -194,7 +208,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
           </Button>
         </div>
 
-        {uploadingMatches.length > 0 && (
+        {allUploadingMatches.length > 0 && (
           <Card className="bg-amber-500/10 border-amber-500/30">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
@@ -203,19 +217,19 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
                   <div className="flex items-center gap-2 mb-1">
                     <AlertCircle className="h-4 w-4 text-amber-400" />
                     <h3 className="font-semibold text-amber-400">
-                      {uploadingMatches.length === 1
+                      {allUploadingMatches.length === 1
                         ? "Subiendo archivo"
-                        : `Subiendo ${uploadingMatches.length} archivos`}
+                        : `Subiendo ${allUploadingMatches.length} archivos`}
                     </h3>
                   </div>
                   <p className="text-sm text-amber-300 mb-3">
-                    {uploadingMatches.length === 1
+                    {allUploadingMatches.length === 1
                       ? "Tu archivo se está subiendo a S3"
                       : "Tus archivos se están subiendo a S3"}
                     . Este proceso puede tomar algunos minutos.
                   </p>
                   <div className="space-y-2">
-                    {uploadingMatches.map((match) => (
+                    {allUploadingMatches.map((match) => (
                       <div
                         key={match.id}
                         className="flex items-center justify-between bg-amber-500/5 rounded-lg p-3 border border-amber-500/20"
@@ -249,7 +263,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
           </Card>
         )}
 
-        {processingMatches.length > 0 && (
+        {allProcessingMatches.length > 0 && (
           <Card className="bg-blue-500/10 border-blue-500/30">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
@@ -258,17 +272,17 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
                   <div className="flex items-center gap-2 mb-1">
                     <AlertCircle className="h-4 w-4 text-blue-400" />
                     <h3 className="font-semibold text-blue-400">
-                      {processingMatches.length === 1
+                      {allProcessingMatches.length === 1
                         ? "Tienes una partida en proceso"
-                        : `Tienes ${processingMatches.length} partidas en proceso`}
+                        : `Tienes ${allProcessingMatches.length} partidas en proceso`}
                     </h3>
                   </div>
                   <p className="text-sm text-blue-300 mb-3">
-                    Estamos analizando {processingMatches.length === 1 ? "tu archivo" : "tus archivos"} DEM y generando
-                    estadísticas. Esto puede tomar algunos minutos.
+                    Estamos analizando {allProcessingMatches.length === 1 ? "tu archivo" : "tus archivos"} DEM y
+                    generando estadísticas. Esto puede tomar algunos minutos.
                   </p>
                   <div className="space-y-2">
-                    {processingMatches.map((match) => (
+                    {allProcessingMatches.map((match) => (
                       <div
                         key={match.id}
                         className="flex items-center justify-between bg-blue-500/5 rounded-lg p-3 border border-blue-500/20"
