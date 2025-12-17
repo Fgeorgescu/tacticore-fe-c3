@@ -38,6 +38,13 @@ function generateS3Key(fileName: string, fileType: "dem" | "video"): string {
   return `uploads/${fileType}/${timestamp}-${randomString}-${sanitizedName}`
 }
 
+export const config = {
+  api: {
+    bodyParser: false,
+    responseLimit: false,
+  },
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Validate configuration
@@ -64,6 +71,17 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`[Server] Starting S3 upload - File: ${file.name}, Type: ${fileType}, Size: ${file.size}`)
+
+    const maxSize = fileType === "video" ? 5 * 1024 * 1024 * 1024 : 2 * 1024 * 1024 * 1024 // 5GB video, 2GB DEM
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        {
+          error: "File too large",
+          details: `Maximum file size is ${maxSize / (1024 * 1024 * 1024)}GB for ${fileType} files`,
+        },
+        { status: 413 },
+      )
+    }
 
     const s3Key = generateS3Key(file.name, fileType)
     const s3Client = createS3Client()
