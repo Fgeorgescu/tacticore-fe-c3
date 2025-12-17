@@ -25,6 +25,7 @@ function createS3Client(): S3Client {
   return new S3Client({
     region: S3_CONFIG.region,
     credentials,
+    credentialDefaultProvider: () => async () => credentials,
   })
 }
 
