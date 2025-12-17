@@ -1065,7 +1065,8 @@ export class ApiService {
     status: string
     message: string
   }> {
-    console.log("[v0] Starting match upload with progress tracking")
+    const uploadId = Math.random().toString(36).substring(7)
+    console.log(`[v0] Starting match upload [${uploadId}] with progress tracking`)
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest()
@@ -1080,42 +1081,55 @@ export class ApiService {
         formData.append("metadata", JSON.stringify(metadata))
       }
 
-      // Track upload progress
+      let lastReportedProgress = -1
+      let lastReportTime = 0
+      const MIN_PROGRESS_DIFF = 1 // Report only if progress changed by at least 1%
+      const MIN_TIME_DIFF = 500 // Report at most every 500ms
+
       xhr.upload.addEventListener("progress", (event) => {
         if (event.lengthComputable) {
           const percentComplete = Math.round((event.loaded / event.total) * 100)
-          console.log(`[v0] Match upload progress: ${percentComplete}%`)
-          onProgress?.(percentComplete)
+          const now = Date.now()
+          const timeDiff = now - lastReportTime
+          const progressDiff = Math.abs(percentComplete - lastReportedProgress)
+
+          // Only report if progress changed significantly or enough time passed
+          if (progressDiff >= MIN_PROGRESS_DIFF || timeDiff >= MIN_TIME_DIFF) {
+            console.log(`[v0] Match upload [${uploadId}] progress: ${percentComplete}%`)
+            lastReportedProgress = percentComplete
+            lastReportTime = now
+            onProgress?.(percentComplete)
+          }
         }
       })
 
       // Handle completion
       xhr.addEventListener("load", () => {
-        console.log(`[v0] Match upload completed with status: ${xhr.status}`)
+        console.log(`[v0] Match upload [${uploadId}] completed with status: ${xhr.status}`)
         if (xhr.status >= 200 && xhr.status < 300) {
           try {
             const response = JSON.parse(xhr.responseText)
-            console.log("[v0] Match upload response:", response)
+            console.log(`[v0] Match upload [${uploadId}] response:`, response)
             resolve(response)
           } catch (error) {
-            console.error("[v0] Error parsing match upload response:", error)
+            console.error(`[v0] Error parsing match upload [${uploadId}] response:`, error)
             reject(new Error("Error parsing response"))
           }
         } else {
-          console.error("[v0] Match upload failed with status:", xhr.status)
+          console.error(`[v0] Match upload [${uploadId}] failed with status:`, xhr.status)
           reject(new Error(`Upload failed with status ${xhr.status}`))
         }
       })
 
       // Handle errors
       xhr.addEventListener("error", () => {
-        console.error("[v0] Match upload error occurred")
+        console.error(`[v0] Match upload [${uploadId}] error occurred`)
         reject(new Error("Upload failed"))
       })
 
       // Handle abort
       xhr.addEventListener("abort", () => {
-        console.log("[v0] Match upload was aborted")
+        console.log(`[v0] Match upload [${uploadId}] was aborted`)
         reject(new Error("Upload aborted"))
       })
 

@@ -88,14 +88,19 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
         notes: metadata.map || metadata.description || "Unknown map",
       }
 
+      let lastUiUpdate = 0
+      const MIN_UI_UPDATE_INTERVAL = 500 // Update UI at most every 500ms
+
       const result = await apiService.uploadMatch(
         demFile.file,
         undefined, // No video file
         matchMetadata,
         (progress) => {
-          // Update progress in real-time
-          console.log(`[v0] Upload modal received progress: ${progress}%`)
-          setDemFile((prev) => (prev ? { ...prev, progress } : null))
+          const now = Date.now()
+          if (now - lastUiUpdate >= MIN_UI_UPDATE_INTERVAL || progress === 100) {
+            lastUiUpdate = now
+            setDemFile((prev) => (prev ? { ...prev, progress } : null))
+          }
         },
       )
 
