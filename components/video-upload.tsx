@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Upload, Video, X, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
-import { apiService } from "@/lib/api"
+import { uploadVideoToS3 } from "@/lib/s3-upload"
 
 interface VideoFile {
   file: File
@@ -21,6 +21,7 @@ export default function VideoUpload() {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadComplete, setUploadComplete] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [s3Key, setS3Key] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileSelect = (files: FileList | null) => {
@@ -42,6 +43,7 @@ export default function VideoUpload() {
     setIsUploading(false)
     setUploadComplete(false)
     setUploadError(null)
+    setS3Key(null)
   }
 
   const handleDrop = (e: React.DragEvent) => {
@@ -57,18 +59,16 @@ export default function VideoUpload() {
     setUploadError(null)
 
     try {
-      const result = await apiService.uploadVideoFile(selectedVideo.file, undefined, (progress) => {
-        // Update progress in real-time
-        console.log(`[v0] Video upload received progress: ${progress}%`)
-        setUploadProgress(progress)
+      console.log("[v0] Starting video upload to S3")
+      const result = await uploadVideoToS3(selectedVideo.file, (progress) => {
+        console.log(`[v0] Video upload progress: ${progress.percentage}%`)
+        setUploadProgress(progress.percentage)
       })
 
-      if (result.status === "completed" || result.id) {
-        setUploadProgress(100)
-        setUploadComplete(true)
-      } else {
-        setUploadError("Upload completed but status is unclear")
-      }
+      setS3Key(result.s3Key)
+      setUploadProgress(100)
+      setUploadComplete(true)
+      console.log("[v0] Video uploaded successfully to S3:", result)
     } catch (error) {
       console.error("[v0] Video upload error:", error)
       setUploadError(error instanceof Error ? error.message : "Error al subir el video")
@@ -86,6 +86,7 @@ export default function VideoUpload() {
     setIsUploading(false)
     setUploadComplete(false)
     setUploadError(null)
+    setS3Key(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
@@ -95,7 +96,7 @@ export default function VideoUpload() {
     <div className="max-w-2xl mx-auto p-6 space-y-6">
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold text-foreground">Subir Video</h1>
-        <p className="text-muted-foreground">Selecciona un video para subir, previsualizar y confirmar</p>
+        <p className="text-muted-foreground">Sube videos directamente a S3 para procesamiento rápido</p>
       </div>
 
       {!selectedVideo ? (
@@ -156,7 +157,7 @@ export default function VideoUpload() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="font-medium">Subiendo video...</span>
+                    <span className="font-medium">Subiendo a S3...</span>
                   </div>
                   <Progress value={uploadProgress} className="h-2" />
                   <span className="text-sm text-muted-foreground">{uploadProgress}% completado</span>
@@ -166,16 +167,19 @@ export default function VideoUpload() {
           )}
 
           {/* Upload Success */}
-          {uploadComplete && (
+          {uploadComplete && s3Key && (
             <Card className="border-green-500/20 bg-green-500/5">
               <CardContent className="p-6">
-                <div className="flex items-center gap-2 text-green-600">
-                  <CheckCircle className="h-5 w-5" />
-                  <span className="font-medium">¡Video subido exitosamente!</span>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-green-600">
+                    <CheckCircle className="h-5 w-5" />
+                    <span className="font-medium">¡Video subido exitosamente a S3!</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">S3 Key: {s3Key}</p>
+                  <p className="text-sm text-muted-foreground">
+                    El video está listo para ser procesado por el backend.
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  El video ha sido procesado y está disponible para análisis.
-                </p>
               </CardContent>
             </Card>
           )}
@@ -207,7 +211,7 @@ export default function VideoUpload() {
               ) : (
                 <>
                   <Upload className="h-4 w-4" />
-                  Subir Video
+                  Subir a S3
                 </>
               )}
             </Button>

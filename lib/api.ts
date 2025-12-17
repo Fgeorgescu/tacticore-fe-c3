@@ -139,6 +139,7 @@ import {
   createMockUserValidation,
 } from "./mockData"
 import { processBackendResponse } from "./killDataMapper"
+import { uploadDemToS3, uploadVideoToS3, type S3UploadResult } from "./s3-upload"
 
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true"
 
@@ -1066,78 +1067,81 @@ export class ApiService {
     message: string
   }> {
     const uploadId = Math.random().toString(36).substring(7)
-    console.log(`[v0] Starting match upload [${uploadId}] with progress tracking`)
+    console.log(`[v0] Starting match upload [${uploadId}] with S3 direct upload`)
 
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest()
-      const formData = new FormData()
-      formData.append("demFile", demFile)
+    try {
+      let totalProgress = 0
+      const demWeight = videoFile ? 0.5 : 1.0 // If video exists, DEM is 50% of total
+      const videoWeight = videoFile ? 0.5 : 0
 
+      // Upload DEM file to S3
+      console.log(`[v0] [${uploadId}] Step 1: Uploading DEM to S3`)
+      const demResult = await uploadDemToS3(demFile, (progress) => {
+        const demProgress = progress.percentage * demWeight
+        totalProgress = demProgress
+        onProgress?.(Math.round(totalProgress))
+      })
+
+      console.log(`[v0] [${uploadId}] DEM uploaded to S3: ${demResult.s3Key}`)
+
+      // Upload video file to S3 (if provided)
+      let videoResult: S3UploadResult | undefined
       if (videoFile) {
-        formData.append("videoFile", videoFile)
+        console.log(`[v0] [${uploadId}] Step 2: Uploading video to S3`)
+        videoResult = await uploadVideoToS3(videoFile, (progress) => {
+          const videoProgress = progress.percentage * videoWeight
+          totalProgress = demWeight * 100 + videoProgress
+          onProgress?.(Math.round(totalProgress))
+        })
+        console.log(`[v0] [${uploadId}] Video uploaded to S3: ${videoResult.s3Key}`)
       }
 
-      if (metadata) {
-        formData.append("metadata", JSON.stringify(metadata))
-      }
+      // Confirm upload with backend
+      console.log(`[v0] [${uploadId}] Step 3: Confirming upload with backend`)
+      const result = await this.confirmS3Upload(demResult.s3Key, videoResult?.s3Key, metadata)
 
-      let lastReportedProgress = -1
-      let lastReportTime = 0
-      const MIN_PROGRESS_DIFF = 1 // Report only if progress changed by at least 1%
-      const MIN_TIME_DIFF = 500 // Report at most every 500ms
+      console.log(`[v0] [${uploadId}] Upload completed successfully:`, result)
+      return result
+    } catch (error) {
+      console.error(`[v0] Match upload [${uploadId}] failed:`, error)
+      throw error
+    }
+  }
 
-      xhr.upload.addEventListener("progress", (event) => {
-        if (event.lengthComputable) {
-          const percentComplete = Math.round((event.loaded / event.total) * 100)
-          const now = Date.now()
-          const timeDiff = now - lastReportTime
-          const progressDiff = Math.abs(percentComplete - lastReportedProgress)
+  async confirmS3Upload(
+    demS3Key: string,
+    videoS3Key?: string,
+    metadata?: any,
+  ): Promise<{
+    id: string
+    status: string
+    message: string
+  }> {
+    const url = `${this.baseUrl}/api/matches/s3`
+    console.log("[v0] API Request: confirmS3Upload -", { demS3Key, videoS3Key, metadata, url })
 
-          // Only report if progress changed significantly or enough time passed
-          if (progressDiff >= MIN_PROGRESS_DIFF || timeDiff >= MIN_TIME_DIFF) {
-            console.log(`[v0] Match upload [${uploadId}] progress: ${percentComplete}%`)
-            lastReportedProgress = percentComplete
-            lastReportTime = now
-            onProgress?.(percentComplete)
-          }
-        }
-      })
+    const body = {
+      demFileS3Key: demS3Key,
+      ...(videoS3Key && { videoFileS3Key: videoS3Key }),
+      ...(metadata && { metadata }),
+    }
 
-      // Handle completion
-      xhr.addEventListener("load", () => {
-        console.log(`[v0] Match upload [${uploadId}] completed with status: ${xhr.status}`)
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const response = JSON.parse(xhr.responseText)
-            console.log(`[v0] Match upload [${uploadId}] response:`, response)
-            resolve(response)
-          } catch (error) {
-            console.error(`[v0] Error parsing match upload [${uploadId}] response:`, error)
-            reject(new Error("Error parsing response"))
-          }
-        } else {
-          console.error(`[v0] Match upload [${uploadId}] failed with status:`, xhr.status)
-          reject(new Error(`Upload failed with status ${xhr.status}`))
-        }
-      })
-
-      // Handle errors
-      xhr.addEventListener("error", () => {
-        console.error(`[v0] Match upload [${uploadId}] error occurred`)
-        reject(new Error("Upload failed"))
-      })
-
-      // Handle abort
-      xhr.addEventListener("abort", () => {
-        console.log(`[v0] Match upload [${uploadId}] was aborted`)
-        reject(new Error("Upload aborted"))
-      })
-
-      // Start upload with 15 minute timeout for matches (can include video)
-      xhr.open("POST", `${this.baseUrl}/api/matches`)
-      xhr.timeout = 900000 // 15 minutes
-      xhr.send(formData)
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
     })
+
+    const result = await handleResponse<{
+      id: string
+      status: string
+      message: string
+    }>(response)
+
+    console.log("[v0] confirmS3Upload result:", result)
+    return result
   }
 
   // Health check

@@ -82,27 +82,21 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     setDemFile((prev) => (prev ? { ...prev, status: "uploading", progress: 0 } : null))
 
     try {
-      // Prepare metadata for the new endpoint
       const matchMetadata = {
-        playerName: "Player", // Default value
+        playerName: "Player",
         notes: metadata.map || metadata.description || "Unknown map",
       }
 
       let lastUiUpdate = 0
-      const MIN_UI_UPDATE_INTERVAL = 500 // Update UI at most every 500ms
+      const MIN_UI_UPDATE_INTERVAL = 500
 
-      const result = await apiService.uploadMatch(
-        demFile.file,
-        undefined, // No video file
-        matchMetadata,
-        (progress) => {
-          const now = Date.now()
-          if (now - lastUiUpdate >= MIN_UI_UPDATE_INTERVAL || progress === 100) {
-            lastUiUpdate = now
-            setDemFile((prev) => (prev ? { ...prev, progress } : null))
-          }
-        },
-      )
+      const result = await apiService.uploadMatch(demFile.file, undefined, matchMetadata, (progress) => {
+        const now = Date.now()
+        if (now - lastUiUpdate >= MIN_UI_UPDATE_INTERVAL || progress === 100) {
+          lastUiUpdate = now
+          setDemFile((prev) => (prev ? { ...prev, progress } : null))
+        }
+      })
 
       if (result.status === "processing") {
         setCurrentMatchId(result.id)
@@ -343,7 +337,9 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                   <div>
                     <h3 className="font-semibold text-blue-600">Procesando partida...</h3>
                     <p className="text-sm text-muted-foreground">ID: {currentMatchId}</p>
-                    <p className="text-sm text-muted-foreground">Analizando archivo DEM y generando estadísticas</p>
+                    <p className="text-sm text-muted-foreground">
+                      Archivo subido a S3. Backend analizando archivo DEM...
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -359,7 +355,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
               {isUploading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Subiendo...
+                  Subiendo a S3...
                 </>
               ) : isProcessing ? (
                 <>
