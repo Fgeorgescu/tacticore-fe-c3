@@ -142,6 +142,7 @@ async function uploadWithPresignedUrl(
 }
 
 const CHUNK_SIZE = 10 * 1024 * 1024 // 10MB chunks
+const MAX_CONCURRENT_UPLOADS = 4 // Upload 4 parts at a time
 
 async function uploadWithMultipart(
   file: File,
@@ -168,14 +169,15 @@ async function uploadWithMultipart(
   const { uploadId, s3Key, bucket, region } = await initiateResponse.json()
   console.log(`[v0] Multipart upload initiated: ${uploadId}`)
 
-  // Step 2: Upload parts
+  // Step 2: Upload parts in parallel
   const totalParts = Math.ceil(file.size / CHUNK_SIZE)
-  console.log(`[v0] Uploading ${totalParts} parts...`)
+  console.log(`[v0] Uploading ${totalParts} parts with ${MAX_CONCURRENT_UPLOADS} concurrent uploads...`)
 
   const parts: Array<{ ETag: string; PartNumber: number }> = []
-  let uploadedBytes = 0
+  const uploadedBytes = 0
+  const progressLock = { value: 0 }
 
-  for (let partNumber = 1; partNumber <= totalParts; partNumber++) {
+  const uploadPart = async (partNumber: number) => {
     const start = (partNumber - 1) * CHUNK_SIZE
     const end = Math.min(start + CHUNK_SIZE, file.size)
     const chunk = file.slice(start, end)
@@ -196,52 +198,60 @@ async function uploadWithMultipart(
     }
 
     const { presignedUrl } = await signResponse.json()
-    console.log(`[v0] Got presigned URL for part ${partNumber}`)
 
     // Upload the part
-    try {
-      const uploadResponse = await fetch(presignedUrl, {
-        method: "PUT",
-        body: chunk,
-      })
+    const uploadResponse = await fetch(presignedUrl, {
+      method: "PUT",
+      body: chunk,
+    })
 
-      console.log(`[v0] Part ${partNumber} upload status: ${uploadResponse.status}`)
-
-      if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text()
-        console.error(`[v0] S3 returned error for part ${partNumber}:`, errorText)
-        console.error(`[v0] Status: ${uploadResponse.status}`)
-        console.error(`[v0] Headers:`, Object.fromEntries(uploadResponse.headers.entries()))
-        throw new Error(`Failed to upload part ${partNumber}: Status ${uploadResponse.status} - ${errorText}`)
-      }
-
-      const etag = uploadResponse.headers.get("ETag")
-      if (!etag) {
-        console.error(`[v0] No ETag in response headers for part ${partNumber}`)
-        console.error(`[v0] Response headers:`, Object.fromEntries(uploadResponse.headers.entries()))
-        throw new Error(`No ETag returned for part ${partNumber}`)
-      }
-
-      console.log(`[v0] Part ${partNumber} uploaded successfully, ETag: ${etag}`)
-      parts.push({ ETag: etag, PartNumber: partNumber })
-      uploadedBytes += chunk.size
-
-      // Report progress
-      const percentage = Math.round((uploadedBytes / file.size) * 100)
-      console.log(
-        `[v0] Progress: ${percentage}% (${(uploadedBytes / 1024 / 1024).toFixed(2)}/${(file.size / 1024 / 1024).toFixed(2)} MB)`,
-      )
-
-      onProgress?.({
-        loaded: uploadedBytes,
-        total: file.size,
-        percentage,
-      })
-    } catch (error: any) {
-      console.error(`[v0] Exception while uploading part ${partNumber}:`, error)
-      throw new Error(`Failed to upload part ${partNumber}: ${error.message}`)
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text()
+      console.error(`[v0] S3 returned error for part ${partNumber}:`, errorText)
+      throw new Error(`Failed to upload part ${partNumber}: Status ${uploadResponse.status}`)
     }
+
+    const etag = uploadResponse.headers.get("ETag")
+    if (!etag) {
+      throw new Error(`No ETag returned for part ${partNumber}`)
+    }
+
+    console.log(`[v0] Part ${partNumber} uploaded successfully`)
+
+    // Update progress (thread-safe)
+    progressLock.value += chunk.size
+    const currentProgress = progressLock.value
+    const percentage = Math.round((currentProgress / file.size) * 100)
+
+    console.log(
+      `[v0] Progress: ${percentage}% (${(currentProgress / 1024 / 1024).toFixed(2)}/${(file.size / 1024 / 1024).toFixed(2)} MB)`,
+    )
+
+    onProgress?.({
+      loaded: currentProgress,
+      total: file.size,
+      percentage,
+    })
+
+    return { ETag: etag, PartNumber: partNumber }
   }
+
+  try {
+    for (let i = 0; i < totalParts; i += MAX_CONCURRENT_UPLOADS) {
+      const batch = []
+      for (let j = 0; j < MAX_CONCURRENT_UPLOADS && i + j < totalParts; j++) {
+        batch.push(uploadPart(i + j + 1))
+      }
+      const batchResults = await Promise.all(batch)
+      parts.push(...batchResults)
+    }
+  } catch (error: any) {
+    console.error(`[v0] Multipart upload failed:`, error)
+    throw error
+  }
+
+  // Sort parts by part number (they may have completed out of order)
+  parts.sort((a, b) => a.PartNumber - b.PartNumber)
 
   // Step 3: Complete multipart upload
   console.log("[v0] Completing multipart upload...")
