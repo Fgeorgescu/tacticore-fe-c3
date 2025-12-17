@@ -97,8 +97,9 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
           kdr: 0,
         }
 
+  const uploadingMatches = matchesData.filter((m) => m.status === "uploading")
   const processingMatches = matchesData.filter((m) => m.status === "processing")
-  const completedMatches = matchesData.filter((m) => m.status !== "processing")
+  const completedMatches = matchesData.filter((m) => m.status !== "processing" && m.status !== "uploading")
 
   const getScoreColor = (score: number) => {
     if (score >= 8) return "text-green-400"
@@ -192,6 +193,61 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
             Actualizar
           </Button>
         </div>
+
+        {uploadingMatches.length > 0 && (
+          <Card className="bg-amber-500/10 border-amber-500/30">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <Loader2 className="h-5 w-5 animate-spin text-amber-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <AlertCircle className="h-4 w-4 text-amber-400" />
+                    <h3 className="font-semibold text-amber-400">
+                      {uploadingMatches.length === 1
+                        ? "Subiendo archivo"
+                        : `Subiendo ${uploadingMatches.length} archivos`}
+                    </h3>
+                  </div>
+                  <p className="text-sm text-amber-300 mb-3">
+                    {uploadingMatches.length === 1
+                      ? "Tu archivo se está subiendo a S3"
+                      : "Tus archivos se están subiendo a S3"}
+                    . Este proceso puede tomar algunos minutos.
+                  </p>
+                  <div className="space-y-2">
+                    {uploadingMatches.map((match) => (
+                      <div
+                        key={match.id}
+                        className="flex items-center justify-between bg-amber-500/5 rounded-lg p-3 border border-amber-500/20"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
+                          <div>
+                            <p className="text-sm font-medium text-amber-200">{match.fileName}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              {match.map !== "Unknown" && (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs"
+                                >
+                                  {match.map}
+                                </Badge>
+                              )}
+                              <span className="text-xs text-amber-300">{getRelativeTime(match.date)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="bg-amber-500/20 text-amber-300 border-amber-500/30">
+                          Subiendo...
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {processingMatches.length > 0 && (
           <Card className="bg-blue-500/10 border-blue-500/30">

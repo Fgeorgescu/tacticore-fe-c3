@@ -14,7 +14,7 @@ export interface Match {
   duration: string
   score: number
   date: string
-  status?: "processing" | "completed" | "failed"
+  status?: "uploading" | "processing" | "completed" | "failed"
 }
 
 export interface Kill {
