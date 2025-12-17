@@ -1,6 +1,5 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { type NextRequest, NextResponse } from "next/server"
+import crypto from "crypto"
 
 const S3_CONFIG = {
   bucket: process.env.AWS_S3_BUCKET || "",
@@ -8,19 +7,6 @@ const S3_CONFIG = {
   accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
   sessionToken: process.env.AWS_SESSION_TOKEN,
-}
-
-function createS3Client(): S3Client {
-  const credentials = {
-    accessKeyId: S3_CONFIG.accessKeyId,
-    secretAccessKey: S3_CONFIG.secretAccessKey,
-    ...(S3_CONFIG.sessionToken && { sessionToken: S3_CONFIG.sessionToken }),
-  }
-
-  return new S3Client({
-    region: S3_CONFIG.region,
-    credentials,
-  })
 }
 
 function generateS3Key(fileName: string, fileType: "dem" | "video"): string {
@@ -32,6 +18,72 @@ function generateS3Key(fileName: string, fileType: "dem" | "video"): string {
     .replace(/^\.+/, "")
 
   return `uploads/${fileType}/${timestamp}-${randomString}-${sanitizedName}`
+}
+
+function generatePresignedUrl(
+  bucket: string,
+  key: string,
+  region: string,
+  contentType: string,
+  expiresIn = 3600,
+): string {
+  const { accessKeyId, secretAccessKey, sessionToken } = S3_CONFIG
+
+  const date = new Date()
+  const amzDate = date.toISOString().replace(/[:-]|\.\d{3}/g, "")
+  const dateStamp = amzDate.slice(0, 8)
+
+  const host = `${bucket}.s3.${region}.amazonaws.com`
+  const canonicalUri = `/${encodeURIComponent(key).replace(/%2F/g, "/")}`
+
+  // Build query parameters
+  const queryParams: Record<string, string> = {
+    "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
+    "X-Amz-Credential": `${accessKeyId}/${dateStamp}/${region}/s3/aws4_request`,
+    "X-Amz-Date": amzDate,
+    "X-Amz-Expires": expiresIn.toString(),
+    "X-Amz-SignedHeaders": "host",
+  }
+
+  if (sessionToken) {
+    queryParams["X-Amz-Security-Token"] = sessionToken
+  }
+
+  // Sort and encode query string
+  const sortedKeys = Object.keys(queryParams).sort()
+  const canonicalQueryString = sortedKeys.map((key) => `${key}=${encodeURIComponent(queryParams[key])}`).join("&")
+
+  // Create canonical request
+  const canonicalHeaders = `host:${host}\n`
+  const signedHeaders = "host"
+  const payloadHash = "UNSIGNED-PAYLOAD"
+
+  const canonicalRequest = [
+    "PUT",
+    canonicalUri,
+    canonicalQueryString,
+    canonicalHeaders,
+    signedHeaders,
+    payloadHash,
+  ].join("\n")
+
+  // Create string to sign
+  const algorithm = "AWS4-HMAC-SHA256"
+  const credentialScope = `${dateStamp}/${region}/s3/aws4_request`
+  const canonicalRequestHash = crypto.createHash("sha256").update(canonicalRequest).digest("hex")
+
+  const stringToSign = [algorithm, amzDate, credentialScope, canonicalRequestHash].join("\n")
+
+  // Calculate signature
+  const kDate = crypto.createHmac("sha256", `AWS4${secretAccessKey}`).update(dateStamp).digest()
+  const kRegion = crypto.createHmac("sha256", kDate).update(region).digest()
+  const kService = crypto.createHmac("sha256", kRegion).update("s3").digest()
+  const kSigning = crypto.createHmac("sha256", kService).update("aws4_request").digest()
+  const signature = crypto.createHmac("sha256", kSigning).update(stringToSign).digest("hex")
+
+  // Build final URL
+  const finalQueryString = `${canonicalQueryString}&X-Amz-Signature=${signature}`
+  return `https://${host}${canonicalUri}?${finalQueryString}`
 }
 
 export async function POST(request: NextRequest) {
@@ -61,22 +113,9 @@ export async function POST(request: NextRequest) {
     console.log(`[Server] Generating presigned URL - File: ${fileName}, Type: ${fileType}`)
 
     const s3Key = generateS3Key(fileName, fileType)
-    const s3Client = createS3Client()
+    const finalContentType = contentType || (fileType === "dem" ? "application/octet-stream" : "video/mp4")
 
-    // Create presigned URL for PUT operation
-    const command = new PutObjectCommand({
-      Bucket: S3_CONFIG.bucket,
-      Key: s3Key,
-      ContentType: contentType || (fileType === "dem" ? "application/octet-stream" : "video/mp4"),
-      Metadata: {
-        originalName: fileName,
-        uploadedAt: new Date().toISOString(),
-        fileType: fileType,
-      },
-    })
-
-    // Generate presigned URL valid for 1 hour
-    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 })
+    const presignedUrl = generatePresignedUrl(S3_CONFIG.bucket, s3Key, S3_CONFIG.region, finalContentType, 3600)
 
     console.log(`[Server] Presigned URL generated - Key: ${s3Key}`)
 
