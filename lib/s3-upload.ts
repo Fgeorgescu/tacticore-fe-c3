@@ -190,40 +190,57 @@ async function uploadWithMultipart(
     })
 
     if (!signResponse.ok) {
-      throw new Error(`Failed to sign part ${partNumber}`)
+      const errorData = await signResponse.json()
+      console.error(`[v0] Failed to sign part ${partNumber}:`, errorData)
+      throw new Error(`Failed to sign part ${partNumber}: ${errorData.error}`)
     }
 
     const { presignedUrl } = await signResponse.json()
+    console.log(`[v0] Got presigned URL for part ${partNumber}`)
 
     // Upload the part
-    const uploadResponse = await fetch(presignedUrl, {
-      method: "PUT",
-      body: chunk,
-    })
+    try {
+      const uploadResponse = await fetch(presignedUrl, {
+        method: "PUT",
+        body: chunk,
+      })
 
-    if (!uploadResponse.ok) {
-      throw new Error(`Failed to upload part ${partNumber}`)
+      console.log(`[v0] Part ${partNumber} upload status: ${uploadResponse.status}`)
+
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text()
+        console.error(`[v0] S3 returned error for part ${partNumber}:`, errorText)
+        console.error(`[v0] Status: ${uploadResponse.status}`)
+        console.error(`[v0] Headers:`, Object.fromEntries(uploadResponse.headers.entries()))
+        throw new Error(`Failed to upload part ${partNumber}: Status ${uploadResponse.status} - ${errorText}`)
+      }
+
+      const etag = uploadResponse.headers.get("ETag")
+      if (!etag) {
+        console.error(`[v0] No ETag in response headers for part ${partNumber}`)
+        console.error(`[v0] Response headers:`, Object.fromEntries(uploadResponse.headers.entries()))
+        throw new Error(`No ETag returned for part ${partNumber}`)
+      }
+
+      console.log(`[v0] Part ${partNumber} uploaded successfully, ETag: ${etag}`)
+      parts.push({ ETag: etag, PartNumber: partNumber })
+      uploadedBytes += chunk.size
+
+      // Report progress
+      const percentage = Math.round((uploadedBytes / file.size) * 100)
+      console.log(
+        `[v0] Progress: ${percentage}% (${(uploadedBytes / 1024 / 1024).toFixed(2)}/${(file.size / 1024 / 1024).toFixed(2)} MB)`,
+      )
+
+      onProgress?.({
+        loaded: uploadedBytes,
+        total: file.size,
+        percentage,
+      })
+    } catch (error: any) {
+      console.error(`[v0] Exception while uploading part ${partNumber}:`, error)
+      throw new Error(`Failed to upload part ${partNumber}: ${error.message}`)
     }
-
-    const etag = uploadResponse.headers.get("ETag")
-    if (!etag) {
-      throw new Error(`No ETag returned for part ${partNumber}`)
-    }
-
-    parts.push({ ETag: etag, PartNumber: partNumber })
-    uploadedBytes += chunk.size
-
-    // Report progress
-    const percentage = Math.round((uploadedBytes / file.size) * 100)
-    console.log(
-      `[v0] Progress: ${percentage}% (${(uploadedBytes / 1024 / 1024).toFixed(2)}/${(file.size / 1024 / 1024).toFixed(2)} MB)`,
-    )
-
-    onProgress?.({
-      loaded: uploadedBytes,
-      total: file.size,
-      percentage,
-    })
   }
 
   // Step 3: Complete multipart upload
