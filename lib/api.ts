@@ -166,7 +166,13 @@ async function fetchWithFallback<T>(fetchFn: () => Promise<T>, mockData: T, oper
     console.log(`[v0] Attempting real API call for ${operationName}`)
     return await fetchFn()
   } catch (error) {
-    console.warn(`[v0] API call failed for ${operationName}, falling back to mock data:`, error)
+    console.error(`[v0] API call failed for ${operationName}:`, {
+      error,
+      errorType: error instanceof Error ? error.constructor.name : typeof error,
+      errorMessage: error instanceof Error ? error.message : String(error),
+      errorStack: error instanceof Error ? error.stack : undefined,
+    })
+    console.warn(`[v0] Falling back to mock data for ${operationName}`)
     return mockData
   }
 }
