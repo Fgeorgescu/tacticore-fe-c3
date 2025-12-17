@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -55,15 +57,20 @@ export default function VideoUpload() {
     setUploadError(null)
 
     try {
-      const result = await apiService.uploadVideoFile(selectedVideo.file)
-      
-      if (result.success) {
+      const result = await apiService.uploadVideoFile(selectedVideo.file, undefined, (progress) => {
+        // Update progress in real-time
+        console.log(`[v0] Video upload received progress: ${progress}%`)
+        setUploadProgress(progress)
+      })
+
+      if (result.status === "completed" || result.id) {
         setUploadProgress(100)
         setUploadComplete(true)
       } else {
-        setUploadError(result.message)
+        setUploadError("Upload completed but status is unclear")
       }
     } catch (error) {
+      console.error("[v0] Video upload error:", error)
       setUploadError(error instanceof Error ? error.message : "Error al subir el video")
     } finally {
       setIsUploading(false)
@@ -109,9 +116,7 @@ export default function VideoUpload() {
               />
               <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-2">Arrastra tu video aquí</h3>
-              <p className="text-muted-foreground mb-4">
-                O haz clic para seleccionar un archivo de video
-              </p>
+              <p className="text-muted-foreground mb-4">O haz clic para seleccionar un archivo de video</p>
               <Button variant="outline">
                 <Video className="h-4 w-4 mr-2" />
                 Seleccionar Video
@@ -126,23 +131,14 @@ export default function VideoUpload() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>Previsualización del Video</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleReset}
-                  disabled={isUploading}
-                >
+                <Button variant="ghost" size="sm" onClick={handleReset} disabled={isUploading}>
                   <X className="h-4 w-4" />
                 </Button>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <video
-                  src={selectedVideo.url}
-                  className="w-full h-64 object-cover rounded-lg"
-                  controls
-                />
+                <video src={selectedVideo.url} className="w-full h-64 object-cover rounded-lg" controls />
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">{selectedVideo.name}</span>
                   <span className="text-sm text-muted-foreground">
@@ -163,9 +159,7 @@ export default function VideoUpload() {
                     <span className="font-medium">Subiendo video...</span>
                   </div>
                   <Progress value={uploadProgress} className="h-2" />
-                  <span className="text-sm text-muted-foreground">
-                    {uploadProgress}% completado
-                  </span>
+                  <span className="text-sm text-muted-foreground">{uploadProgress}% completado</span>
                 </div>
               </CardContent>
             </Card>
@@ -194,9 +188,7 @@ export default function VideoUpload() {
                   <AlertCircle className="h-5 w-5" />
                   <span className="font-medium">Error al subir el video</span>
                 </div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  {uploadError}
-                </p>
+                <p className="text-sm text-muted-foreground mt-2">{uploadError}</p>
               </CardContent>
             </Card>
           )}
@@ -206,11 +198,7 @@ export default function VideoUpload() {
             <Button variant="outline" onClick={handleReset} disabled={isUploading}>
               Cancelar
             </Button>
-            <Button
-              onClick={handleUpload}
-              disabled={isUploading || uploadComplete}
-              className="gap-2"
-            >
+            <Button onClick={handleUpload} disabled={isUploading || uploadComplete} className="gap-2">
               {isUploading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />

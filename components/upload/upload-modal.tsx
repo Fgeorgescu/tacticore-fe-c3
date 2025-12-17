@@ -79,6 +79,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     if (!demFile || demFile.status === "error") return
 
     setIsUploading(true)
+    setDemFile((prev) => (prev ? { ...prev, status: "uploading", progress: 0 } : null))
 
     try {
       // Prepare metadata for the new endpoint
@@ -87,10 +88,20 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
         notes: metadata.map || metadata.description || "Unknown map",
       }
 
+      let lastUiUpdate = 0
+      const MIN_UI_UPDATE_INTERVAL = 500 // Update UI at most every 500ms
+
       const result = await apiService.uploadMatch(
         demFile.file,
         undefined, // No video file
         matchMetadata,
+        (progress) => {
+          const now = Date.now()
+          if (now - lastUiUpdate >= MIN_UI_UPDATE_INTERVAL || progress === 100) {
+            lastUiUpdate = now
+            setDemFile((prev) => (prev ? { ...prev, progress } : null))
+          }
+        },
       )
 
       if (result.status === "processing") {
