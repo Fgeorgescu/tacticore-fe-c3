@@ -955,7 +955,7 @@ export class ApiService {
       // Handle completion
       xhr.addEventListener("load", () => {
         console.log(`[v0] Upload completed with status: ${xhr.status}`)
-        if (xhr.status === 200) {
+        if (xhr.status === 200 || xhr.status === 201) {
           resolve(JSON.parse(xhr.responseText))
         } else {
           reject(new Error(`Upload failed with status: ${xhr.status}`))
