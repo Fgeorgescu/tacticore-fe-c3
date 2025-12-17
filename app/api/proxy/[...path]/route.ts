@@ -1,14 +1,9 @@
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-import https from "https"
 import { type NextRequest, NextResponse } from "next/server"
 
 const BACKEND_URL = "https://54.163.64.8:8443"
-
-const httpsAgent = new https.Agent({
-  rejectUnauthorized: false,
-})
 
 async function handleRequest(req: NextRequest, method: string) {
   try {
@@ -17,7 +12,6 @@ async function handleRequest(req: NextRequest, method: string) {
     const backendUrl = `${BACKEND_URL}${path}${search}`
 
     console.log(`[v0] Proxy ${method} request to: ${backendUrl}`)
-    console.log(`[v0] HTTPS Agent configured with rejectUnauthorized: false`)
 
     const headers: Record<string, string> = {
       Accept: "*/*",
@@ -29,37 +23,61 @@ async function handleRequest(req: NextRequest, method: string) {
       headers["Content-Type"] = contentType
     }
 
-    const options: RequestInit = {
-      method,
-      headers,
-      // @ts-ignore - Node.js fetch acepta agent
-      agent: httpsAgent,
-    }
-
+    let body: string | undefined
     if (method !== "GET" && method !== "HEAD") {
-      const body = await req.text()
+      body = await req.text()
       if (body) {
-        options.body = body
         console.log(`[v0] Request body:`, body.substring(0, 200))
       }
     }
 
     console.log(`[v0] Request headers:`, headers)
-    console.log(`[v0] Fetch options:`, { method, hasAgent: !!options.agent })
 
     let response
     try {
-      response = await fetch(backendUrl, options)
+      // Configuración para ignorar certificados SSL auto-firmados
+      const fetchOptions: any = {
+        method,
+        headers,
+      }
+
+      if (body) {
+        fetchOptions.body = body
+      }
+
+      // Next.js usa undici internamente, que no soporta el agente HTTPS de Node.js directamente
+      // Vamos a intentar con variable de entorno NODE_TLS_REJECT_UNAUTHORIZED
+      const originalTlsReject = process.env.NODE_TLS_REJECT_UNAUTHORIZED
+      process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
+
+      console.log(`[v0] Attempting fetch with TLS verification disabled`)
+
+      response = await fetch(backendUrl, fetchOptions)
+
+      // Restaurar el valor original
+      if (originalTlsReject !== undefined) {
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = originalTlsReject
+      } else {
+        delete process.env.NODE_TLS_REJECT_UNAUTHORIZED
+      }
+
       console.log(`[v0] Backend response status: ${response.status}`)
     } catch (fetchError: any) {
+      // Restaurar en caso de error
+      const originalTlsReject = process.env.NODE_TLS_REJECT_UNAUTHORIZED
+      if (originalTlsReject !== undefined) {
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = originalTlsReject
+      } else {
+        delete process.env.NODE_TLS_REJECT_UNAUTHORIZED
+      }
+
       console.error(`[v0] Fetch error details:`, {
         type: fetchError?.constructor?.name,
         message: fetchError?.message,
         code: fetchError?.code,
         errno: fetchError?.errno,
         syscall: fetchError?.syscall,
-        cause: fetchError?.cause,
-        stack: fetchError?.stack?.split("\n").slice(0, 5),
+        cause: fetchError?.cause?.toString(),
       })
       throw fetchError
     }
@@ -82,8 +100,6 @@ async function handleRequest(req: NextRequest, method: string) {
       code: error?.code,
       errno: error?.errno,
       syscall: error?.syscall,
-      cause: error?.cause,
-      stack: error?.stack?.split("\n").slice(0, 5),
     })
     return NextResponse.json(
       {
