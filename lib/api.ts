@@ -1120,7 +1120,7 @@ export class ApiService {
     const url = `${this.baseUrl}/api/matches/s3`
     console.log("[v0] API Request: confirmS3Upload -", { demS3Key, videoS3Key, metadata, url })
 
-    const bucket = process.env.NEXT_PUBLIC_AWS_S3_BUCKET || "tacticore-storage-temp"
+    const bucket = "tacticore-storage-temp"
 
     const body: any = {
       bucket,
