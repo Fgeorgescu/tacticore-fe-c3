@@ -111,11 +111,6 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
 
   const completedMatches = matchesData.filter((m) => m.status !== "processing" && m.status !== "uploading")
 
-  console.log("[v0] Dashboard - Uploading matches from context:", uploadingMatchesFromContext.length)
-  console.log("[v0] Dashboard - Processing matches from context:", processingMatchesFromContext.length)
-  console.log("[v0] Dashboard - Total uploading matches:", allUploadingMatches.length)
-  console.log("[v0] Dashboard - Total processing matches:", allProcessingMatches.length)
-
   const getScoreColor = (score: number) => {
     if (score >= 8) return "text-green-400"
     if (score >= 6) return "text-yellow-400"
