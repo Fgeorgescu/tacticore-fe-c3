@@ -7,15 +7,16 @@ export interface UploadingMatch {
   fileName: string
   map: string
   date: string
-  status: "uploading" | "processing"
+  status: "uploading" | "processing" | "error"
   gameType: string
   progress?: number
+  error?: string
 }
 
 interface UploadContextType {
   uploadingMatches: UploadingMatch[]
   addUploadingMatch: (match: UploadingMatch) => void
-  updateMatchStatus: (id: string, status: "uploading" | "processing") => void
+  updateMatchStatus: (id: string, status: "uploading" | "processing" | "error", error?: string) => void
   updateMatchProgress: (id: string, progress: number) => void
   removeUploadingMatch: (id: string) => void
   clearUploadingMatches: () => void
@@ -31,9 +32,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     setUploadingMatches((prev) => [...prev, match])
   }
 
-  const updateMatchStatus = (id: string, status: "uploading" | "processing") => {
-    console.log("[v0] Updating match status:", id, status)
-    setUploadingMatches((prev) => prev.map((match) => (match.id === id ? { ...match, status } : match)))
+  const updateMatchStatus = (id: string, status: "uploading" | "processing" | "error", error?: string) => {
+    console.log("[v0] Updating match status:", id, status, error)
+    setUploadingMatches((prev) => prev.map((match) => (match.id === id ? { ...match, status, error } : match)))
   }
 
   const updateMatchProgress = (id: string, progress: number) => {

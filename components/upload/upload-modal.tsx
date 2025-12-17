@@ -54,7 +54,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     description: "",
   })
 
-  const { addUploadingMatch, updateMatchStatus, removeUploadingMatch } = useUpload()
+  const { addUploadingMatch, updateMatchStatus, updateMatchProgress, removeUploadingMatch } = useUpload()
 
   const demInputRef = useRef<HTMLInputElement>(null)
 
@@ -77,9 +77,25 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     setIsUploading(true)
     setDemFile((prev) => (prev ? { ...prev, status: "uploading", progress: 0 } : null))
 
-    const tempMatchId = `temp-${Date.now()}`
+    const tempMatchId = `match-${Date.now()}`
+
+    const uploadingMatch = {
+      id: tempMatchId,
+      fileName: demFile.file.name,
+      map: metadata.map || "Unknown",
+      date: new Date().toISOString(),
+      status: "uploading" as const,
+      gameType: metadata.gameType,
+      progress: 0,
+    }
+
+    addUploadingMatch(uploadingMatch)
+
+    handleClose()
 
     try {
+      console.log("[v0] Starting upload to S3 for match:", tempMatchId)
+
       const result = await apiService.uploadDemFile(
         demFile.file,
         {
@@ -87,40 +103,36 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
           notes: metadata.description || `${metadata.gameType} match on ${metadata.map}`,
         },
         (progress) => {
-          console.log(`[v0] Upload progress: ${progress}%`)
-          setDemFile((prev) => (prev ? { ...prev, progress } : null))
+          console.log(`[v0] S3 Upload progress for ${tempMatchId}: ${progress}%`)
+          updateMatchProgress(tempMatchId, progress)
         },
       )
 
       if (result.success && result.id) {
-        console.log("[v0] Upload successful, adding to processing queue")
-        setDemFile((prev) => (prev ? { ...prev, status: "success", progress: 100 } : null))
+        console.log("[v0] S3 upload successful, notifying backend")
 
-        const uploadingMatch = {
-          id: result.id,
-          fileName: demFile.file.name,
-          map: metadata.map || "Unknown",
-          date: new Date().toISOString(),
-          status: "processing" as const,
-          gameType: metadata.gameType,
-          progress: 100,
-        }
-        addUploadingMatch(uploadingMatch)
+        updateMatchStatus(tempMatchId, "processing")
 
         setTimeout(() => {
-          removeUploadingMatch(result.id!)
-        }, 60000)
-
-        setTimeout(() => {
-          handleClose()
-        }, 1500)
+          removeUploadingMatch(tempMatchId)
+        }, 30000)
       } else {
-        console.log("[v0] Upload failed:", result.message)
-        setDemFile((prev) => (prev ? { ...prev, status: "error", error: result.message } : null))
+        console.error("[v0] Upload failed:", result.message)
+        updateMatchStatus(
+          tempMatchId,
+          "error",
+          result.message || "Error al subir archivo. Por favor, intente más tarde.",
+        )
+        setTimeout(() => {
+          removeUploadingMatch(tempMatchId)
+        }, 30000)
       }
     } catch (error: any) {
       console.error("[v0] Upload error:", error)
-      setDemFile((prev) => (prev ? { ...prev, status: "error", error: error.message } : null))
+      updateMatchStatus(tempMatchId, "error", error.message || "Error al subir archivo. Por favor, intente más tarde.")
+      setTimeout(() => {
+        removeUploadingMatch(tempMatchId)
+      }, 30000)
     } finally {
       setIsUploading(false)
     }

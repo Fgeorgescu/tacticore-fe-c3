@@ -102,6 +102,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
 
   const uploadingMatchesFromContext = uploadingMatches.filter((m) => m.status === "uploading")
   const processingMatchesFromContext = uploadingMatches.filter((m) => m.status === "processing")
+  const errorMatchesFromContext = uploadingMatches.filter((m) => m.status === "error")
 
   const uploadingMatchesFromBackend = matchesData.filter((m) => m.status === "uploading")
   const processingMatchesFromBackend = matchesData.filter((m) => m.status === "processing")
@@ -219,10 +220,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
                     </h3>
                   </div>
                   <p className="text-sm text-amber-300 mb-3">
-                    {allUploadingMatches.length === 1
-                      ? "Tu archivo se está subiendo a S3"
-                      : "Tus archivos se están subiendo a S3"}
-                    . Este proceso puede tomar algunos minutos.
+                    Subiendo tu archivo a S3. Este proceso puede tomar algunos minutos.
                   </p>
                   <div className="space-y-2">
                     {allUploadingMatches.map((match) => (
@@ -258,6 +256,42 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
                             <p className="text-xs text-amber-300 text-right">{match.progress}%</p>
                           </div>
                         )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {errorMatchesFromContext.length > 0 && (
+          <Card className="bg-red-500/10 border-red-500/30">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-red-400">Error en la subida</h3>
+                  </div>
+                  <p className="text-sm text-red-300 mb-3">
+                    Hubo un problema al subir tu archivo. Por favor, intente más tarde.
+                  </p>
+                  <div className="space-y-2">
+                    {errorMatchesFromContext.map((match) => (
+                      <div key={match.id} className="bg-red-500/5 rounded-lg p-3 border border-red-500/20">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <AlertCircle className="h-4 w-4 text-red-400" />
+                            <div>
+                              <p className="text-sm font-medium text-red-200">{match.fileName}</p>
+                              {match.error && <p className="text-xs text-red-300 mt-1">{match.error}</p>}
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="bg-red-500/20 text-red-300 border-red-500/30">
+                            Error
+                          </Badge>
+                        </div>
                       </div>
                     ))}
                   </div>
