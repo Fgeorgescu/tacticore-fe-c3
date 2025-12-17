@@ -6,7 +6,7 @@ export async function GET(request: NextRequest, { params }: { params: { path: st
   try {
     const path = params.path.join("/")
     const searchParams = request.nextUrl.searchParams.toString()
-    const url = `${BACKEND_URL}/api/${path}${searchParams ? `?${searchParams}` : ""}`
+    const url = `${BACKEND_URL}/${path}${searchParams ? `?${searchParams}` : ""}`
 
     console.log(`[v0] Proxy GET: ${url}`)
 
@@ -17,10 +17,17 @@ export async function GET(request: NextRequest, { params }: { params: { path: st
       },
     })
 
-    const data = await response.json()
     console.log(`[v0] Proxy GET response status: ${response.status}`)
 
-    return NextResponse.json(data, { status: response.status })
+    const contentType = response.headers.get("content-type")
+    if (contentType && contentType.includes("application/json")) {
+      const data = await response.json()
+      return NextResponse.json(data, { status: response.status })
+    } else {
+      const text = await response.text()
+      console.log(`[v0] Proxy GET non-JSON response: ${text}`)
+      return NextResponse.json({ error: text }, { status: response.status })
+    }
   } catch (error) {
     console.error("[v0] Proxy GET error:", error)
     return NextResponse.json({ error: "Proxy request failed", details: String(error) }, { status: 500 })
@@ -30,7 +37,7 @@ export async function GET(request: NextRequest, { params }: { params: { path: st
 export async function POST(request: NextRequest, { params }: { params: { path: string[] } }) {
   try {
     const path = params.path.join("/")
-    const url = `${BACKEND_URL}/api/${path}`
+    const url = `${BACKEND_URL}/${path}`
     const body = await request.json()
 
     console.log(`[v0] Proxy POST: ${url}`, body)
@@ -43,10 +50,17 @@ export async function POST(request: NextRequest, { params }: { params: { path: s
       body: JSON.stringify(body),
     })
 
-    const data = await response.json()
     console.log(`[v0] Proxy POST response status: ${response.status}`)
 
-    return NextResponse.json(data, { status: response.status })
+    const contentType = response.headers.get("content-type")
+    if (contentType && contentType.includes("application/json")) {
+      const data = await response.json()
+      return NextResponse.json(data, { status: response.status })
+    } else {
+      const text = await response.text()
+      console.log(`[v0] Proxy POST non-JSON response: ${text}`)
+      return NextResponse.json({ error: text }, { status: response.status })
+    }
   } catch (error) {
     console.error("[v0] Proxy POST error:", error)
     return NextResponse.json({ error: "Proxy request failed", details: String(error) }, { status: 500 })
@@ -56,7 +70,7 @@ export async function POST(request: NextRequest, { params }: { params: { path: s
 export async function DELETE(request: NextRequest, { params }: { params: { path: string[] } }) {
   try {
     const path = params.path.join("/")
-    const url = `${BACKEND_URL}/api/${path}`
+    const url = `${BACKEND_URL}/${path}`
 
     console.log(`[v0] Proxy DELETE: ${url}`)
 
@@ -71,10 +85,17 @@ export async function DELETE(request: NextRequest, { params }: { params: { path:
       return new NextResponse(null, { status: 204 })
     }
 
-    const data = await response.json()
     console.log(`[v0] Proxy DELETE response status: ${response.status}`)
 
-    return NextResponse.json(data, { status: response.status })
+    const contentType = response.headers.get("content-type")
+    if (contentType && contentType.includes("application/json")) {
+      const data = await response.json()
+      return NextResponse.json(data, { status: response.status })
+    } else {
+      const text = await response.text()
+      console.log(`[v0] Proxy DELETE non-JSON response: ${text}`)
+      return NextResponse.json({ error: text }, { status: response.status })
+    }
   } catch (error) {
     console.error("[v0] Proxy DELETE error:", error)
     return NextResponse.json({ error: "Proxy request failed", details: String(error) }, { status: 500 })
@@ -84,7 +105,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { path:
 export async function PUT(request: NextRequest, { params }: { params: { path: string[] } }) {
   try {
     const path = params.path.join("/")
-    const url = `${BACKEND_URL}/api/${path}`
+    const url = `${BACKEND_URL}/${path}`
     const body = await request.json()
 
     console.log(`[v0] Proxy PUT: ${url}`, body)
@@ -97,10 +118,17 @@ export async function PUT(request: NextRequest, { params }: { params: { path: st
       body: JSON.stringify(body),
     })
 
-    const data = await response.json()
     console.log(`[v0] Proxy PUT response status: ${response.status}`)
 
-    return NextResponse.json(data, { status: response.status })
+    const contentType = response.headers.get("content-type")
+    if (contentType && contentType.includes("application/json")) {
+      const data = await response.json()
+      return NextResponse.json(data, { status: response.status })
+    } else {
+      const text = await response.text()
+      console.log(`[v0] Proxy PUT non-JSON response: ${text}`)
+      return NextResponse.json({ error: text }, { status: response.status })
+    }
   } catch (error) {
     console.error("[v0] Proxy PUT error:", error)
     return NextResponse.json({ error: "Proxy request failed", details: String(error) }, { status: 500 })
