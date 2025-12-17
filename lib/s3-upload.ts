@@ -24,7 +24,14 @@ export async function uploadToS3(
   type: "dem" | "video",
   onProgress?: (progress: S3UploadProgress) => void,
 ): Promise<S3UploadResult> {
-  return uploadWithPresignedUrl(file, type, onProgress)
+  // Use multipart upload for files larger than 50MB
+  if (file.size > 50 * 1024 * 1024) {
+    console.log("[v0] File is large, using multipart upload")
+    return uploadWithMultipart(file, type, onProgress)
+  } else {
+    console.log("[v0] File is small, using single presigned URL")
+    return uploadWithPresignedUrl(file, type, onProgress)
+  }
 }
 
 async function uploadWithPresignedUrl(
@@ -132,6 +139,114 @@ async function uploadWithPresignedUrl(
     xhr.send(file)
     console.log(`[v0] XHR request sent, waiting for response...`)
   })
+}
+
+const CHUNK_SIZE = 10 * 1024 * 1024 // 10MB chunks
+
+async function uploadWithMultipart(
+  file: File,
+  type: "dem" | "video",
+  onProgress?: (progress: S3UploadProgress) => void,
+): Promise<S3UploadResult> {
+  console.log(`[v0] Starting multipart upload for ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`)
+
+  // Step 1: Initiate multipart upload
+  const initiateResponse = await fetch("/api/upload/multipart-initiate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fileName: file.name,
+      fileType: type,
+      contentType: file.type || (type === "dem" ? "application/octet-stream" : "video/mp4"),
+    }),
+  })
+
+  if (!initiateResponse.ok) {
+    throw new Error("Failed to initiate multipart upload")
+  }
+
+  const { uploadId, s3Key, bucket, region } = await initiateResponse.json()
+  console.log(`[v0] Multipart upload initiated: ${uploadId}`)
+
+  // Step 2: Upload parts
+  const totalParts = Math.ceil(file.size / CHUNK_SIZE)
+  console.log(`[v0] Uploading ${totalParts} parts...`)
+
+  const parts: Array<{ ETag: string; PartNumber: number }> = []
+  let uploadedBytes = 0
+
+  for (let partNumber = 1; partNumber <= totalParts; partNumber++) {
+    const start = (partNumber - 1) * CHUNK_SIZE
+    const end = Math.min(start + CHUNK_SIZE, file.size)
+    const chunk = file.slice(start, end)
+
+    console.log(`[v0] Uploading part ${partNumber}/${totalParts} (${(chunk.size / 1024 / 1024).toFixed(2)} MB)`)
+
+    // Get presigned URL for this part
+    const signResponse = await fetch("/api/upload/multipart-sign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ uploadId, s3Key, partNumber }),
+    })
+
+    if (!signResponse.ok) {
+      throw new Error(`Failed to sign part ${partNumber}`)
+    }
+
+    const { presignedUrl } = await signResponse.json()
+
+    // Upload the part
+    const uploadResponse = await fetch(presignedUrl, {
+      method: "PUT",
+      body: chunk,
+    })
+
+    if (!uploadResponse.ok) {
+      throw new Error(`Failed to upload part ${partNumber}`)
+    }
+
+    const etag = uploadResponse.headers.get("ETag")
+    if (!etag) {
+      throw new Error(`No ETag returned for part ${partNumber}`)
+    }
+
+    parts.push({ ETag: etag, PartNumber: partNumber })
+    uploadedBytes += chunk.size
+
+    // Report progress
+    const percentage = Math.round((uploadedBytes / file.size) * 100)
+    console.log(
+      `[v0] Progress: ${percentage}% (${(uploadedBytes / 1024 / 1024).toFixed(2)}/${(file.size / 1024 / 1024).toFixed(2)} MB)`,
+    )
+
+    onProgress?.({
+      loaded: uploadedBytes,
+      total: file.size,
+      percentage,
+    })
+  }
+
+  // Step 3: Complete multipart upload
+  console.log("[v0] Completing multipart upload...")
+  const completeResponse = await fetch("/api/upload/multipart-complete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ uploadId, s3Key, parts }),
+  })
+
+  if (!completeResponse.ok) {
+    throw new Error("Failed to complete multipart upload")
+  }
+
+  console.log("[v0] Multipart upload completed successfully!")
+
+  return {
+    s3Key,
+    bucket,
+    region,
+    size: file.size,
+    contentType: file.type,
+  }
 }
 
 /**
