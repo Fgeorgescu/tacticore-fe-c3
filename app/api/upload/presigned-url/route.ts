@@ -11,21 +11,15 @@ const S3_CONFIG = {
 }
 
 function createS3Client(): S3Client {
-  const credentials = S3_CONFIG.sessionToken
-    ? {
-        accessKeyId: S3_CONFIG.accessKeyId,
-        secretAccessKey: S3_CONFIG.secretAccessKey,
-        sessionToken: S3_CONFIG.sessionToken,
-      }
-    : {
-        accessKeyId: S3_CONFIG.accessKeyId,
-        secretAccessKey: S3_CONFIG.secretAccessKey,
-      }
+  const credentials = {
+    accessKeyId: S3_CONFIG.accessKeyId,
+    secretAccessKey: S3_CONFIG.secretAccessKey,
+    ...(S3_CONFIG.sessionToken && { sessionToken: S3_CONFIG.sessionToken }),
+  }
 
   return new S3Client({
     region: S3_CONFIG.region,
     credentials,
-    credentialDefaultProvider: () => async () => credentials,
   })
 }
 
