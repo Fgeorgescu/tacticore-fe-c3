@@ -967,26 +967,55 @@ export class ApiService {
         }),
       })
 
-      onProgress?.(100)
+      const responseText = await response.text()
+      console.log("[v0] Backend response status:", response.status)
+      console.log("[v0] Backend response body:", responseText)
 
       if (!response.ok) {
-        const errorData = await response.json()
-        console.error("[v0] Backend processing failed:", errorData)
-        throw new Error(errorData.message || "Backend processing failed")
+        let errorMessage = "Error al procesar el archivo. Por favor, intente más tarde."
+
+        try {
+          const errorData = JSON.parse(responseText)
+          console.error("[v0] Backend processing failed:", errorData)
+
+          // Extract meaningful error message
+          if (errorData.message) {
+            if (errorData.message.includes("credentials")) {
+              errorMessage = "Error de configuración del servidor. Contacte al administrador."
+            } else {
+              errorMessage = errorData.message
+            }
+          }
+        } catch (parseError) {
+          // If response is not JSON, use status text
+          console.error("[v0] Could not parse error response:", parseError)
+          errorMessage = `Error del servidor (${response.status}). Por favor, intente más tarde.`
+        }
+
+        return {
+          success: false,
+          message: errorMessage,
+        }
       }
 
-      const result = await response.json()
+      const result = JSON.parse(responseText)
       console.log("[v0] Backend processing response:", result)
 
+      onProgress?.(100)
+
       return {
-        success: result.status === "completed",
-        message: result.message,
+        success: result.status === "completed" || result.status === "processing",
+        message: result.message || "Archivo procesado exitosamente",
         id: result.id,
         status: result.status,
       }
     } catch (error: any) {
       console.error("[v0] Upload error:", error)
-      throw error
+
+      return {
+        success: false,
+        message: error.message || "Error al subir archivo. Por favor, intente más tarde.",
+      }
     }
   }
 }
