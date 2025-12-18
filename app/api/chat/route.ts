@@ -57,7 +57,9 @@ interface MatchContext {
   }
 }
 
-function buildSystemPrompt(matchContext: MatchContext): string {
+type QueryType = "round-specific" | "weapons" | "positioning" | "economy" | "timing" | "general"
+
+function buildSystemPrompt(matchContext: MatchContext, queryType: QueryType = "general"): string {
   const totalActions = matchContext.goodPlays + matchContext.badPlays
   const goodPlayPercentage = totalActions > 0 ? ((matchContext.goodPlays / totalActions) * 100).toFixed(1) : "0"
   const badPlayPercentage = totalActions > 0 ? ((matchContext.badPlays / totalActions) * 100).toFixed(1) : "0"
@@ -134,7 +136,7 @@ ${topWeapons}
 - Considera mejorar el uso de armas con baja efectividad o cambiarlas por alternativas`
   }
 
-  return `Eres TACTICORE Bot, un entrenador profesional de Counter-Strike con años de experiencia analizando partidas competitivas. Tu rol es actuar como un coach personal que identifica los puntos más críticos de mejora y proporciona consejos específicos y accionables.
+  const basePrompt = `Eres TACTICORE Bot, un entrenador profesional de Counter-Strike con años de experiencia analizando partidas competitivas. Tu rol es actuar como un coach personal que identifica los puntos más críticos de mejora y proporciona consejos específicos y accionables.
 
 ANÁLISIS DETALLADO DE LA PARTIDA:
 📊 ESTADÍSTICAS PRINCIPALES:
@@ -149,7 +151,74 @@ ANÁLISIS DETALLADO DE LA PARTIDA:
 - Buenas jugadas: ${matchContext.goodPlays} (${goodPlayPercentage}%)
 - Malas jugadas: ${matchContext.badPlays} (${badPlayPercentage}%)
 - Kills por minuto: ${killsPerMinute}
-- Total de acciones analizadas: ${totalActions}${roundsAnalysis}${weaponAnalysis}
+- Total de acciones analizadas: ${totalActions}${roundsAnalysis}${weaponAnalysis}`
+
+  let specializedInstructions = ""
+
+  switch (queryType) {
+    case "round-specific":
+      specializedInstructions = `
+
+🎯 ENFOQUE ESPECIALIZADO: ANÁLISIS DE RONDA ESPECÍFICA
+El usuario preguntó sobre una ronda en particular. Proporciona:
+- Análisis detallado de cada kill en esa ronda
+- Decisiones tácticas tomadas (buenas y malas)
+- Qué cambiar específicamente en situaciones similares
+- Timing y posicionamiento en esa ronda
+- Impacto de cada acción en el resultado de la ronda`
+      break
+
+    case "weapons":
+      specializedInstructions = `
+
+🔫 ENFOQUE ESPECIALIZADO: ANÁLISIS DE ARMAS
+El usuario preguntó sobre armas. Enfócate en:
+- Efectividad de cada arma usada
+- Recomendaciones de armas alternativas
+- Ejercicios específicos para mejorar con armas problemáticas
+- Situaciones en las que usar cada arma
+- Análisis de headshot rate y cómo mejorar precisión`
+      break
+
+    case "positioning":
+      specializedInstructions = `
+
+🗺️ ENFOQUE ESPECIALIZADO: POSICIONAMIENTO Y MAPA
+El usuario preguntó sobre posicionamiento. Proporciona:
+- Análisis de posiciones tomadas durante la partida
+- Zonas del mapa donde mejorar
+- Rotaciones y timing de movimientos
+- Cobertura y ángulos utilizados
+- Posiciones recomendadas para ${matchContext.map}`
+      break
+
+    case "economy":
+      specializedInstructions = `
+
+💰 ENFOQUE ESPECIALIZADO: ECONOMÍA Y COMPRAS
+El usuario preguntó sobre economía. Analiza:
+- Decisiones de compra basadas en armas usadas
+- Cuándo hacer eco vs full buy
+- Patrones de armas caras vs baratas
+- Optimización del gasto en rondas específicas
+- Estrategias económicas para mejorar`
+      break
+
+    case "timing":
+      specializedInstructions = `
+
+⏱️ ENFOQUE ESPECIALIZADO: TIMING Y TEMPO
+El usuario preguntó sobre timing. Enfócate en:
+- Análisis de cuándo ocurrieron los kills
+- Early/mid/late round patterns
+- Timing de entradas y pushes
+- Cuándo ser agresivo vs pasivo
+- Sincronización con el equipo`
+      break
+
+    case "general":
+    default:
+      specializedInstructions = `
 
 COMO ENTRENADOR PROFESIONAL:
 1. 🎯 ENFÓCATE EN LOS PUNTOS MÁS CRÍTICOS: Identifica las 2-3 áreas más importantes que necesitan mejora inmediata
@@ -158,23 +227,31 @@ COMO ENTRENADOR PROFESIONAL:
 4. 🗺️ CONTEXTO DEL MAPA: Considera las características específicas de ${matchContext.map} en tus recomendaciones
 5. ⚡ PRIORIZACIÓN: Enfócate en los cambios que tendrán mayor impacto en el rendimiento
 6. 🎮 ANÁLISIS POR RONDAS: Identifica patrones de rendimiento por ronda y timing de kills
-7. 🔫 ANÁLISIS DE ARMAS: Evalúa la elección de armas y recomienda optimizaciones en el loadout
+7. 🔫 ANÁLISIS DE ARMAS: Evalúa la elección de armas y recomienda optimizaciones en el loadout`
+      break
+  }
+
+  return (
+    basePrompt +
+    specializedInstructions +
+    `
 
 ESTILO DE RESPUESTA:
 - Tono profesional pero motivador, como un coach experimentado
-- Máximo 300-400 palabras para mantener el enfoque (ahora tienes más contexto)
+- Máximo 300-400 palabras para mantener el enfoque
 - Usa emojis estratégicamente para destacar puntos clave
 - Siempre incluye al menos una técnica específica para practicar
 - Responde en español
-- Si hay datos detallados de kills, menciona patrones específicos de posicionamiento, timing y uso de armas
+- Si hay datos detallados de kills, menciona patrones específicos
 - Identifica kills críticos que cambiaron el rumbo de rondas
 
 Tu objetivo es ayudar al jugador a identificar y corregir los errores más impactantes para mejorar significativamente su rendimiento en futuras partidas.`
+  )
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, matchContext } = await request.json()
+    const { message, matchContext, queryType } = await request.json()
 
     const apiKey = process.env.OPENAI_API_KEY
 
@@ -201,7 +278,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ response: randomResponse })
     }
 
-    const systemPrompt = buildSystemPrompt(matchContext)
+    const systemPrompt = buildSystemPrompt(matchContext, queryType || "general")
 
     const chatRequest: ChatGPTRequest = {
       model: "gpt-4o-mini",

@@ -24,11 +24,24 @@ export interface MatchContext {
   duration: string
   gameType: string
   rounds?: RoundData[]
+  weaponStats?: {
+    mostUsedWeapon: string
+    weaponDistribution: Record<string, number>
+    totalUniqueWeapons: number
+    weaponEffectiveness: Record<string, number>
+    weaponHeadshotRate: Record<string, number>
+    totalHeadshots: number
+    headshotPercentage: number
+    weaponGoodPlays: Record<string, number>
+    weaponBadPlays: Record<string, number>
+  }
 }
 
+type QueryType = "round-specific" | "weapons" | "positioning" | "economy" | "timing" | "general"
+
 export class ChatGPTService {
-  async sendMessage(userMessage: string, matchContext: MatchContext): Promise<string> {
-    console.log("ChatGPT sendMessage called with:", { userMessage, matchContext })
+  async sendMessage(userMessage: string, matchContext: MatchContext, queryType?: QueryType): Promise<string> {
+    console.log("ChatGPT sendMessage called with:", { userMessage, matchContext, queryType })
 
     try {
       const response = await fetch("/api/chat", {
@@ -39,6 +52,7 @@ export class ChatGPTService {
         body: JSON.stringify({
           message: userMessage,
           matchContext,
+          queryType: queryType || "general",
         }),
       })
 
