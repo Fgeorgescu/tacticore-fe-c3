@@ -394,11 +394,6 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
                                   <p className="text-xs text-white">CT: {kill.teamAlive.ct}</p>
                                   <p className="text-xs text-white">T: {kill.teamAlive.t}</p>
                                 </div>
-                                {kill.isGoodPlay ? (
-                                  <TrendingUp className="h-4 w-4 text-green-400" />
-                                ) : (
-                                  <TrendingDown className="h-4 w-4 text-red-400" />
-                                )}
                               </div>
                             </div>
                           ))}
