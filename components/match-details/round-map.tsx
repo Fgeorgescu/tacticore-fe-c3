@@ -388,15 +388,12 @@ export function RoundMap({ mapName, killsByRound, selectedUser, className = "" }
                         kill.isGoodPlay ? "bg-green-500/10 border-green-500/20" : "bg-red-500/10 border-red-500/20"
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1 flex-1 min-w-0">
                           <span className="font-semibold text-foreground truncate">{kill.killer}</span>
                           <span className="text-white">→</span>
                           <span className="text-foreground truncate">{kill.victim}</span>
                         </div>
-                        <Badge variant={kill.isGoodPlay ? "default" : "destructive"} className="text-xs shrink-0">
-                          {kill.isGoodPlay ? "✓" : "✗"}
-                        </Badge>
                       </div>
                       <div className="flex items-center justify-between gap-2">
                         <Badge variant="outline" className="text-xs">
