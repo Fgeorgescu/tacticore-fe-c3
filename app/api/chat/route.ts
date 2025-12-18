@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
     const systemPrompt = buildSystemPrompt(matchContext)
 
     const chatRequest: ChatGPTRequest = {
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
           content: message,
         },
       ],
-      max_tokens: 300,
+      max_tokens: 1000,
       temperature: 0.7,
     }
 
