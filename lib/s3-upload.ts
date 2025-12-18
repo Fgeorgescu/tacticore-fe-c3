@@ -27,7 +27,6 @@ export async function uploadToS3(
   onProgress?: (progress: S3UploadProgress) => void,
 ): Promise<S3UploadResult> {
   // Compress file before uploading
-  console.log("[v0] Compressing file before upload...")
   onProgress?.({
     loaded: 0,
     total: file.size,
@@ -51,8 +50,6 @@ export async function uploadToS3(
     type: "application/gzip",
   })
 
-  console.log(`[v0] Uploading compressed file (${(compressedSize / 1024 / 1024).toFixed(2)} MB)`)
-
   // Update progress callback to account for compression
   const wrappedProgress = (progress: S3UploadProgress) => {
     onProgress?.({
@@ -63,10 +60,8 @@ export async function uploadToS3(
 
   // Use multipart upload for files larger than 50MB (after compression)
   if (compressedFile.size > 50 * 1024 * 1024) {
-    console.log("[v0] Compressed file is large, using multipart upload")
     return uploadWithMultipart(compressedFile, type, wrappedProgress)
   } else {
-    console.log("[v0] Compressed file is small, using single presigned URL")
     return uploadWithPresignedUrl(compressedFile, type, wrappedProgress)
   }
 }

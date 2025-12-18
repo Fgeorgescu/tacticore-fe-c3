@@ -3,6 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
 import {
   Eye,
   Play,
@@ -18,9 +19,11 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertCircle,
+  CheckCircle,
 } from "lucide-react"
 import { useApi } from "@/hooks/useApi"
 import { useUser } from "@/contexts/UserContext"
+import { useUpload } from "@/contexts/UploadContext"
 import { apiService } from "@/lib/api"
 import { getRelativeTimeFromBackend } from "@/lib/dateUtils"
 import { useState } from "react"
@@ -31,6 +34,7 @@ interface DashboardProps {
 
 export function Dashboard({ onViewDetails }: DashboardProps) {
   const { selectedUser } = useUser()
+  const { uploadingMatches } = useUpload()
   const [matchesPage, setMatchesPage] = useState(1)
   const MATCHES_PER_PAGE = 10
 
@@ -97,8 +101,18 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
           kdr: 0,
         }
 
-  const processingMatches = matchesData.filter((m) => m.status === "processing")
-  const completedMatches = matchesData.filter((m) => m.status !== "processing")
+  const uploadingMatchesFromContext = uploadingMatches.filter((m) => m.status === "uploading")
+  const initiatingMatchesFromContext = uploadingMatches.filter((m) => m.status === "initiating-processing")
+  const processingMatchesFromContext = uploadingMatches.filter((m) => m.status === "processing")
+  const errorMatchesFromContext = uploadingMatches.filter((m) => m.status === "error")
+
+  const uploadingMatchesFromBackend = matchesData.filter((m) => m.status === "uploading")
+  const processingMatchesFromBackend = matchesData.filter((m) => m.status === "processing")
+
+  const allUploadingMatches = [...uploadingMatchesFromContext, ...uploadingMatchesFromBackend]
+  const allProcessingMatches = [...processingMatchesFromContext, ...processingMatchesFromBackend]
+
+  const completedMatches = matchesData.filter((m) => m.status !== "processing" && m.status !== "uploading")
 
   const getScoreColor = (score: number) => {
     if (score >= 8) return "text-green-400"
@@ -193,7 +207,148 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
           </Button>
         </div>
 
-        {processingMatches.length > 0 && (
+        {allUploadingMatches.length > 0 && (
+          <Card className="bg-amber-500/10 border-amber-500/30">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <Loader2 className="h-5 w-5 animate-spin text-amber-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <AlertCircle className="h-4 w-4 text-amber-400" />
+                    <h3 className="font-semibold text-amber-400">
+                      {allUploadingMatches.length === 1
+                        ? "Subiendo archivo"
+                        : `Subiendo ${allUploadingMatches.length} archivos`}
+                    </h3>
+                  </div>
+                  <p className="text-sm text-amber-300 mb-3">
+                    Subiendo tu archivo a S3. Este proceso puede tomar algunos minutos.
+                  </p>
+                  <div className="space-y-2">
+                    {allUploadingMatches.map((match) => (
+                      <div
+                        key={match.id}
+                        className="bg-amber-500/5 rounded-lg p-3 border border-amber-500/20 space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
+                            <div>
+                              <p className="text-sm font-medium text-amber-200">{match.fileName}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                {match.map !== "Unknown" && (
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs"
+                                  >
+                                    {match.map}
+                                  </Badge>
+                                )}
+                                <span className="text-xs text-amber-300">{getRelativeTime(match.date)}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="bg-amber-500/20 text-amber-300 border-amber-500/30">
+                            Subiendo...
+                          </Badge>
+                        </div>
+                        {match.progress !== undefined && (
+                          <div className="space-y-1">
+                            <Progress value={match.progress} className="h-2 bg-amber-500/20" />
+                            <p className="text-xs text-amber-300 text-right">{match.progress}%</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {initiatingMatchesFromContext.length > 0 && (
+          <Card className="bg-green-500/10 border-green-500/30">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-green-400">Iniciando procesamiento</h3>
+                  </div>
+                  <p className="text-sm text-green-300 mb-3">Archivo subido exitosamente. Preparando análisis...</p>
+                  <div className="space-y-2">
+                    {initiatingMatchesFromContext.map((match) => (
+                      <div
+                        key={match.id}
+                        className="flex items-center justify-between bg-green-500/5 rounded-lg p-3 border border-green-500/20"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Loader2 className="h-4 w-4 animate-spin text-green-400" />
+                          <div>
+                            <p className="text-sm font-medium text-green-200">{match.fileName}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              {match.map !== "Unknown" && (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-green-500/20 text-green-300 border-green-500/30 text-xs"
+                                >
+                                  {match.map}
+                                </Badge>
+                              )}
+                              <span className="text-xs text-green-300">{getRelativeTime(match.date)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="bg-green-500/20 text-green-300 border-green-500/30">
+                          Iniciando...
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {errorMatchesFromContext.length > 0 && (
+          <Card className="bg-red-500/10 border-red-500/30">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-red-400">Error en la subida</h3>
+                  </div>
+                  <p className="text-sm text-red-300 mb-3">
+                    Hubo un problema al subir tu archivo. Por favor, intente más tarde.
+                  </p>
+                  <div className="space-y-2">
+                    {errorMatchesFromContext.map((match) => (
+                      <div key={match.id} className="bg-red-500/5 rounded-lg p-3 border border-red-500/20">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <AlertCircle className="h-4 w-4 text-red-400" />
+                            <div>
+                              <p className="text-sm font-medium text-red-200">{match.fileName}</p>
+                              {match.error && <p className="text-xs text-red-300 mt-1">{match.error}</p>}
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="bg-red-500/20 text-red-300 border-red-500/30">
+                            Error
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {allProcessingMatches.length > 0 && (
           <Card className="bg-blue-500/10 border-blue-500/30">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
@@ -202,17 +357,17 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
                   <div className="flex items-center gap-2 mb-1">
                     <AlertCircle className="h-4 w-4 text-blue-400" />
                     <h3 className="font-semibold text-blue-400">
-                      {processingMatches.length === 1
+                      {allProcessingMatches.length === 1
                         ? "Tienes una partida en proceso"
-                        : `Tienes ${processingMatches.length} partidas en proceso`}
+                        : `Tienes ${allProcessingMatches.length} partidas en proceso`}
                     </h3>
                   </div>
                   <p className="text-sm text-blue-300 mb-3">
-                    Estamos analizando {processingMatches.length === 1 ? "tu archivo" : "tus archivos"} DEM y generando
-                    estadísticas. Esto puede tomar algunos minutos.
+                    Estamos analizando {allProcessingMatches.length === 1 ? "tu archivo" : "tus archivos"} DEM y
+                    generando estadísticas. Esto puede tomar algunos minutos.
                   </p>
                   <div className="space-y-2">
-                    {processingMatches.map((match) => (
+                    {allProcessingMatches.map((match) => (
                       <div
                         key={match.id}
                         className="flex items-center justify-between bg-blue-500/5 rounded-lg p-3 border border-blue-500/20"

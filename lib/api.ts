@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://65ov51asvd.execute-api.us-east-1.amazonaws.com/prod"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://54.163.64.8:8443"
 
 // Tipos de datos
 export interface Match {
@@ -14,7 +14,7 @@ export interface Match {
   duration: string
   score: number
   date: string
-  status?: "processing" | "completed" | "failed"
+  status?: "uploading" | "processing" | "completed" | "failed"
 }
 
 export interface Kill {
@@ -139,7 +139,6 @@ import {
   createMockUserValidation,
 } from "./mockData"
 import { processBackendResponse } from "./killDataMapper"
-import { uploadDemToS3, uploadVideoToS3, type S3UploadResult } from "./s3-upload"
 
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true"
 
@@ -166,7 +165,13 @@ async function fetchWithFallback<T>(fetchFn: () => Promise<T>, mockData: T, oper
     console.log(`[v0] Attempting real API call for ${operationName}`)
     return await fetchFn()
   } catch (error) {
-    console.warn(`[v0] API call failed for ${operationName}, falling back to mock data:`, error)
+    console.error(`[v0] API call failed for ${operationName}:`, {
+      error,
+      errorType: error instanceof Error ? error.constructor.name : typeof error,
+      errorMessage: error instanceof Error ? error.message : String(error),
+      errorStack: error instanceof Error ? error.stack : undefined,
+    })
+    console.warn(`[v0] Falling back to mock data for ${operationName}`)
     return mockData
   }
 }
@@ -919,249 +924,103 @@ export class ApiService {
   // File Uploads
   async uploadDemFile(
     file: File,
+    metadata?: {
+      playerName?: string
+      notes?: string
+    },
     onProgress?: (progress: number) => void,
+    onStatusChange?: (status: "uploading" | "initiating-processing" | "processing") => void,
   ): Promise<{
     success: boolean
     message: string
     id?: string
-    fileName?: string
     status?: string
-    aiResponse?: any
-    totalKills?: number
-    map?: string
-    tickrate?: number
   }> {
-    console.log("[v0] Starting DEM file upload with progress tracking")
-
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest()
-      const formData = new FormData()
-      formData.append("file", file)
-
-      // Track upload progress
-      xhr.upload.addEventListener("progress", (event) => {
-        if (event.lengthComputable) {
-          const percentComplete = Math.round((event.loaded / event.total) * 100)
-          console.log(`[v0] Upload progress: ${percentComplete}%`)
-          onProgress?.(percentComplete)
-        }
-      })
-
-      // Handle completion
-      xhr.addEventListener("load", () => {
-        console.log(`[v0] Upload completed with status: ${xhr.status}`)
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const response = JSON.parse(xhr.responseText)
-            console.log("[v0] Upload response:", response)
-            resolve(response)
-          } catch (error) {
-            console.error("[v0] Error parsing upload response:", error)
-            reject(new Error("Error parsing response"))
-          }
-        } else {
-          console.error("[v0] Upload failed with status:", xhr.status)
-          reject(new Error(`Upload failed with status ${xhr.status}`))
-        }
-      })
-
-      // Handle errors
-      xhr.addEventListener("error", () => {
-        console.error("[v0] Upload error occurred")
-        reject(new Error("Upload failed"))
-      })
-
-      // Handle abort
-      xhr.addEventListener("abort", () => {
-        console.log("[v0] Upload was aborted")
-        reject(new Error("Upload aborted"))
-      })
-
-      // Start upload with 10 minute timeout
-      xhr.open("POST", `${this.baseUrl}/api/upload/dem`)
-      xhr.timeout = 600000 // 10 minutes
-      xhr.send(formData)
-    })
-  }
-
-  async uploadVideoFile(
-    file: File,
-    matchId?: string,
-    onProgress?: (progress: number) => void,
-  ): Promise<{ id: string; matchId: string; status: string }> {
-    console.log("[v0] Starting video file upload with progress tracking")
-
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest()
-      const formData = new FormData()
-      formData.append("file", file)
-      if (matchId) {
-        formData.append("matchId", matchId)
-      }
-
-      // Track upload progress
-      xhr.upload.addEventListener("progress", (event) => {
-        if (event.lengthComputable) {
-          const percentComplete = Math.round((event.loaded / event.total) * 100)
-          console.log(`[v0] Video upload progress: ${percentComplete}%`)
-          onProgress?.(percentComplete)
-        }
-      })
-
-      // Handle completion
-      xhr.addEventListener("load", () => {
-        console.log(`[v0] Video upload completed with status: ${xhr.status}`)
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const response = JSON.parse(xhr.responseText)
-            console.log("[v0] Video upload response:", response)
-            resolve(response)
-          } catch (error) {
-            console.error("[v0] Error parsing video upload response:", error)
-            reject(new Error("Error parsing response"))
-          }
-        } else {
-          console.error("[v0] Video upload failed with status:", xhr.status)
-          reject(new Error(`Upload failed with status ${xhr.status}`))
-        }
-      })
-
-      // Handle errors
-      xhr.addEventListener("error", () => {
-        console.error("[v0] Video upload error occurred")
-        reject(new Error("Upload failed"))
-      })
-
-      // Handle abort
-      xhr.addEventListener("abort", () => {
-        console.log("[v0] Video upload was aborted")
-        reject(new Error("Upload aborted"))
-      })
-
-      // Start upload with 15 minute timeout
-      xhr.open("POST", `${this.baseUrl}/api/upload/video`)
-      xhr.timeout = 900000 // 15 minutes
-      xhr.send(formData)
-    })
-  }
-
-  async processUpload(matchId: string): Promise<{ matchId: string; status: string; estimatedTime: number }> {
-    const response = await fetch(`${this.baseUrl}/api/upload/process`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ matchId }),
-    })
-    return handleResponse<{ matchId: string; status: string; estimatedTime: number }>(response)
-  }
-
-  async uploadMatch(
-    demFile: File,
-    videoFile?: File,
-    metadata?: any,
-    onProgress?: (progress: number) => void,
-  ): Promise<{
-    id: string
-    status: string
-    message: string
-  }> {
-    const uploadId = Math.random().toString(36).substring(7)
-    console.log(`[v0] Starting match upload [${uploadId}] with S3 direct upload`)
+    console.log("[v0] Starting DEM file upload with new S3 flow")
 
     try {
-      let totalProgress = 0
-      const demWeight = videoFile ? 0.5 : 1.0 // If video exists, DEM is 50% of total
-      const videoWeight = videoFile ? 0.5 : 0
+      const { uploadToS3 } = await import("./s3-upload")
 
-      // Upload DEM file to S3
-      console.log(`[v0] [${uploadId}] Step 1: Uploading DEM to S3`)
-      const demResult = await uploadDemToS3(demFile, (progress) => {
-        const demProgress = progress.percentage * demWeight
-        totalProgress = demProgress
-        onProgress?.(Math.round(totalProgress))
+      console.log("[v0] Uploading file to S3...")
+      const s3Result = await uploadToS3(file, "dem", (progress) => {
+        const percentage = Math.round(progress.percentage)
+        console.log(`[v0] S3 upload progress: ${percentage}%`)
+        onProgress?.(percentage)
       })
 
-      console.log(`[v0] [${uploadId}] DEM uploaded to S3: ${demResult.s3Key}`)
+      console.log("[v0] File uploaded to S3:", s3Result)
 
-      // Upload video file to S3 (if provided)
-      let videoResult: S3UploadResult | undefined
-      if (videoFile) {
-        console.log(`[v0] [${uploadId}] Step 2: Uploading video to S3`)
-        videoResult = await uploadVideoToS3(videoFile, (progress) => {
-          const videoProgress = progress.percentage * videoWeight
-          totalProgress = demWeight * 100 + videoProgress
-          onProgress?.(Math.round(totalProgress))
-        })
-        console.log(`[v0] [${uploadId}] Video uploaded to S3: ${videoResult.s3Key}`)
+      onStatusChange?.("initiating-processing")
+      console.log("[v0] S3 upload complete, initiating processing...")
+
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+
+      onStatusChange?.("processing")
+      console.log("[v0] Transitioning to processing state...")
+
+      console.log("[v0] Notifying backend to process file from S3...")
+
+      const response = await fetch(`${this.baseUrl}/api/matches/s3`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bucket: s3Result.bucket,
+          key: s3Result.s3Key,
+          metadata: metadata || {},
+        }),
+      })
+
+      const responseText = await response.text()
+      console.log("[v0] Backend response status:", response.status)
+      console.log("[v0] Backend response body:", responseText)
+
+      if (!response.ok) {
+        let errorMessage = "Error al procesar el archivo. Por favor, intente más tarde."
+
+        try {
+          const errorData = JSON.parse(responseText)
+          console.error("[v0] Backend processing failed:", errorData)
+
+          // Extract meaningful error message
+          if (errorData.message) {
+            if (errorData.message.includes("credentials")) {
+              errorMessage = "Error de configuración del servidor. Contacte al administrador."
+            } else {
+              errorMessage = errorData.message
+            }
+          }
+        } catch (parseError) {
+          // If response is not JSON, use status text
+          console.error("[v0] Could not parse error response:", parseError)
+          errorMessage = `Error del servidor (${response.status}). Por favor, intente más tarde.`
+        }
+
+        return {
+          success: false,
+          message: errorMessage,
+        }
       }
 
-      // Confirm upload with backend
-      console.log(`[v0] [${uploadId}] Step 3: Confirming upload with backend`)
-      const result = await this.confirmS3Upload(demResult.s3Key, videoResult?.s3Key, metadata)
+      const result = JSON.parse(responseText)
+      console.log("[v0] Backend processing response:", result)
 
-      console.log(`[v0] [${uploadId}] Upload completed successfully:`, result)
-      return result
-    } catch (error) {
-      console.error(`[v0] Match upload [${uploadId}] failed:`, error)
-      throw error
-    }
-  }
+      return {
+        success: result.status === "completed" || result.status === "processing",
+        message: result.message || "Archivo procesado exitosamente",
+        id: result.id,
+        status: result.status,
+      }
+    } catch (error: any) {
+      console.error("[v0] Upload error:", error)
 
-  async confirmS3Upload(
-    demS3Key: string,
-    videoS3Key?: string,
-    metadata?: any,
-  ): Promise<{
-    id: string
-    status: string
-    message: string
-  }> {
-    const url = `${this.baseUrl}/api/matches/s3`
-    console.log("[v0] API Request: confirmS3Upload -", { demS3Key, videoS3Key, metadata, url })
-
-    const bucket = "tacticore-storage-temp"
-
-    const body: any = {
-      bucket,
-      key: demS3Key,
-      metadata: metadata || {},
-    }
-
-    // Add video key if present
-    if (videoS3Key) {
-      body.videoKey = videoS3Key
-    }
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    })
-
-    const result = await handleResponse<{
-      id: string
-      status: string
-      message: string
-    }>(response)
-
-    console.log("[v0] confirmS3Upload result:", result)
-    return result
-  }
-
-  // Health check
-  async ping(): Promise<{ status: string; timestamp: string; service: string }> {
-    const response = await fetch(`${this.baseUrl}/api/health`)
-    const healthText = await response.text()
-    return {
-      status: response.ok ? "ok" : "error",
-      timestamp: new Date().toISOString(),
-      service: healthText,
+      return {
+        success: false,
+        message: error.message || "Error al subir archivo. Por favor, intente más tarde.",
+      }
     }
   }
 }
 
-// Instancia global del servicio
 export const apiService = new ApiService()
