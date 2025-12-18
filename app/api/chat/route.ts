@@ -35,7 +35,20 @@ interface MatchContext {
     totalKills: number
     goodPlays: number
     badPlays: number
+    kills: Array<{
+      killer: string
+      victim: string
+      weapon: string
+      isGoodPlay: boolean
+      time: string
+      position: string
+    }>
   }>
+  weaponStats?: {
+    mostUsedWeapon: string
+    weaponDistribution: Record<string, number>
+    totalUniqueWeapons: number
+  }
 }
 
 function buildSystemPrompt(matchContext: MatchContext): string {
@@ -73,7 +86,32 @@ ${
       (round) => `- Ronda ${round.roundNumber}: Necesita mejora (${round.badPlays}/${round.totalKills} malas jugadas)`,
     )
     .join("\n") || "- No hay rondas problemáticas identificadas"
-}`
+}
+
+🔫 DETALLES DE KILLS POR RONDA:
+${matchContext.rounds
+  .slice(0, 5)
+  .map(
+    (round) =>
+      `Ronda ${round.roundNumber}:
+${round.kills.map((kill) => `  • ${kill.killer} → ${kill.victim} [${kill.weapon}] (${kill.isGoodPlay ? "✓ Buena" : "✗ Mala"}) @ ${kill.time} en ${kill.position}`).join("\n")}`,
+  )
+  .join("\n\n")}`
+  }
+
+  let weaponAnalysis = ""
+  if (matchContext.weaponStats) {
+    const topWeapons = Object.entries(matchContext.weaponStats.weaponDistribution)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([weapon, count]) => `- ${weapon}: ${count} kills`)
+      .join("\n")
+
+    weaponAnalysis = `\n\n🔫 ANÁLISIS DE ARMAS:
+- Arma más usada: ${matchContext.weaponStats.mostUsedWeapon}
+- Total de armas diferentes: ${matchContext.weaponStats.totalUniqueWeapons}
+- Distribución de kills por arma:
+${topWeapons}`
   }
 
   return `Eres TACTICORE Bot, un entrenador profesional de Counter-Strike con años de experiencia analizando partidas competitivas. Tu rol es actuar como un coach personal que identifica los puntos más críticos de mejora y proporciona consejos específicos y accionables.
@@ -91,7 +129,7 @@ ANÁLISIS DETALLADO DE LA PARTIDA:
 - Buenas jugadas: ${matchContext.goodPlays} (${goodPlayPercentage}%)
 - Malas jugadas: ${matchContext.badPlays} (${badPlayPercentage}%)
 - Kills por minuto: ${killsPerMinute}
-- Total de acciones analizadas: ${totalActions}${roundsAnalysis}
+- Total de acciones analizadas: ${totalActions}${roundsAnalysis}${weaponAnalysis}
 
 COMO ENTRENADOR PROFESIONAL:
 1. 🎯 ENFÓCATE EN LOS PUNTOS MÁS CRÍTICOS: Identifica las 2-3 áreas más importantes que necesitan mejora inmediata
@@ -99,15 +137,17 @@ COMO ENTRENADOR PROFESIONAL:
 3. 🛠️ CONSEJOS ACCIONABLES: Proporciona técnicas específicas y ejercicios prácticos
 4. 🗺️ CONTEXTO DEL MAPA: Considera las características específicas de ${matchContext.map} en tus recomendaciones
 5. ⚡ PRIORIZACIÓN: Enfócate en los cambios que tendrán mayor impacto en el rendimiento
-6. 🎮 ANÁLISIS POR RONDAS: Si hay información de rondas disponible, identifica patrones de rendimiento por ronda
+6. 🎮 ANÁLISIS POR RONDAS: Identifica patrones de rendimiento por ronda y timing de kills
+7. 🔫 ANÁLISIS DE ARMAS: Evalúa la elección de armas y recomienda optimizaciones en el loadout
 
 ESTILO DE RESPUESTA:
 - Tono profesional pero motivador, como un coach experimentado
-- Máximo 250 palabras para mantener el enfoque
+- Máximo 300-400 palabras para mantener el enfoque (ahora tienes más contexto)
 - Usa emojis estratégicamente para destacar puntos clave
 - Siempre incluye al menos una técnica específica para practicar
 - Responde en español
-- Si hay datos de rondas, menciona patrones específicos de rendimiento
+- Si hay datos detallados de kills, menciona patrones específicos de posicionamiento, timing y uso de armas
+- Identifica kills críticos que cambiaron el rumbo de rondas
 
 Tu objetivo es ayudar al jugador a identificar y corregir los errores más impactantes para mejorar significativamente su rendimiento en futuras partidas.`
 }

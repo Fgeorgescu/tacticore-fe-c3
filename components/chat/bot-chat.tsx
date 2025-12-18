@@ -21,6 +21,24 @@ export function BotChat({ matchData, killsData, initialMessages, onNewMessage }:
   const [message, setMessage] = useState("")
   const [isBotTyping, setIsBotTyping] = useState(false)
 
+  const calculateWeaponStats = (kills: Kill[]) => {
+    const weaponDistribution: Record<string, number> = {}
+
+    kills.forEach((kill) => {
+      const weapon = kill.weapon || "Unknown"
+      weaponDistribution[weapon] = (weaponDistribution[weapon] || 0) + 1
+    })
+
+    const sortedWeapons = Object.entries(weaponDistribution).sort(([, a], [, b]) => b - a)
+    const mostUsedWeapon = sortedWeapons[0]?.[0] || "N/A"
+
+    return {
+      mostUsedWeapon,
+      weaponDistribution,
+      totalUniqueWeapons: Object.keys(weaponDistribution).length,
+    }
+  }
+
   // Función para procesar kills y crear datos de rondas
   const processRoundsData = (kills: Kill[]): RoundData[] => {
     const roundsMap = new Map<number, Kill[]>()
@@ -69,7 +87,6 @@ export function BotChat({ matchData, killsData, initialMessages, onNewMessage }:
       }
       onNewMessage(userChatMessage)
 
-      // Crear contexto de la partida
       const matchContext: MatchContext = {
         map: matchData.map,
         kills: matchData.kills,
@@ -81,6 +98,7 @@ export function BotChat({ matchData, killsData, initialMessages, onNewMessage }:
         duration: matchData.duration,
         gameType: matchData.gameType,
         rounds: killsData ? processRoundsData(killsData) : undefined,
+        weaponStats: killsData ? calculateWeaponStats(killsData) : undefined,
       }
 
       // Enviar al bot y obtener respuesta
