@@ -436,61 +436,55 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
                   className="bg-card/50 border-card-border hover:border-primary/30 transition-colors"
                 >
                   <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      {/* Información principal */}
-                      <div className="flex items-center gap-4 flex-1">
-                        {/* Indicador de tiempo */}
-                        <div className="flex flex-col items-center min-w-[80px]">
-                          <Calendar className="h-4 w-4 text-white mb-1" />
-                          <span className="text-xs text-white text-center">{getRelativeTime(match.date)}</span>
+                    <div className="flex items-center gap-4">
+                      {/* Tiempo - ancho fijo */}
+                      <div className="flex flex-col items-center min-w-[80px] shrink-0">
+                        <Calendar className="h-4 w-4 text-white mb-1" />
+                        <span className="text-xs text-white text-center">{getRelativeTime(match.date)}</span>
+                      </div>
+
+                      {/* Nombre - flexible */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground truncate">{match.fileName}</h3>
+                      </div>
+
+                      {/* Tags y Play icon - ancho basado en contenido sin encogerse */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant="outline" className={getGameTypeBadge(match.gameType)}>
+                          {match.gameType}
+                        </Badge>
+                        <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                          {match.map}
+                        </Badge>
+                        {match.hasVideo && <Play className="h-4 w-4 text-primary" />}
+                      </div>
+
+                      {/* Estadísticas - ancho fijo con grid */}
+                      <div className="grid grid-cols-5 gap-3 w-[280px] shrink-0">
+                        <div className="flex items-center gap-1 justify-center">
+                          <Target className="h-4 w-4 text-green-400" />
+                          <span className="text-foreground text-sm">{match.kills}</span>
                         </div>
-
-                        {/* Información de la partida */}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-8">
-                            {/* Nombre y badges */}
-                            <div className="flex items-center gap-3">
-                              <h3 className="font-semibold text-foreground">{match.fileName}</h3>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className={getGameTypeBadge(match.gameType)}>
-                                  {match.gameType}
-                                </Badge>
-                                <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                                  {match.map}
-                                </Badge>
-                                {match.hasVideo && <Play className="h-4 w-4 text-primary" />}
-                              </div>
-                            </div>
-
-                            {/* Estadísticas en línea */}
-                            <div className="flex items-center gap-4 text-sm">
-                              <div className="flex items-center gap-1">
-                                <Target className="h-4 w-4 text-green-400" />
-                                <span className="text-foreground">{match.kills}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Skull className="h-4 w-4 text-red-400" />
-                                <span className="text-foreground">{match.deaths}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <TrendingUp className="h-4 w-4 text-green-400" />
-                                <span className="text-foreground">{match.goodPlays}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <TrendingDown className="h-4 w-4 text-red-400" />
-                                <span className="text-foreground">{match.badPlays}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-4 w-4 text-white" />
-                                <span className="text-white">{match.duration}</span>
-                              </div>
-                            </div>
-                          </div>
+                        <div className="flex items-center gap-1 justify-center">
+                          <Skull className="h-4 w-4 text-red-400" />
+                          <span className="text-foreground text-sm">{match.deaths}</span>
+                        </div>
+                        <div className="flex items-center gap-1 justify-center">
+                          <TrendingUp className="h-4 w-4 text-green-400" />
+                          <span className="text-foreground text-sm">{match.goodPlays}</span>
+                        </div>
+                        <div className="flex items-center gap-1 justify-center">
+                          <TrendingDown className="h-4 w-4 text-red-400" />
+                          <span className="text-foreground text-sm">{match.badPlays}</span>
+                        </div>
+                        <div className="flex items-center gap-1 justify-center">
+                          <Clock className="h-4 w-4 text-white" />
+                          <span className="text-white text-sm">{match.duration}</span>
                         </div>
                       </div>
 
-                      {/* Score y botón de acción */}
-                      <div className="flex items-center gap-3">
+                      {/* Score y botón - ancho fijo */}
+                      <div className="flex items-center gap-3 w-[100px] shrink-0 justify-end">
                         <div className="text-right">
                           <div className={`text-lg font-bold ${getScoreColor(match.score)}`}>
                             {match.score.toFixed(1)}
