@@ -27,6 +27,7 @@ import { useUpload } from "@/contexts/UploadContext"
 import { apiService } from "@/lib/api"
 import { getRelativeTimeFromBackend } from "@/lib/dateUtils"
 import { useState } from "react"
+import { formatScore } from "@/lib/utils"
 
 interface DashboardProps {
   onViewDetails: (matchId: string) => void
@@ -188,7 +189,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-white">K/D Ratio</p>
-                <p className="text-2xl font-bold text-foreground">{statsData.kdr.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-foreground">{formatScore(statsData.kdr, 2)}</p>
               </div>
               <Crosshair className="h-8 w-8 text-blue-400" />
             </div>
@@ -200,7 +201,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-white">Promedio Score</p>
-                <p className="text-2xl font-bold text-foreground">{statsData.averageScore.toFixed(1)}</p>
+                <p className="text-2xl font-bold text-foreground">{formatScore(statsData.averageScore)}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-yellow-400" />
             </div>
@@ -487,7 +488,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
                       <div className="flex items-center gap-3 w-[100px] shrink-0 justify-end">
                         <div className="text-right">
                           <div className={`text-lg font-bold ${getScoreColor(match.score)}`}>
-                            {match.score.toFixed(1)}
+                            {formatScore(match.score)}
                           </div>
                           <div className="text-xs text-white">Score</div>
                         </div>

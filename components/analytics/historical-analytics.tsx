@@ -22,6 +22,7 @@ import { useState } from "react"
 import { useApi } from "@/hooks/useApi"
 import { apiService } from "@/lib/api"
 import { useUser } from "@/contexts/UserContext"
+import { formatScore } from "@/lib/utils"
 
 const CustomTooltip = ({ active, payload, label, labelMap }: any) => {
   if (active && payload && payload.length) {
@@ -186,11 +187,11 @@ export function HistoricalAnalytics() {
                   </div>
                   <div className="bg-background/50 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground mb-1">K/D Ratio</p>
-                    <p className="text-xl font-bold text-primary">{userProfile.stats.kdr.toFixed(2)}</p>
+                    <p className="text-xl font-bold text-primary">{formatScore(userProfile.stats.kdr, 2)}</p>
                   </div>
                   <div className="bg-background/50 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground mb-1">Win Rate</p>
-                    <p className="text-xl font-bold text-white">{userProfile.stats.winRate.toFixed(1)}%</p>
+                    <p className="text-xl font-bold text-white">{formatScore(userProfile.stats.winRate)}%</p>
                   </div>
                   <div className="bg-background/50 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground mb-1">Buenas Jugadas</p>
@@ -202,11 +203,11 @@ export function HistoricalAnalytics() {
                   </div>
                   <div className="bg-background/50 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground mb-1">Puntaje Prom.</p>
-                    <p className="text-xl font-bold text-white">{userProfile.stats.averageScore.toFixed(1)}</p>
+                    <p className="text-xl font-bold text-white">{formatScore(userProfile.stats.averageScore)}</p>
                   </div>
                   <div className="bg-background/50 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground mb-1">Horas Jugadas</p>
-                    <p className="text-xl font-bold text-white">{userProfile.stats.hoursPlayed.toFixed(1)}h</p>
+                    <p className="text-xl font-bold text-white">{formatScore(userProfile.stats.hoursPlayed)}h</p>
                   </div>
                   <div className="bg-background/50 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground mb-1">Mapa Favorito</p>

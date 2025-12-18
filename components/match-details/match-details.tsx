@@ -23,6 +23,7 @@ import { useApi } from "@/hooks/useApi"
 import { useUser } from "@/contexts/UserContext"
 import { apiService, type Kill, type ChatMessage } from "@/lib/api"
 import { SimpleMapView } from "@/components/match-details/simple-map-view"
+import { formatScore } from "@/lib/utils"
 
 interface MatchDetailsProps {
   matchId: string | null
@@ -233,7 +234,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
 
             <div className="mt-6 flex justify-center items-center gap-8">
               <div className="text-center">
-                <p className="text-3xl font-bold text-primary">{matchData.score.toFixed(1)}/10</p>
+                <p className="text-3xl font-bold text-primary">{formatScore(matchData.score)}/10</p>
                 <p className="text-sm text-white">Puntaje Final</p>
               </div>
 

@@ -11,6 +11,7 @@ import { Plus, X, TrendingUp, TrendingDown, Loader2, Sparkles } from "lucide-rea
 import { useApi } from "@/hooks/useApi"
 import { apiService, type UserProfile } from "@/lib/api"
 import { useUser } from "@/contexts/UserContext"
+import { formatScore } from "@/lib/utils"
 import {
   Dialog,
   DialogContent,
@@ -67,23 +68,30 @@ export function UserComparison() {
       setIsAddDialogOpen(false)
     } catch (error) {
       console.error("Error loading user profile:", error)
-      
+
       // Determinar el tipo de error
       let errorMessage = "Error al cargar el usuario"
       if (error instanceof Error) {
-        if (error.message.includes("404") || error.message.includes("not found") || error.message.includes("Usuario no encontrado")) {
+        if (
+          error.message.includes("404") ||
+          error.message.includes("not found") ||
+          error.message.includes("Usuario no encontrado")
+        ) {
           errorMessage = `No se encontró el usuario "${newUsername.trim()}"`
         } else if (error.message.includes("network") || error.message.includes("fetch")) {
           errorMessage = "Error de conexión. Usando datos de ejemplo."
         }
       }
-      
-      setComparisonUsers([...comparisonUsers, { 
-        username: newUsername.trim(), 
-        profile: null, 
-        loading: false,
-        error: errorMessage
-      }])
+
+      setComparisonUsers([
+        ...comparisonUsers,
+        {
+          username: newUsername.trim(),
+          profile: null,
+          loading: false,
+          error: errorMessage,
+        },
+      ])
       setNewUsername("")
       setIsAddDialogOpen(false)
     } finally {
@@ -119,15 +127,15 @@ export function UserComparison() {
   }
 
   const stats = [
-    { key: "kdr", label: "K/D Ratio", higherIsBetter: true, format: (v: number) => v.toFixed(2) },
-    { key: "winRate", label: "Win Rate (%)", higherIsBetter: true, format: (v: number) => v.toFixed(1) },
-    { key: "averageScore", label: "Puntaje Promedio", higherIsBetter: true, format: (v: number) => v.toFixed(1) },
+    { key: "kdr", label: "K/D Ratio", higherIsBetter: true, format: (v: number) => formatScore(v, 2) },
+    { key: "winRate", label: "Win Rate (%)", higherIsBetter: true, format: (v: number) => formatScore(v) },
+    { key: "averageScore", label: "Puntaje Promedio", higherIsBetter: true, format: (v: number) => formatScore(v) },
     { key: "totalGoodPlays", label: "Buenas Jugadas", higherIsBetter: true },
     { key: "totalBadPlays", label: "Malas Jugadas", higherIsBetter: false },
     { key: "totalMatches", label: "Partidas Totales", higherIsBetter: true },
     { key: "totalKills", label: "Kills Totales", higherIsBetter: true },
     { key: "totalDeaths", label: "Deaths Totales", higherIsBetter: false },
-    { key: "hoursPlayed", label: "Horas Jugadas", higherIsBetter: true, format: (v: number) => v.toFixed(1) },
+    { key: "hoursPlayed", label: "Horas Jugadas", higherIsBetter: true, format: (v: number) => formatScore(v) },
     { key: "favoriteWeapon", label: "Arma Favorita", higherIsBetter: null },
     { key: "favoriteMap", label: "Mapa Favorito", higherIsBetter: null },
   ]
@@ -192,9 +200,7 @@ export function UserComparison() {
                         <span className="text-white font-semibold">{user.username}</span>
                         {/* Mostrar rol para todos los usuarios */}
                         {user.profile?.role && (
-                          <Badge variant={user.isCurrentUser ? "default" : "secondary"}>
-                            {user.profile.role}
-                          </Badge>
+                          <Badge variant={user.isCurrentUser ? "default" : "secondary"}>{user.profile.role}</Badge>
                         )}
                         {user.error && (
                           <Badge variant="destructive" className="text-xs">
@@ -245,16 +251,16 @@ export function UserComparison() {
                           {user.error ? (
                             // Mostrar mensaje de error solo en la primera fila
                             stat.key === stats[0].key ? (
-                              <div className="text-red-400 text-sm font-medium">
-                                {user.error}
-                              </div>
+                              <div className="text-red-400 text-sm font-medium">{user.error}</div>
                             ) : (
                               <span className="text-muted-foreground text-sm">-</span>
                             )
                           ) : (
                             <>
                               <span
-                                className={user.isCurrentUser ? "text-primary font-semibold text-sm" : "text-white text-sm"}
+                                className={
+                                  user.isCurrentUser ? "text-primary font-semibold text-sm" : "text-white text-sm"
+                                }
                               >
                                 {formattedValue}
                               </span>
