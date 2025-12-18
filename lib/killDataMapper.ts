@@ -77,6 +77,8 @@ export function mapBackendKillData(backendData: BackendKillData[]): Kill[] {
 
     const timeInRound = kill.context?.time_in_round_s ?? kill.time_in_round
 
+    const headshot = kill.context?.headshot ?? kill.headshot ?? false
+
     const attackerImageX = kill.context?.attacker_image_x
     const attackerImageY = kill.context?.attacker_image_y
     const victimImageX = kill.context?.victim_image_x
@@ -105,6 +107,7 @@ export function mapBackendKillData(backendData: BackendKillData[]): Kill[] {
       victim,
       weapon,
       isGoodPlay: isGoodPlay,
+      headshot,
       round: kill.round,
       time: formatTimeInRound(timeInRound),
       teamAlive: { ct: 5, t: 5 },

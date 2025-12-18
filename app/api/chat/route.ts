@@ -48,6 +48,12 @@ interface MatchContext {
     mostUsedWeapon: string
     weaponDistribution: Record<string, number>
     totalUniqueWeapons: number
+    weaponEffectiveness: Record<string, number>
+    weaponHeadshotRate: Record<string, number>
+    totalHeadshots: number
+    headshotPercentage: number
+    weaponGoodPlays: Record<string, number>
+    weaponBadPlays: Record<string, number>
   }
 }
 
@@ -104,14 +110,28 @@ ${round.kills.map((kill) => `  • ${kill.killer} → ${kill.victim} [${kill.wea
     const topWeapons = Object.entries(matchContext.weaponStats.weaponDistribution)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 5)
-      .map(([weapon, count]) => `- ${weapon}: ${count} kills`)
+      .map(([weapon, count]) => {
+        const effectiveness = matchContext.weaponStats!.weaponEffectiveness[weapon]?.toFixed(1) || "0"
+        const headshotRate = matchContext.weaponStats!.weaponHeadshotRate[weapon]?.toFixed(1) || "0"
+        const goodPlays = matchContext.weaponStats!.weaponGoodPlays[weapon] || 0
+        const badPlays = matchContext.weaponStats!.weaponBadPlays[weapon] || 0
+
+        return `- ${weapon}: ${count} kills | ${effectiveness}% efectividad | ${headshotRate}% headshots | ${goodPlays} buenas / ${badPlays} malas`
+      })
       .join("\n")
 
-    weaponAnalysis = `\n\n🔫 ANÁLISIS DE ARMAS:
+    weaponAnalysis = `\n\n🔫 ANÁLISIS DETALLADO DE ARMAS:
 - Arma más usada: ${matchContext.weaponStats.mostUsedWeapon}
 - Total de armas diferentes: ${matchContext.weaponStats.totalUniqueWeapons}
-- Distribución de kills por arma:
-${topWeapons}`
+- Headshots totales: ${matchContext.weaponStats.totalHeadshots} (${matchContext.weaponStats.headshotPercentage.toFixed(1)}% del total)
+
+📊 TOP 5 ARMAS (con efectividad y precisión):
+${topWeapons}
+
+💡 NOTAS SOBRE ARMAS:
+- La efectividad muestra el % de buenas jugadas con cada arma
+- El % de headshots indica precisión y control del arma
+- Considera mejorar el uso de armas con baja efectividad o cambiarlas por alternativas`
   }
 
   return `Eres TACTICORE Bot, un entrenador profesional de Counter-Strike con años de experiencia analizando partidas competitivas. Tu rol es actuar como un coach personal que identifica los puntos más críticos de mejora y proporciona consejos específicos y accionables.

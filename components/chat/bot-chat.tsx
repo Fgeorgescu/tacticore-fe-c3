@@ -24,19 +24,62 @@ export function BotChat({ matchData, killsData, initialMessages, onNewMessage }:
 
   const calculateWeaponStats = (kills: Kill[]) => {
     const weaponDistribution: Record<string, number> = {}
+    const weaponHeadshots: Record<string, number> = {}
+    const weaponGoodPlays: Record<string, number> = {}
+    const weaponBadPlays: Record<string, number> = {}
+
+    let totalHeadshots = 0
 
     kills.forEach((kill) => {
       const weapon = kill.weapon || "Unknown"
       weaponDistribution[weapon] = (weaponDistribution[weapon] || 0) + 1
+
+      // Track headshots per weapon
+      if (kill.headshot) {
+        weaponHeadshots[weapon] = (weaponHeadshots[weapon] || 0) + 1
+        totalHeadshots++
+      }
+
+      // Track good/bad plays per weapon
+      if (kill.isGoodPlay) {
+        weaponGoodPlays[weapon] = (weaponGoodPlays[weapon] || 0) + 1
+      } else {
+        weaponBadPlays[weapon] = (weaponBadPlays[weapon] || 0) + 1
+      }
     })
 
     const sortedWeapons = Object.entries(weaponDistribution).sort(([, a], [, b]) => b - a)
     const mostUsedWeapon = sortedWeapons[0]?.[0] || "N/A"
 
+    // Calculate effectiveness per weapon (good plays / total kills with that weapon)
+    const weaponEffectiveness: Record<string, number> = {}
+    Object.keys(weaponDistribution).forEach((weapon) => {
+      const total = weaponDistribution[weapon]
+      const good = weaponGoodPlays[weapon] || 0
+      weaponEffectiveness[weapon] = total > 0 ? (good / total) * 100 : 0
+    })
+
+    // Calculate headshot percentage per weapon
+    const weaponHeadshotRate: Record<string, number> = {}
+    Object.keys(weaponDistribution).forEach((weapon) => {
+      const total = weaponDistribution[weapon]
+      const headshots = weaponHeadshots[weapon] || 0
+      weaponHeadshotRate[weapon] = total > 0 ? (headshots / total) * 100 : 0
+    })
+
+    const totalKills = kills.length
+    const headshotPercentage = totalKills > 0 ? (totalHeadshots / totalKills) * 100 : 0
+
     return {
       mostUsedWeapon,
       weaponDistribution,
       totalUniqueWeapons: Object.keys(weaponDistribution).length,
+      weaponEffectiveness,
+      weaponHeadshotRate,
+      totalHeadshots,
+      headshotPercentage,
+      weaponGoodPlays,
+      weaponBadPlays,
     }
   }
 

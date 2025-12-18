@@ -28,6 +28,7 @@ export interface Kill {
   time: string
   teamAlive: { ct: number; t: number }
   position: string
+  headshot?: boolean
   // Lado del atacante (ct o t)
   attackerSide?: "ct" | "t"
   // Coordenadas para visualización en mapa
@@ -271,6 +272,7 @@ export class ApiService {
                 t: 5 - ((i + 1) % 3),
               },
               position: ["A Site", "B Site", "Mid", "Long A"][i % 4],
+              headshot: Math.random() > 0.8, // Simulate headshot kills
             })
           }
 
