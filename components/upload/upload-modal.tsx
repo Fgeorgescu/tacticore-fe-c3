@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Upload, File, X, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
 import { apiService } from "@/lib/api"
+import { useUpload } from "@/contexts/UploadContext"
 
 interface FileUpload {
   file: File
@@ -25,9 +26,7 @@ interface UploadModalProps {
   onClose: () => void
 }
 
-// Lista de mapas disponibles
 const AVAILABLE_MAPS = [
-  // Mapas competitivos principales
   "Ancient",
   "Anubis",
   "Dust II",
@@ -37,13 +36,11 @@ const AVAILABLE_MAPS = [
   "Overpass",
   "Train",
   "Vertigo",
-  // Mapas adicionales
   "Agency",
   "Grail",
   "Jura",
   "Office",
   "Italy",
-  // Mapas de modo casual
   "Dogtown",
   "Pool Day",
 ]
@@ -51,16 +48,15 @@ const AVAILABLE_MAPS = [
 export function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [demFile, setDemFile] = useState<FileUpload | null>(null)
   const [isUploading, setIsUploading] = useState(false)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [currentMatchId, setCurrentMatchId] = useState<string | null>(null)
   const [metadata, setMetadata] = useState({
     map: "",
-    gameType: "Ranked", // Valor por defecto
+    gameType: "Ranked",
     description: "",
   })
 
+  const { addUploadingMatch, updateMatchStatus, updateMatchProgress, removeUploadingMatch } = useUpload()
+
   const demInputRef = useRef<HTMLInputElement>(null)
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const handleFileSelect = (files: FileList | null) => {
     if (!files || files.length === 0) return
@@ -81,113 +77,73 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     setIsUploading(true)
     setDemFile((prev) => (prev ? { ...prev, status: "uploading", progress: 0 } : null))
 
+    const tempMatchId = `match-${Date.now()}`
+
+    const uploadingMatch = {
+      id: tempMatchId,
+      fileName: demFile.file.name,
+      map: metadata.map || "Unknown",
+      date: new Date().toISOString(),
+      status: "uploading" as const,
+      gameType: metadata.gameType,
+      progress: 0,
+    }
+
+    addUploadingMatch(uploadingMatch)
+
+    handleClose()
+
     try {
-      const matchMetadata = {
-        playerName: "Player",
-        notes: metadata.map || metadata.description || "Unknown map",
-      }
+      console.log("[v0] Starting upload to S3 for match:", tempMatchId)
 
-      let lastUiUpdate = 0
-      const MIN_UI_UPDATE_INTERVAL = 500
-
-      const result = await apiService.uploadMatch(demFile.file, undefined, matchMetadata, (progress) => {
-        const now = Date.now()
-        if (now - lastUiUpdate >= MIN_UI_UPDATE_INTERVAL || progress === 100) {
-          lastUiUpdate = now
-          setDemFile((prev) => (prev ? { ...prev, progress } : null))
-        }
-      })
-
-      if (result.status === "processing") {
-        setCurrentMatchId(result.id)
-        setIsProcessing(true)
-        setDemFile((prev) => (prev ? { ...prev, status: "success", progress: 100 } : null))
-
-        // Start polling for status updates
-        startPolling(result.id)
-      } else {
-        throw new Error(result.message)
-      }
-    } catch (error) {
-      console.error("Upload error:", error)
-      setDemFile((prev) =>
-        prev ? { ...prev, status: "error", error: error instanceof Error ? error.message : "Upload failed" } : null,
+      const result = await apiService.uploadDemFile(
+        demFile.file,
+        {
+          playerName: metadata.map,
+          notes: metadata.description || `${metadata.gameType} match on ${metadata.map}`,
+        },
+        (progress) => {
+          console.log(`[v0] S3 Upload progress for ${tempMatchId}: ${progress}%`)
+          updateMatchProgress(tempMatchId, progress)
+        },
+        (status) => {
+          console.log(`[v0] Status change for ${tempMatchId}: ${status}`)
+          updateMatchStatus(tempMatchId, status)
+        },
       )
+
+      if (result.success && result.id) {
+        console.log("[v0] Processing started successfully")
+
+        setTimeout(() => {
+          removeUploadingMatch(tempMatchId)
+        }, 30000)
+      } else {
+        console.error("[v0] Upload failed:", result.message)
+        updateMatchStatus(
+          tempMatchId,
+          "error",
+          result.message || "Error al subir archivo. Por favor, intente más tarde.",
+        )
+        setTimeout(() => {
+          removeUploadingMatch(tempMatchId)
+        }, 30000)
+      }
+    } catch (error: any) {
+      console.error("[v0] Upload error:", error)
+      updateMatchStatus(tempMatchId, "error", error.message || "Error al subir archivo. Por favor, intente más tarde.")
+      setTimeout(() => {
+        removeUploadingMatch(tempMatchId)
+      }, 30000)
     } finally {
       setIsUploading(false)
     }
   }
 
-  // Polling function to check match status
-  const startPolling = (matchId: string) => {
-    // Clear any existing interval
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current)
-    }
-
-    pollIntervalRef.current = setInterval(async () => {
-      try {
-        const statusResult = await apiService.getMatchStatus(matchId)
-
-        if (statusResult.status === "completed") {
-          if (pollIntervalRef.current) {
-            clearInterval(pollIntervalRef.current)
-            pollIntervalRef.current = null
-          }
-          setIsProcessing(false)
-          setCurrentMatchId(null)
-
-          // Wait a bit to show success state
-          setTimeout(() => {
-            handleClose()
-          }, 1000)
-        } else if (statusResult.status === "failed") {
-          if (pollIntervalRef.current) {
-            clearInterval(pollIntervalRef.current)
-            pollIntervalRef.current = null
-          }
-          setIsProcessing(false)
-          setCurrentMatchId(null)
-          setDemFile((prev) => (prev ? { ...prev, status: "error", error: statusResult.message } : null))
-        }
-        // If still processing, continue polling
-      } catch (error) {
-        console.error("Error checking match status:", error)
-        if (pollIntervalRef.current) {
-          clearInterval(pollIntervalRef.current)
-          pollIntervalRef.current = null
-        }
-        setIsProcessing(false)
-        setCurrentMatchId(null)
-        setDemFile((prev) => (prev ? { ...prev, status: "error", error: "Error checking status" } : null))
-      }
-    }, 2000) // Poll every 2 seconds
-
-    // Stop polling after 30 seconds to avoid infinite polling
-    setTimeout(() => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current)
-        pollIntervalRef.current = null
-      }
-      if (isProcessing) {
-        setIsProcessing(false)
-        setCurrentMatchId(null)
-        console.warn("Polling timeout - match processing may still be in progress")
-      }
-    }, 30000)
-  }
-
   const handleClose = () => {
-    // Clear any active polling
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current)
-      pollIntervalRef.current = null
-    }
-
+    if (isUploading) return
     setDemFile(null)
     setIsUploading(false)
-    setIsProcessing(false)
-    setCurrentMatchId(null)
     setMetadata({ map: "", gameType: "Ranked", description: "" })
     onClose()
   }
@@ -196,7 +152,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     setDemFile(null)
   }
 
-  const canUpload = demFile && demFile.status !== "error" && !isUploading && !isProcessing
+  const canUpload = demFile && demFile.status !== "error" && !isUploading
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -209,7 +165,6 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* File Upload Section */}
           <Card>
             <CardContent className="p-4">
               <div className="space-y-3">
@@ -243,16 +198,28 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                       <div className="flex items-center gap-2">
                         {demFile.status === "success" && <CheckCircle className="h-4 w-4 text-green-500" />}
                         {demFile.status === "error" && <AlertCircle className="h-4 w-4 text-red-500" />}
-                        <Button variant="ghost" size="sm" onClick={removeFile} disabled={isUploading || isProcessing}>
-                          <X className="h-4 w-4 text-black dark:text-white" />
-                        </Button>
+                        {demFile.status === "uploading" && <Loader2 className="h-4 w-4 animate-spin" />}
+                        {demFile.status === "idle" && (
+                          <Button variant="ghost" size="sm" onClick={removeFile} disabled={isUploading}>
+                            <X className="h-4 w-4 text-black dark:text-white" />
+                          </Button>
+                        )}
                       </div>
                     </div>
 
-                    {demFile.status === "uploading" && <Progress value={demFile.progress} className="h-2" />}
+                    {demFile.status === "uploading" && (
+                      <div className="space-y-1">
+                        <Progress value={demFile.progress} className="h-2" />
+                        <p className="text-sm text-muted-foreground text-center">{demFile.progress}% completado</p>
+                      </div>
+                    )}
 
                     {demFile.status === "error" && demFile.error && (
                       <p className="text-sm text-red-500">{demFile.error}</p>
+                    )}
+
+                    {demFile.status === "success" && (
+                      <p className="text-sm text-green-500">✓ Archivo subido exitosamente</p>
                     )}
                   </div>
                 )}
@@ -260,7 +227,6 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
             </CardContent>
           </Card>
 
-          {/* Metadata Section */}
           <Card>
             <CardContent className="p-4">
               <h3 className="font-semibold mb-4">Información de la Partida</h3>
@@ -328,39 +294,15 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
             </CardContent>
           </Card>
 
-          {/* Processing Status */}
-          {isProcessing && currentMatchId && (
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-                  <div>
-                    <h3 className="font-semibold text-blue-600">Procesando partida...</h3>
-                    <p className="text-sm text-muted-foreground">ID: {currentMatchId}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Archivo subido a S3. Backend analizando archivo DEM...
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Upload Button */}
           <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={handleClose} disabled={isUploading || isProcessing}>
+            <Button variant="outline" onClick={handleClose} disabled={isUploading}>
               Cancelar
             </Button>
             <Button onClick={handleUpload} disabled={!canUpload} className="gap-2">
               {isUploading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  {demFile?.progress === 0 ? "Comprimiendo..." : "Subiendo a S3..."}
-                </>
-              ) : isProcessing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Procesando...
+                  Subiendo...
                 </>
               ) : (
                 <>
