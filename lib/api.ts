@@ -279,8 +279,23 @@ export class ApiService {
 
         const data = await response.json()
 
+        console.log("[v0] Backend kills response:", {
+          totalPredictions: data.predictions?.length,
+          goodPlays: data.predictions?.filter((p: any) => p.is_good_play === true).length,
+          badPlays: data.predictions?.filter((p: any) => p.is_good_play === false).length,
+          nullPlays: data.predictions?.filter((p: any) => p.is_good_play === null || p.is_good_play === undefined)
+            .length,
+        })
+
         if (data.predictions && Array.isArray(data.predictions)) {
           const processed = processBackendResponse(data)
+
+          console.log("[v0] Processed kills:", {
+            total: processed.kills.length,
+            goodPlays: processed.kills.filter((k) => k.isGoodPlay).length,
+            badPlays: processed.kills.filter((k) => !k.isGoodPlay).length,
+          })
+
           return processed.kills
         }
 
