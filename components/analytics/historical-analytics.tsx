@@ -263,41 +263,119 @@ export function HistoricalAnalytics() {
         </div>
       </div>
 
-      <div className="relative">
-        {!isPremiumMode && (
-          <div className="absolute inset-0 z-10 backdrop-blur-md bg-background/30 rounded-lg flex items-center justify-center">
-            <div className="text-center p-8 bg-card/80 rounded-lg border border-border max-w-md">
-              <Sparkles className="h-12 w-12 text-primary mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-white mb-2">Análisis Histórico Premium</h3>
-              <p className="text-muted-foreground mb-6">
-                Desbloquea gráficos detallados de tu progreso a lo largo del tiempo, incluyendo evolución de K/D,
-                puntajes y análisis de jugadas.
-              </p>
-              <Button onClick={() => setIsPremiumModalOpen(true)} className="gap-2 bg-primary hover:bg-primary/90">
-                <Sparkles className="h-4 w-4" />
-                Ver Planes Premium
-              </Button>
+      <Card className="bg-card/50 border-card-border relative">
+        <CardContent className="p-6">
+          {!isPremiumMode && (
+            <div className="absolute inset-0 z-10 backdrop-blur-md bg-background/30 rounded-lg flex items-center justify-center">
+              <div className="text-center p-8 bg-card/80 rounded-lg border border-border max-w-md">
+                <Sparkles className="h-12 w-12 text-primary mx-auto mb-4" />
+                <h3 className="text-2xl font-bold text-white mb-2">Análisis Histórico Premium</h3>
+                <p className="text-muted-foreground mb-6">
+                  Desbloquea gráficos detallados de tu progreso a lo largo del tiempo, incluyendo evolución de K/D,
+                  puntajes y análisis de jugadas.
+                </p>
+                <Button onClick={() => setIsPremiumModalOpen(true)} className="gap-2 bg-primary hover:bg-primary/90">
+                  <Sparkles className="h-4 w-4" />
+                  Ver Planes Premium
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <TooltipProvider>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {isPremiumMode && (
-              <>
+          <TooltipProvider>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {isPremiumMode && (
+                <>
+                  <Card className="bg-card/50 border-card-border">
+                    <CardHeader>
+                      <div className="flex items-center gap-2">
+                        <CardTitle>Buenas vs Malas Jugadas</CardTitle>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>
+                              Muestra la evolución de tus buenas y malas jugadas a lo largo del tiempo. Las buenas
+                              jugadas incluyen kills, asistencias y objetivos completados, mientras que las malas
+                              jugadas incluyen deaths y errores tácticos.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={getFilteredData()}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                          <XAxis dataKey="date" stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
+                          <YAxis stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
+                          <RechartsTooltip
+                            content={
+                              <CustomTooltip labelMap={{ goodPlays: "Buenas Jugadas", badPlays: "Malas Jugadas" }} />
+                            }
+                          />
+                          <Bar dataKey="goodPlays" fill="#10B981" />
+                          <Bar dataKey="badPlays" fill="#EF4444" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-card/50 border-card-border">
+                    <CardHeader>
+                      <div className="flex items-center gap-2">
+                        <CardTitle>Progreso de Puntaje Promedio</CardTitle>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>
+                              Visualiza cómo ha evolucionado tu puntaje promedio por partida a lo largo del tiempo. Un
+                              puntaje en ascenso indica mejora constante en tu rendimiento general.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={getFilteredData()}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                          <XAxis dataKey="date" stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
+                          <YAxis stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
+                          <RechartsTooltip content={<CustomTooltip labelMap={{ score: "Puntaje" }} />} />
+                          <Line
+                            type="monotone"
+                            dataKey="score"
+                            stroke="#ff851b"
+                            strokeWidth={2}
+                            dot={{ fill: "#ff851b", strokeWidth: 2, r: 4 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 mt-6">
+              {isPremiumMode && (
                 <Card className="bg-card/50 border-card-border">
                   <CardHeader>
                     <div className="flex items-center gap-2">
-                      <CardTitle>Buenas vs Malas Jugadas</CardTitle>
+                      <CardTitle>Historial de Kills y Deaths</CardTitle>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
                           <p>
-                            Muestra la evolución de tus buenas y malas jugadas a lo largo del tiempo. Las buenas jugadas
-                            incluyen kills, asistencias y objetivos completados, mientras que las malas jugadas incluyen
-                            deaths y errores tácticos.
+                            Muestra el acumulado total de kills (área verde) y deaths (línea roja punteada) a lo largo
+                            de todas tus partidas. Cuando la línea roja se mantiene dentro del área verde, indica que tu
+                            K/D ratio es positivo.
                           </p>
                         </TooltipContent>
                       </Tooltip>
@@ -305,109 +383,33 @@ export function HistoricalAnalytics() {
                   </CardHeader>
                   <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={getFilteredData()}>
+                      <ComposedChart data={getCumulativeData()}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                         <XAxis dataKey="date" stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
                         <YAxis stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
                         <RechartsTooltip
                           content={
-                            <CustomTooltip labelMap={{ goodPlays: "Buenas Jugadas", badPlays: "Malas Jugadas" }} />
+                            <CustomTooltip labelMap={{ totalKills: "Total Kills", totalDeaths: "Total Deaths" }} />
                           }
                         />
-                        <Bar dataKey="goodPlays" fill="#10B981" />
-                        <Bar dataKey="badPlays" fill="#EF4444" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-card/50 border-card-border">
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <CardTitle>Progreso de Puntaje Promedio</CardTitle>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p>
-                            Visualiza cómo ha evolucionado tu puntaje promedio por partida a lo largo del tiempo. Un
-                            puntaje en ascenso indica mejora constante en tu rendimiento general.
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={getFilteredData()}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                        <XAxis dataKey="date" stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
-                        <YAxis stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
-                        <RechartsTooltip content={<CustomTooltip labelMap={{ score: "Puntaje" }} />} />
+                        <Area type="monotone" dataKey="totalKills" stroke="#10B981" fill="#10B981" fillOpacity={0.6} />
                         <Line
                           type="monotone"
-                          dataKey="score"
-                          stroke="#ff851b"
+                          dataKey="totalDeaths"
+                          stroke="#EF4444"
                           strokeWidth={2}
-                          dot={{ fill: "#ff851b", strokeWidth: 2, r: 4 }}
+                          strokeDasharray="5 5"
+                          dot={{ fill: "#EF4444", strokeWidth: 2, r: 3 }}
                         />
-                      </LineChart>
+                      </ComposedChart>
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>
-              </>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 mt-6">
-            {isPremiumMode && (
-              <Card className="bg-card/50 border-card-border">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <CardTitle>Historial de Kills y Deaths</CardTitle>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p>
-                          Muestra el acumulado total de kills (área verde) y deaths (línea roja punteada) a lo largo de
-                          todas tus partidas. Cuando la línea roja se mantiene dentro del área verde, indica que tu K/D
-                          ratio es positivo.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <ComposedChart data={getCumulativeData()}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                      <XAxis dataKey="date" stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
-                      <YAxis stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
-                      <RechartsTooltip
-                        content={
-                          <CustomTooltip labelMap={{ totalKills: "Total Kills", totalDeaths: "Total Deaths" }} />
-                        }
-                      />
-                      <Area type="monotone" dataKey="totalKills" stroke="#10B981" fill="#10B981" fillOpacity={0.6} />
-                      <Line
-                        type="monotone"
-                        dataKey="totalDeaths"
-                        stroke="#EF4444"
-                        strokeWidth={2}
-                        strokeDasharray="5 5"
-                        dot={{ fill: "#EF4444", strokeWidth: 2, r: 3 }}
-                      />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </TooltipProvider>
-      </div>
+              )}
+            </div>
+          </TooltipProvider>
+        </CardContent>
+      </Card>
 
       <PremiumModal
         open={isPremiumModalOpen}
