@@ -146,20 +146,45 @@ const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true"
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const errorText = await response.text()
+    console.log("[v0] Backend error response:", {
+      status: response.status,
+      statusText: response.statusText,
+      url: response.url,
+      body: errorText.substring(0, 200), // First 200 chars to avoid logging huge HTML
+    })
     throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`)
   }
+
+  const contentType = response.headers.get("content-type")
+  if (!contentType || !contentType.includes("application/json")) {
+    const text = await response.text()
+    console.log("[v0] Non-JSON response received:", {
+      contentType,
+      url: response.url,
+      body: text.substring(0, 200),
+    })
+    throw new Error(`Expected JSON but got ${contentType}. Response: ${text.substring(0, 100)}`)
+  }
+
   return response.json()
 }
 
 async function fetchWithFallback<T>(fetchFn: () => Promise<T>, mockData: T, operationName: string): Promise<T> {
   if (USE_MOCK_DATA) {
+    console.log("[v0] Using mock data for:", operationName)
     return mockData
   }
 
   try {
-    return await fetchFn()
+    console.log("[v0] Attempting API call for:", operationName)
+    const result = await fetchFn()
+    console.log("[v0] API call succeeded for:", operationName)
+    return result
   } catch (error) {
-    console.error(`API call failed for ${operationName}:`, error instanceof Error ? error.message : String(error))
+    console.log("[v0] API call failed for", operationName, "- falling back to mock data:", {
+      error: error instanceof Error ? error.message : String(error),
+      errorType: error instanceof TypeError ? "Network/CORS error" : "Other error",
+    })
     return mockData
   }
 }
