@@ -360,7 +360,7 @@ export function HistoricalAnalytics() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 gap-6 mt-6">
             {isPremiumMode && (
               <Card className="bg-card/50 border-card-border">
                 <CardHeader>
