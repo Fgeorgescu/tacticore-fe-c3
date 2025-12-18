@@ -1,4 +1,5 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://54.163.64.8:8443"
+console.log("[v0] API_BASE_URL configured as:", API_BASE_URL)
 
 // Tipos de datos
 export interface Match {
