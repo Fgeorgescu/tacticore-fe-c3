@@ -109,16 +109,16 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
   const uploadingMatchesFromBackend = matchesData.filter((m) => m.status === "uploading")
   const processingMatchesFromBackend = matchesData.filter((m) => m.status === "processing")
 
-  const uploadingBackendIds = new Set(uploadingMatchesFromBackend.map((m) => m.id))
-  const processingBackendIds = new Set(processingMatchesFromBackend.map((m) => m.id))
+  const uploadingBackendFileNames = new Set(uploadingMatchesFromBackend.map((m) => m.fileName))
+  const processingBackendFileNames = new Set(processingMatchesFromBackend.map((m) => m.fileName))
 
   const allUploadingMatches = [
-    ...uploadingMatchesFromContext.filter((m) => !uploadingBackendIds.has(m.id)),
+    ...uploadingMatchesFromContext.filter((m) => !uploadingBackendFileNames.has(m.fileName)),
     ...uploadingMatchesFromBackend,
   ]
 
   const allProcessingMatches = [
-    ...processingMatchesFromContext.filter((m) => !processingBackendIds.has(m.id)),
+    ...processingMatchesFromContext.filter((m) => !processingBackendFileNames.has(m.fileName)),
     ...processingMatchesFromBackend,
   ]
 
