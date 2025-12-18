@@ -1,4 +1,4 @@
-import { Kill } from "./api"
+import type { Kill } from "./api"
 
 // Interfaz para los datos JSON que vienen del backend
 interface BackendKillData {
@@ -64,116 +64,81 @@ interface BackendKillData {
 
 // Función helper para validar si un valor numérico es válido
 function isValidCoordinate(value: number | null | undefined): value is number {
-  return typeof value === 'number' && !isNaN(value) && isFinite(value)
+  return typeof value === "number" && !isNaN(value) && isFinite(value)
 }
 
 // Función para mapear datos del backend a la estructura del frontend
 export function mapBackendKillData(backendData: BackendKillData[]): Kill[] {
-  let killsWithoutCoords = 0
-  let killsWithCoords = 0
-  
   const mapped = backendData.map((kill, index) => {
-    // Preferir datos del contexto cuando estén disponibles
     const killer = kill.context?.attacker_name || kill.attacker
     const victim = kill.context?.victim_name || kill.victim
     const weapon = kill.context?.attacker_weapon || kill.weapon
     const place = kill.context?.place || kill.place
-    
-    // Usar time_in_round_s del contexto si está disponible, sino time_in_round
+
     const timeInRound = kill.context?.time_in_round_s ?? kill.time_in_round
-    
-    // Validar y extraer coordenadas de imagen
+
     const attackerImageX = kill.context?.attacker_image_x
     const attackerImageY = kill.context?.attacker_image_y
     const victimImageX = kill.context?.victim_image_x
     const victimImageY = kill.context?.victim_image_y
-    
+
     const hasAttackerImageCoords = isValidCoordinate(attackerImageX) && isValidCoordinate(attackerImageY)
     const hasVictimImageCoords = isValidCoordinate(victimImageX) && isValidCoordinate(victimImageY)
-    
-    if (hasAttackerImageCoords || hasVictimImageCoords) {
-      killsWithCoords++
-    } else {
-      killsWithoutCoords++
-      if (killsWithoutCoords <= 3) {
-        console.log(`[killDataMapper] Kill ${index + 1} missing image coords:`, {
-          killer,
-          victim,
-          weapon,
-          hasContext: !!kill.context,
-          attackerImageX,
-          attackerImageY,
-          victimImageX,
-          victimImageY,
-          contextKeys: kill.context ? Object.keys(kill.context) : []
-        })
-      }
-    }
-    
-    // Obtener el lado del atacante
+
     const attackerSide = kill.context?.side
     const validSide = attackerSide === "ct" || attackerSide === "t" ? attackerSide : undefined
-    
-    // Determinar isGoodPlay: verificar múltiples fuentes en orden de prioridad
+
     let isGoodPlay = false
     if (kill.is_good_play !== undefined && kill.is_good_play !== null) {
-      // 1. Prioridad: campo is_good_play directo
       isGoodPlay = Boolean(kill.is_good_play)
     } else if (kill.attacker_strengths) {
-      // 2. Nuevo formato: attacker_strengths (ej: { precise: 0.97 })
-      // Si hay algún strength con valor > 0.5, considerarlo buena jugada
-      const strengths = Object.values(kill.attacker_strengths).filter(v => typeof v === 'number') as number[]
-      isGoodPlay = strengths.some(strength => strength > 0.5)
+      const strengths = Object.values(kill.attacker_strengths).filter((v) => typeof v === "number") as number[]
+      isGoodPlay = strengths.some((strength) => strength > 0.5)
     } else if (kill.prediction?.predicted_label) {
-      // 3. Formato antiguo: predicted_label de prediction
       const label = kill.prediction.predicted_label.toLowerCase()
       isGoodPlay = label === "good_decision" || label === "good_positioning" || label === "precise"
     }
-    
-    // Log para debug de is_good_play en los primeros kills
-    if (index < 5) {
-      console.log(`[killDataMapper] Kill ${index + 1}:`, {
-        is_good_play: kill.is_good_play,
-        predicted_label: kill.prediction?.predicted_label,
-        attacker_strengths: kill.attacker_strengths,
-        final_isGoodPlay: isGoodPlay
-      })
-    }
-    
+
     return {
       id: index + 1,
       killer,
       victim,
       weapon,
-      isGoodPlay: isGoodPlay, // Usar el valor calculado
+      isGoodPlay: isGoodPlay,
       round: kill.round,
       time: formatTimeInRound(timeInRound),
-      teamAlive: { ct: 5, t: 5 }, // Esto debería venir del backend
+      teamAlive: { ct: 5, t: 5 },
       position: place,
       attackerSide: validSide,
-      attackerPosition: kill.context ? {
-        x: kill.context.attacker_x,
-        y: kill.context.attacker_y,
-        z: kill.context.attacker_z
-      } : undefined,
-      victimPosition: kill.context ? {
-        x: kill.context.victim_x,
-        y: kill.context.victim_y,
-        z: kill.context.victim_z
-      } : undefined,
-      attackerImagePosition: hasAttackerImageCoords ? {
-        x: attackerImageX!,
-        y: attackerImageY!
-      } : undefined,
-      victimImagePosition: hasVictimImageCoords ? {
-        x: victimImageX!,
-        y: victimImageY!
-      } : undefined
+      attackerPosition: kill.context
+        ? {
+            x: kill.context.attacker_x,
+            y: kill.context.attacker_y,
+            z: kill.context.attacker_z,
+          }
+        : undefined,
+      victimPosition: kill.context
+        ? {
+            x: kill.context.victim_x,
+            y: kill.context.victim_y,
+            z: kill.context.victim_z,
+          }
+        : undefined,
+      attackerImagePosition: hasAttackerImageCoords
+        ? {
+            x: attackerImageX!,
+            y: attackerImageY!,
+          }
+        : undefined,
+      victimImagePosition: hasVictimImageCoords
+        ? {
+            x: victimImageX!,
+            y: victimImageY!,
+          }
+        : undefined,
     }
   })
-  
-  console.log(`[killDataMapper] Image coordinate stats: ${killsWithCoords} with coords, ${killsWithoutCoords} without`)
-  
+
   return mapped
 }
 
@@ -181,7 +146,7 @@ export function mapBackendKillData(backendData: BackendKillData[]): Kill[] {
 function formatTimeInRound(timeInSeconds: number): string {
   const minutes = Math.floor(timeInSeconds / 60)
   const seconds = Math.floor(timeInSeconds % 60)
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`
 }
 
 // Función para procesar la respuesta completa del backend
@@ -196,18 +161,12 @@ export function processBackendResponse(response: any): {
   }
 
   const predictions = response.predictions || []
-  console.log(`[killDataMapper] Processing ${predictions.length} predictions from backend`)
-  
   const kills = mapBackendKillData(predictions)
-  
-  // Log de kills con coordenadas
-  const killsWithImageCoords = kills.filter(k => k.attackerImagePosition || k.victimImagePosition)
-  console.log(`[killDataMapper] Mapped ${kills.length} kills, ${killsWithImageCoords.length} with image coordinates`)
-  
+
   return {
     kills,
     totalKills: response.total_kills || 0,
     map: response.map || "Unknown",
-    tickrate: response.tickrate || 64
+    tickrate: response.tickrate || 64,
   }
 }
