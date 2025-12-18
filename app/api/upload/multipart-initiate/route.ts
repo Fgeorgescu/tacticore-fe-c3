@@ -37,14 +37,13 @@ export async function POST(request: NextRequest) {
     const sessionToken = process.env.AWS_SESSION_TOKEN
 
     const timestamp = Date.now()
-    const randomId = Math.random().toString(36).substring(7)
 
     // Extract name and extension
     const lastDotIndex = fileName.lastIndexOf(".")
     const nameWithoutExt = lastDotIndex > 0 ? fileName.substring(0, lastDotIndex) : fileName
     const extension = lastDotIndex > 0 ? fileName.substring(lastDotIndex) : ""
 
-    const s3Key = `uploads/${fileType}/${nameWithoutExt}-${timestamp}-${randomId}${extension}`
+    const s3Key = `uploads/${fileType}/${nameWithoutExt}-${timestamp}${extension}`
 
     console.log("[v0] Initiating multipart upload for:", s3Key)
 
