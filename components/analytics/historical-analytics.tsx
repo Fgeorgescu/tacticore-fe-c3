@@ -269,7 +269,7 @@ export function HistoricalAnalytics() {
             <div className="text-center p-8 bg-card/80 rounded-lg border border-border max-w-md">
               <Sparkles className="h-12 w-12 text-primary mx-auto mb-4" />
               <h3 className="text-2xl font-bold text-white mb-2">Análisis Histórico Premium</h3>
-              <p className="text-muted-foreground mb-6">
+              <p className="text-white mb-6">
                 Desbloquea gráficos detallados de tu progreso a lo largo del tiempo, incluyendo evolución de K/D,
                 puntajes y análisis de jugadas.
               </p>
