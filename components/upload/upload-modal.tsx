@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group"
 import { Upload, File, X, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
 import { apiService } from "@/lib/api"
 import { useUpload } from "@/contexts/UploadContext"
@@ -79,7 +80,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     setDemFile((prev) => (prev ? { ...prev, status: "uploading", progress: 0 } : null))
 
     const tempMatchId = `match-${Date.now()}`
-    const matchName = metadata.name || demFile.file.name
+    const matchName = metadata.name ? `${metadata.name}.dem` : demFile.file.name
 
     const uploadingMatch = {
       id: tempMatchId,
@@ -227,13 +228,18 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nombre (Opcional)</Label>
-                  <Input
-                    id="name"
-                    placeholder="Nombre de la partida..."
-                    value={metadata.name}
-                    onChange={(e) => setMetadata((prev) => ({ ...prev, name: e.target.value }))}
-                    disabled={isUploading}
-                  />
+                  <InputGroup>
+                    <InputGroupInput
+                      id="name"
+                      placeholder="Nombre de la partida"
+                      value={metadata.name}
+                      onChange={(e) => setMetadata((prev) => ({ ...prev, name: e.target.value }))}
+                      disabled={isUploading}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText className="text-muted-foreground">.dem</InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="map">Mapa</Label>
