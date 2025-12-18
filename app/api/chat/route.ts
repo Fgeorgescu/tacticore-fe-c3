@@ -246,9 +246,26 @@ COMO ENTRENADOR PROFESIONAL:
       break
   }
 
+  const criticalClarification = `
+⚠️ IMPORTANTE - INTERPRETACIÓN DE JUGADAS:
+- Una MALA JUGADA NO significa automáticamente que ${selectedUser || "el jugador"} murió
+- En cada kill, verifica QUIÉN es el killer y QUIÉN es el victim:
+  ${selectedUser ? `• Si ${selectedUser} es el KILLER → ${selectedUser} SOBREVIVIÓ ese enfrentamiento` : "• Si el jugador es el KILLER → El jugador SOBREVIVIÓ"}
+  ${selectedUser ? `• Si ${selectedUser} es el VICTIM → ${selectedUser} murió en ese enfrentamiento` : "• Si el jugador es el VICTIM → El jugador murió"}
+- Una mala jugada puede ser por:
+  • Mal posicionamiento (aunque no murió)
+  • Decisión táctica pobre (timing incorrecto, no esperar refuerzos)
+  • Exposición innecesaria al riesgo
+  • Kill poco estratégico (aunque exitoso)
+  • Uso ineficiente de recursos
+- NUNCA asumas que una mala jugada resultó en muerte a menos que veas explícitamente al jugador como VICTIM
+- NUNCA te contradigas diciendo "esto resultó en tu eliminación" si el jugador es el killer en ese kill
+`
+
   return (
     basePrompt +
     specializedInstructions +
+    criticalClarification +
     `
 
 ESTILO DE RESPUESTA:
