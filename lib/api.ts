@@ -717,6 +717,23 @@ export class ApiService {
     )
   }
 
+  async ping(): Promise<boolean> {
+    if (USE_MOCK_DATA) {
+      return true
+    }
+
+    try {
+      const url = `${this.baseUrl}/api/health`
+      const response = await fetch(url, {
+        method: "GET",
+        signal: AbortSignal.timeout(5000), // 5 second timeout
+      })
+      return response.ok
+    } catch (error) {
+      return false
+    }
+  }
+
   // File Uploads
   async uploadDemFile(
     file: File,
