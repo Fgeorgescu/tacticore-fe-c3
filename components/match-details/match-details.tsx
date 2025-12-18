@@ -298,6 +298,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
             <BotChat
               matchData={matchData}
               killsData={killsData}
+              selectedUser={selectedUser.value}
               initialMessages={chatMessagesData}
               onNewMessage={(message) => {
                 setChatMessagesData((prev) => [...prev, message])

@@ -14,6 +14,7 @@ import { MarkdownMessage } from "@/components/chat/markdown-message"
 interface BotChatProps {
   matchData: Match
   killsData?: Kill[]
+  selectedUser: string | null // Added selectedUser prop
   initialMessages: ChatMessage[]
   onNewMessage: (message: ChatMessage) => void
 }
@@ -25,7 +26,7 @@ interface DetectionResult {
   roundNumber?: number
 }
 
-export function BotChat({ matchData, killsData, initialMessages, onNewMessage }: BotChatProps) {
+export function BotChat({ matchData, killsData, selectedUser, initialMessages, onNewMessage }: BotChatProps) {
   const [message, setMessage] = useState("")
   const [isBotTyping, setIsBotTyping] = useState(false)
 
@@ -283,7 +284,7 @@ export function BotChat({ matchData, killsData, initialMessages, onNewMessage }:
         detection.roundNumber ? `(Round ${detection.roundNumber})` : "",
       )
 
-      const botResponse = await chatGPTService.sendMessage(userMessage, matchContext, detection.type)
+      const botResponse = await chatGPTService.sendMessage(userMessage, matchContext, detection.type, selectedUser)
 
       // Crear mensaje del bot
       const botChatMessage: ChatMessage = {

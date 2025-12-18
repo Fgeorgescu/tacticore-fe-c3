@@ -40,8 +40,13 @@ export interface MatchContext {
 type QueryType = "round-specific" | "weapons" | "positioning" | "economy" | "timing" | "general"
 
 export class ChatGPTService {
-  async sendMessage(userMessage: string, matchContext: MatchContext, queryType?: QueryType): Promise<string> {
-    console.log("ChatGPT sendMessage called with:", { userMessage, matchContext, queryType })
+  async sendMessage(
+    userMessage: string,
+    matchContext: MatchContext,
+    queryType?: QueryType,
+    selectedUser?: string | null,
+  ): Promise<string> {
+    console.log("ChatGPT sendMessage called with:", { userMessage, matchContext, queryType, selectedUser })
 
     try {
       const response = await fetch("/api/chat", {
@@ -53,6 +58,7 @@ export class ChatGPTService {
           message: userMessage,
           matchContext,
           queryType: queryType || "general",
+          selectedUser, // Pass selectedUser to API route
         }),
       })
 

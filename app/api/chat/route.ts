@@ -59,7 +59,11 @@ interface MatchContext {
 
 type QueryType = "round-specific" | "weapons" | "positioning" | "economy" | "timing" | "general"
 
-function buildSystemPrompt(matchContext: MatchContext, queryType: QueryType = "general"): string {
+function buildSystemPrompt(
+  matchContext: MatchContext,
+  queryType: QueryType = "general",
+  selectedUser?: string | null,
+): string {
   const totalActions = matchContext.goodPlays + matchContext.badPlays
   const goodPlayPercentage = totalActions > 0 ? ((matchContext.goodPlays / totalActions) * 100).toFixed(1) : "0"
   const badPlayPercentage = totalActions > 0 ? ((matchContext.badPlays / totalActions) * 100).toFixed(1) : "0"
@@ -67,6 +71,17 @@ function buildSystemPrompt(matchContext: MatchContext, queryType: QueryType = "g
     Number.parseFloat(matchContext.duration.split(":")[0]) > 0
       ? (matchContext.kills / Number.parseFloat(matchContext.duration.split(":")[0])).toFixed(2)
       : "0"
+
+  const userContext = selectedUser
+    ? `\n\n👤 CONTEXTO DE USUARIO:
+- Estás analizando a: ${selectedUser}
+- Todos los consejos deben estar personalizados para este jugador específico
+- Cuando menciones estadísticas o jugadas, refiérete directamente al jugador ("tu", "tus kills", "tu posicionamiento")`
+    : `\n\n👥 CONTEXTO DE EQUIPO:
+- Esta es una vista general del equipo completo
+- Los datos muestran el rendimiento colectivo de todas las partidas
+- Enfoca el análisis desde una perspectiva de equipo ("el equipo", "las estadísticas del equipo")
+- Proporciona consejos aplicables a nivel de equipo y estrategia general`
 
   let roundsAnalysis = ""
   if (matchContext.rounds && matchContext.rounds.length > 0) {
@@ -136,7 +151,7 @@ ${topWeapons}
 - Considera mejorar el uso de armas con baja efectividad o cambiarlas por alternativas`
   }
 
-  const basePrompt = `Eres TACTICORE Bot, un entrenador profesional de Counter-Strike con años de experiencia analizando partidas competitivas. Tu rol es actuar como un coach personal que identifica los puntos más críticos de mejora y proporciona consejos específicos y accionables.
+  const basePrompt = `Eres TACTICORE Bot, un entrenador profesional de Counter-Strike con años de experiencia analizando partidas competitivas. Tu rol es actuar como un coach personal que identifica los puntos más críticos de mejora y proporciona consejos específicos y accionables.${userContext}
 
 ANÁLISIS DETALLADO DE LA PARTIDA:
 📊 ESTADÍSTICAS PRINCIPALES:
@@ -244,14 +259,15 @@ ESTILO DE RESPUESTA:
 - Responde en español
 - Si hay datos detallados de kills, menciona patrones específicos
 - Identifica kills críticos que cambiaron el rumbo de rondas
+${selectedUser ? `- Dirígete al jugador directamente usando "tu" y "tus" (análisis personalizado para ${selectedUser})` : "- Usa lenguaje de equipo: 'el equipo', 'las estadísticas colectivas' (análisis general del equipo)"}
 
-Tu objetivo es ayudar al jugador a identificar y corregir los errores más impactantes para mejorar significativamente su rendimiento en futuras partidas.`
+Tu objetivo es ayudar ${selectedUser ? "al jugador" : "al equipo"} a identificar y corregir los errores más impactantes para mejorar significativamente ${selectedUser ? "su" : "el"} rendimiento en futuras partidas.`
   )
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, matchContext, queryType } = await request.json()
+    const { message, matchContext, queryType, selectedUser } = await request.json()
 
     const apiKey = process.env.OPENAI_API_KEY
 
@@ -278,7 +294,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ response: randomResponse })
     }
 
-    const systemPrompt = buildSystemPrompt(matchContext, queryType || "general")
+    const systemPrompt = buildSystemPrompt(matchContext, queryType || "general", selectedUser)
 
     const chatRequest: ChatGPTRequest = {
       model: "gpt-4o-mini",
