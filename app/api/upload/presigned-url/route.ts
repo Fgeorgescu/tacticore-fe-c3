@@ -50,7 +50,13 @@ function generateS3Key(fileName: string, fileType: "dem" | "video"): string {
     .replace(/[^a-zA-Z0-9.-]/g, "_")
     .substring(0, 50)
     .replace(/^\.+/, "")
-  return `uploads/${fileType}/${timestamp}-${randomString}-${sanitizedName}`
+
+  // Extract name and extension
+  const lastDotIndex = sanitizedName.lastIndexOf(".")
+  const nameWithoutExt = lastDotIndex > 0 ? sanitizedName.substring(0, lastDotIndex) : sanitizedName
+  const extension = lastDotIndex > 0 ? sanitizedName.substring(lastDotIndex) : ""
+
+  return `uploads/${fileType}/${nameWithoutExt}-${timestamp}-${randomString}${extension}`
 }
 
 export async function POST(request: Request) {
