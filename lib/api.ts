@@ -279,15 +279,20 @@ export class ApiService {
 
         const data = await response.json()
 
-        console.log("[v0] Backend kills response:", {
-          totalPredictions: data.predictions?.length,
-          goodPlays: data.predictions?.filter((p: any) => p.is_good_play === true).length,
-          badPlays: data.predictions?.filter((p: any) => p.is_good_play === false).length,
-          nullPlays: data.predictions?.filter((p: any) => p.is_good_play === null || p.is_good_play === undefined)
-            .length,
-        })
+        console.log("[v0] Backend kills full response:", data)
+        console.log("[v0] Response keys:", Object.keys(data))
+        console.log("[v0] Has predictions:", "predictions" in data)
+        console.log("[v0] Has kills:", "kills" in data)
 
         if (data.predictions && Array.isArray(data.predictions)) {
+          console.log("[v0] Backend kills response:", {
+            totalPredictions: data.predictions.length,
+            goodPlays: data.predictions.filter((p: any) => p.is_good_play === true).length,
+            badPlays: data.predictions.filter((p: any) => p.is_good_play === false).length,
+            nullPlays: data.predictions.filter((p: any) => p.is_good_play === null || p.is_good_play === undefined)
+              .length,
+          })
+
           const processed = processBackendResponse(data)
 
           console.log("[v0] Processed kills:", {
@@ -300,10 +305,12 @@ export class ApiService {
         }
 
         if (data.kills && Array.isArray(data.kills)) {
+          console.log("[v0] Using data.kills array directly")
           return data.kills
         }
 
-        return []
+        console.log("[v0] Backend returned invalid data structure, will use mock data")
+        throw new Error("Invalid backend response structure")
       },
       mockKills[id] || mockKills["1"],
       `getMatchKills(${id})`,
