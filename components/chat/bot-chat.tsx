@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Send, Bot, User, Loader2, MessageCircle } from "lucide-react"
 import type { ChatMessage, Match, Kill } from "@/lib/api"
 import { chatGPTService, type MatchContext, type RoundData } from "@/lib/chatgpt"
+import { MarkdownMessage } from "@/components/chat/markdown-message"
 
 interface BotChatProps {
   matchData: Match
@@ -167,7 +168,11 @@ export function BotChat({ matchData, killsData, initialMessages, onNewMessage }:
                   msg.isBot ? "bg-primary/10 border border-primary/20" : "bg-secondary/10 border border-secondary/20"
                 }`}
               >
-                <p className="text-sm text-white whitespace-pre-wrap">{msg.message}</p>
+                {msg.isBot ? (
+                  <MarkdownMessage content={msg.message} />
+                ) : (
+                  <p className="text-sm text-white whitespace-pre-wrap">{msg.message}</p>
+                )}
               </div>
             </div>
           ))}
