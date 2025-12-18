@@ -187,14 +187,14 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 h-[600px] flex flex-col">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5" />
               Estadísticas de la Partida
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 overflow-auto">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
                 <p className="text-2xl font-bold text-green-400">{matchData.kills}</p>
@@ -293,7 +293,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-1 flex flex-col max-h-[600px]">
+        <Card className="lg:col-span-1 flex flex-col h-[600px]">
           <CardContent className="p-4 flex-1 flex flex-col min-h-0">
             <BotChat
               matchData={matchData}
