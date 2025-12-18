@@ -263,25 +263,25 @@ export function HistoricalAnalytics() {
         </div>
       </div>
 
-      <Card className="bg-card/50 border-card-border relative">
-        <CardContent className="p-6">
-          {!isPremiumMode && (
-            <div className="absolute inset-0 z-10 backdrop-blur-md bg-background/30 rounded-lg flex items-center justify-center">
-              <div className="text-center p-8 bg-card/80 rounded-lg border border-border max-w-md">
-                <Sparkles className="h-12 w-12 text-primary mx-auto mb-4" />
-                <h3 className="text-2xl font-bold text-white mb-2">Análisis Histórico Premium</h3>
-                <p className="text-muted-foreground mb-6">
-                  Desbloquea gráficos detallados de tu progreso a lo largo del tiempo, incluyendo evolución de K/D,
-                  puntajes y análisis de jugadas.
-                </p>
-                <Button onClick={() => setIsPremiumModalOpen(true)} className="gap-2 bg-primary hover:bg-primary/90">
-                  <Sparkles className="h-4 w-4" />
-                  Ver Planes Premium
-                </Button>
-              </div>
+      <Card className="bg-card/50 border-card-border relative min-h-[600px]">
+        {!isPremiumMode && (
+          <div className="absolute inset-0 z-10 backdrop-blur-md bg-background/30 rounded-lg flex items-center justify-center">
+            <div className="text-center p-8 bg-card/80 rounded-lg border border-border max-w-md">
+              <Sparkles className="h-12 w-12 text-primary mx-auto mb-4" />
+              <h3 className="text-2xl font-bold text-white mb-2">Análisis Histórico Premium</h3>
+              <p className="text-muted-foreground mb-6">
+                Desbloquea gráficos detallados de tu progreso a lo largo del tiempo, incluyendo evolución de K/D,
+                puntajes y análisis de jugadas.
+              </p>
+              <Button onClick={() => setIsPremiumModalOpen(true)} className="gap-2 bg-primary hover:bg-primary/90">
+                <Sparkles className="h-4 w-4" />
+                Ver Planes Premium
+              </Button>
             </div>
-          )}
+          </div>
+        )}
 
+        <CardContent className="p-6">
           <TooltipProvider>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {isPremiumMode && (
