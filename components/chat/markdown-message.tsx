@@ -6,6 +6,50 @@ interface MarkdownMessageProps {
 }
 
 export function MarkdownMessage({ content }: MarkdownMessageProps) {
+  const processInlineMarkdown = (text: string): React.ReactNode[] => {
+    const parts: React.ReactNode[] = []
+    let currentText = text
+    let key = 0
+
+    while (currentText.length > 0) {
+      // Bold **text**
+      const boldMatch = currentText.match(/\*\*(.+?)\*\*/)
+      if (boldMatch && boldMatch.index !== undefined) {
+        if (boldMatch.index > 0) {
+          parts.push(currentText.slice(0, boldMatch.index))
+        }
+        parts.push(
+          <strong key={`bold-${key++}`} className="font-bold">
+            {boldMatch[1]}
+          </strong>,
+        )
+        currentText = currentText.slice(boldMatch.index + boldMatch[0].length)
+        continue
+      }
+
+      // Italic *text*
+      const italicMatch = currentText.match(/\*(.+?)\*/)
+      if (italicMatch && italicMatch.index !== undefined) {
+        if (italicMatch.index > 0) {
+          parts.push(currentText.slice(0, italicMatch.index))
+        }
+        parts.push(
+          <em key={`italic-${key++}`} className="italic">
+            {italicMatch[1]}
+          </em>,
+        )
+        currentText = currentText.slice(italicMatch.index + italicMatch[0].length)
+        continue
+      }
+
+      // No more markdown found
+      parts.push(currentText)
+      break
+    }
+
+    return parts
+  }
+
   const renderMarkdown = (text: string) => {
     const lines = text.split("\n")
     const elements: React.ReactNode[] = []
@@ -18,7 +62,7 @@ export function MarkdownMessage({ content }: MarkdownMessageProps) {
           <ul key={`list-${elements.length}`} className="list-disc list-inside space-y-1 my-2 ml-2">
             {listItems.map((item, idx) => (
               <li key={idx} className="text-sm">
-                {item}
+                {processInlineMarkdown(item)}
               </li>
             ))}
           </ul>,
@@ -29,31 +73,27 @@ export function MarkdownMessage({ content }: MarkdownMessageProps) {
     }
 
     lines.forEach((line, idx) => {
-      // Bold text **text**
-      line = line.replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold">$1</strong>')
-
-      // Italic text *text*
-      line = line.replace(/\*(.+?)\*/g, '<em class="italic">$1</em>')
-
       // Headers
       if (line.startsWith("### ")) {
         flushList()
         elements.push(
-          <h3
-            key={idx}
-            className="text-base font-bold mt-3 mb-2"
-            dangerouslySetInnerHTML={{ __html: line.slice(4) }}
-          />,
+          <h3 key={idx} className="text-base font-bold mt-3 mb-2">
+            {processInlineMarkdown(line.slice(4))}
+          </h3>,
         )
       } else if (line.startsWith("## ")) {
         flushList()
         elements.push(
-          <h2 key={idx} className="text-lg font-bold mt-4 mb-2" dangerouslySetInnerHTML={{ __html: line.slice(3) }} />,
+          <h2 key={idx} className="text-lg font-bold mt-4 mb-2">
+            {processInlineMarkdown(line.slice(3))}
+          </h2>,
         )
       } else if (line.startsWith("# ")) {
         flushList()
         elements.push(
-          <h1 key={idx} className="text-xl font-bold mt-4 mb-2" dangerouslySetInnerHTML={{ __html: line.slice(2) }} />,
+          <h1 key={idx} className="text-xl font-bold mt-4 mb-2">
+            {processInlineMarkdown(line.slice(2))}
+          </h1>,
         )
       }
       // List items
@@ -68,7 +108,7 @@ export function MarkdownMessage({ content }: MarkdownMessageProps) {
         elements.push(
           <div key={idx} className="flex gap-2 my-1">
             <span className="font-semibold">{line.match(/^\d+/)?.[0]}.</span>
-            <span dangerouslySetInnerHTML={{ __html: content }} />
+            <span>{processInlineMarkdown(content)}</span>
           </div>,
         )
       }
@@ -80,7 +120,11 @@ export function MarkdownMessage({ content }: MarkdownMessageProps) {
       // Regular paragraphs
       else {
         flushList()
-        elements.push(<p key={idx} className="text-sm my-1" dangerouslySetInnerHTML={{ __html: line }} />)
+        elements.push(
+          <p key={idx} className="text-sm my-1">
+            {processInlineMarkdown(line)}
+          </p>,
+        )
       }
     })
 
