@@ -91,9 +91,8 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={onBack} className="gap-2 bg-transparent">
+          <Button variant="outline" onClick={onBack} size="icon" className="shrink-0 bg-transparent">
             <ArrowLeft className="h-4 w-4" />
-            Volver al Dashboard
           </Button>
           <h1 className="text-3xl font-bold font-heading text-white">Error al cargar la partida</h1>
         </div>
@@ -108,9 +107,8 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={onBack} className="gap-2 bg-transparent">
+          <Button variant="outline" onClick={onBack} size="icon" className="shrink-0 bg-transparent">
             <ArrowLeft className="h-4 w-4" />
-            Volver al Dashboard
           </Button>
           <h1 className="text-3xl font-bold font-heading text-white">Partida no encontrada</h1>
         </div>
@@ -177,13 +175,12 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={onBack} className="gap-2 bg-transparent">
+          <Button variant="outline" onClick={onBack} size="icon" className="shrink-0 bg-transparent">
             <ArrowLeft className="h-4 w-4" />
-            Volver al Dashboard
           </Button>
-          <h1 className="text-3xl font-bold font-heading text-white">{matchData.fileName}</h1>
+          <h1 className="text-3xl font-bold font-heading text-white truncate max-w-2xl">{matchData.fileName}</h1>
         </div>
-        <Button variant="destructive" onClick={handleDeleteMatch} className="gap-2">
+        <Button variant="destructive" onClick={handleDeleteMatch} className="gap-2 shrink-0">
           <Trash2 className="h-4 w-4" />
           Eliminar Partida
         </Button>
