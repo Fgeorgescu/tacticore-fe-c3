@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group"
 import { Upload, File, X, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
 import { apiService } from "@/lib/api"
 import { useUpload } from "@/contexts/UploadContext"
@@ -49,6 +50,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [demFile, setDemFile] = useState<FileUpload | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [metadata, setMetadata] = useState({
+    name: "", // Added optional name field for custom match naming
     map: "",
     gameType: "Ranked",
     description: "",
@@ -78,10 +80,11 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     setDemFile((prev) => (prev ? { ...prev, status: "uploading", progress: 0 } : null))
 
     const tempMatchId = `match-${Date.now()}`
+    const matchName = metadata.name ? `${metadata.name}.dem` : demFile.file.name
 
     const uploadingMatch = {
       id: tempMatchId,
-      fileName: demFile.file.name,
+      fileName: matchName,
       map: metadata.map || "Unknown",
       date: new Date().toISOString(),
       status: "uploading" as const,
@@ -90,36 +93,28 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     }
 
     addUploadingMatch(uploadingMatch)
-
     handleClose()
 
     try {
-      console.log("[v0] Starting upload to S3 for match:", tempMatchId)
-
       const result = await apiService.uploadDemFile(
         demFile.file,
         {
-          playerName: metadata.map,
+          playerName: matchName,
           notes: metadata.description || `${metadata.gameType} match on ${metadata.map}`,
         },
         (progress) => {
-          console.log(`[v0] S3 Upload progress for ${tempMatchId}: ${progress}%`)
           updateMatchProgress(tempMatchId, progress)
         },
         (status) => {
-          console.log(`[v0] Status change for ${tempMatchId}: ${status}`)
           updateMatchStatus(tempMatchId, status)
         },
       )
 
       if (result.success && result.id) {
-        console.log("[v0] Processing started successfully")
-
         setTimeout(() => {
           removeUploadingMatch(tempMatchId)
         }, 30000)
       } else {
-        console.error("[v0] Upload failed:", result.message)
         updateMatchStatus(
           tempMatchId,
           "error",
@@ -130,7 +125,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
         }, 30000)
       }
     } catch (error: any) {
-      console.error("[v0] Upload error:", error)
+      console.error("Upload error:", error)
       updateMatchStatus(tempMatchId, "error", error.message || "Error al subir archivo. Por favor, intente más tarde.")
       setTimeout(() => {
         removeUploadingMatch(tempMatchId)
@@ -144,7 +139,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
     if (isUploading) return
     setDemFile(null)
     setIsUploading(false)
-    setMetadata({ map: "", gameType: "Ranked", description: "" })
+    setMetadata({ name: "", map: "", gameType: "Ranked", description: "" }) // Reset name field
     onClose()
   }
 
@@ -232,6 +227,21 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
               <h3 className="font-semibold mb-4">Información de la Partida</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
+                  <Label htmlFor="name">Nombre (Opcional)</Label>
+                  <InputGroup>
+                    <InputGroupInput
+                      id="name"
+                      placeholder="Nombre de la partida"
+                      value={metadata.name}
+                      onChange={(e) => setMetadata((prev) => ({ ...prev, name: e.target.value }))}
+                      disabled={isUploading}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText className="text-muted-foreground">.dem</InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="map">Mapa</Label>
                   <div className="relative">
                     <Input
@@ -257,6 +267,8 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
                     )}
                   </div>
                 </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div className="space-y-2">
                   <Label>Tipo de Juego</Label>
                   <RadioGroup

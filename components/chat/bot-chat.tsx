@@ -9,17 +9,87 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Send, Bot, User, Loader2, MessageCircle } from "lucide-react"
 import type { ChatMessage, Match, Kill } from "@/lib/api"
 import { chatGPTService, type MatchContext, type RoundData } from "@/lib/chatgpt"
+import { MarkdownMessage } from "@/components/chat/markdown-message"
 
 interface BotChatProps {
   matchData: Match
   killsData?: Kill[]
+  selectedUser: string | null // Added selectedUser prop
   initialMessages: ChatMessage[]
   onNewMessage: (message: ChatMessage) => void
 }
 
-export function BotChat({ matchData, killsData, initialMessages, onNewMessage }: BotChatProps) {
+type QueryType = "round-specific" | "weapons" | "positioning" | "economy" | "timing" | "general"
+
+interface DetectionResult {
+  type: QueryType
+  roundNumber?: number
+}
+
+export function BotChat({ matchData, killsData, selectedUser, initialMessages, onNewMessage }: BotChatProps) {
   const [message, setMessage] = useState("")
   const [isBotTyping, setIsBotTyping] = useState(false)
+
+  const calculateWeaponStats = (kills: Kill[]) => {
+    const weaponDistribution: Record<string, number> = {}
+    const weaponHeadshots: Record<string, number> = {}
+    const weaponGoodPlays: Record<string, number> = {}
+    const weaponBadPlays: Record<string, number> = {}
+
+    let totalHeadshots = 0
+
+    kills.forEach((kill) => {
+      const weapon = kill.weapon || "Unknown"
+      weaponDistribution[weapon] = (weaponDistribution[weapon] || 0) + 1
+
+      // Track headshots per weapon
+      if (kill.headshot) {
+        weaponHeadshots[weapon] = (weaponHeadshots[weapon] || 0) + 1
+        totalHeadshots++
+      }
+
+      // Track good/bad plays per weapon
+      if (kill.isGoodPlay) {
+        weaponGoodPlays[weapon] = (weaponGoodPlays[weapon] || 0) + 1
+      } else {
+        weaponBadPlays[weapon] = (weaponBadPlays[weapon] || 0) + 1
+      }
+    })
+
+    const sortedWeapons = Object.entries(weaponDistribution).sort(([, a], [, b]) => b - a)
+    const mostUsedWeapon = sortedWeapons[0]?.[0] || "N/A"
+
+    // Calculate effectiveness per weapon (good plays / total kills with that weapon)
+    const weaponEffectiveness: Record<string, number> = {}
+    Object.keys(weaponDistribution).forEach((weapon) => {
+      const total = weaponDistribution[weapon]
+      const good = weaponGoodPlays[weapon] || 0
+      weaponEffectiveness[weapon] = total > 0 ? (good / total) * 100 : 0
+    })
+
+    // Calculate headshot percentage per weapon
+    const weaponHeadshotRate: Record<string, number> = {}
+    Object.keys(weaponDistribution).forEach((weapon) => {
+      const total = weaponDistribution[weapon]
+      const headshots = weaponHeadshots[weapon] || 0
+      weaponHeadshotRate[weapon] = total > 0 ? (headshots / total) * 100 : 0
+    })
+
+    const totalKills = kills.length
+    const headshotPercentage = totalKills > 0 ? (totalHeadshots / totalKills) * 100 : 0
+
+    return {
+      mostUsedWeapon,
+      weaponDistribution,
+      totalUniqueWeapons: Object.keys(weaponDistribution).length,
+      weaponEffectiveness,
+      weaponHeadshotRate,
+      totalHeadshots,
+      headshotPercentage,
+      weaponGoodPlays,
+      weaponBadPlays,
+    }
+  }
 
   // Función para procesar kills y crear datos de rondas
   const processRoundsData = (kills: Kill[]): RoundData[] => {
@@ -51,6 +121,143 @@ export function BotChat({ matchData, killsData, initialMessages, onNewMessage }:
       }))
   }
 
+  const detectQueryType = (message: string): DetectionResult => {
+    const lowerMessage = message.toLowerCase()
+
+    // Round-specific detection
+    const roundMatch =
+      lowerMessage.match(/ronda\s+(\d+)/i) ||
+      lowerMessage.match(/round\s+(\d+)/i) ||
+      lowerMessage.match(/r(\d+)/i) ||
+      lowerMessage.match(/en\s+la\s+(\d+)/i)
+
+    if (roundMatch) {
+      const roundNumber = Number.parseInt(roundMatch[1], 10)
+      if (roundNumber >= 1 && roundNumber <= 30) {
+        return { type: "round-specific", roundNumber }
+      }
+    }
+
+    // Weapons detection
+    if (
+      lowerMessage.match(/\b(arma|armas|weapon|weapons|rifle|pistol|awp|ak|m4|loadout|equipamiento)\b/i) ||
+      lowerMessage.match(/\b(ak47|ak-47|m4a4|m4a1|awp|desert eagle|deagle|usp|glock)\b/i)
+    ) {
+      return { type: "weapons" }
+    }
+
+    // Positioning detection
+    if (
+      lowerMessage.match(/\b(mapa|map|posición|position|positioning|site|mid|rotate|rotación|zona)\b/i) ||
+      lowerMessage.match(/\b(site a|site b|bombsite|spawn|long|short|catwalk)\b/i)
+    ) {
+      return { type: "positioning" }
+    }
+
+    // Economy detection
+    if (
+      lowerMessage.match(/\b(economía|economy|dinero|money|compra|buy|eco|force buy|full buy)\b/i) ||
+      lowerMessage.match(/\b(económica|save round|guardar)\b/i)
+    ) {
+      return { type: "economy" }
+    }
+
+    // Timing detection
+    if (
+      lowerMessage.match(/\b(timing|tiempo|cuándo|when|early|late|inicio|final|temprano|tarde)\b/i) ||
+      lowerMessage.match(/\b(push|entrada|entry)\b/i)
+    ) {
+      return { type: "timing" }
+    }
+
+    // Default to general
+    return { type: "general" }
+  }
+
+  const buildOptimizedContext = (
+    queryType: QueryType,
+    roundNumber: number | undefined,
+    matchData: Match,
+    killsData: Kill[] | undefined,
+  ): MatchContext => {
+    const baseContext = {
+      map: matchData.map,
+      kills: matchData.kills,
+      deaths: matchData.deaths,
+      kdRatio: matchData.deaths > 0 ? matchData.kills / matchData.deaths : matchData.kills,
+      score: matchData.score,
+      goodPlays: matchData.goodPlays,
+      badPlays: matchData.badPlays,
+      duration: matchData.duration,
+      gameType: matchData.gameType,
+    }
+
+    if (!killsData || killsData.length === 0) {
+      return baseContext
+    }
+
+    const allRounds = processRoundsData(killsData)
+
+    switch (queryType) {
+      case "round-specific":
+        // Only send data for specific round
+        if (roundNumber) {
+          const targetRound = allRounds.find((r) => r.roundNumber === roundNumber)
+          if (targetRound) {
+            return {
+              ...baseContext,
+              rounds: [targetRound],
+              weaponStats: calculateWeaponStats(
+                targetRound.kills.map((k) => killsData.find((kill) => kill.weapon === k.weapon)!).filter(Boolean),
+              ),
+            }
+          }
+        }
+        return baseContext
+
+      case "weapons":
+        // Full weapon stats, reduced kill details (first 3 rounds)
+        return {
+          ...baseContext,
+          rounds: allRounds.slice(0, 3),
+          weaponStats: calculateWeaponStats(killsData),
+        }
+
+      case "positioning":
+        // Emphasis on positions (first 5 rounds with full position data)
+        return {
+          ...baseContext,
+          rounds: allRounds.slice(0, 5),
+          weaponStats: calculateWeaponStats(killsData),
+        }
+
+      case "economy":
+        // Weapon distribution indicates buy decisions
+        return {
+          ...baseContext,
+          rounds: allRounds.slice(0, 5),
+          weaponStats: calculateWeaponStats(killsData),
+        }
+
+      case "timing":
+        // Focus on time field (first 5 rounds with timing emphasis)
+        return {
+          ...baseContext,
+          rounds: allRounds.slice(0, 5),
+          weaponStats: calculateWeaponStats(killsData),
+        }
+
+      case "general":
+      default:
+        // Full context (current behavior)
+        return {
+          ...baseContext,
+          rounds: allRounds,
+          weaponStats: calculateWeaponStats(killsData),
+        }
+    }
+  }
+
   const handleSendMessage = async () => {
     if (!message.trim() || isBotTyping) return
 
@@ -69,22 +276,15 @@ export function BotChat({ matchData, killsData, initialMessages, onNewMessage }:
       }
       onNewMessage(userChatMessage)
 
-      // Crear contexto de la partida
-      const matchContext: MatchContext = {
-        map: matchData.map,
-        kills: matchData.kills,
-        deaths: matchData.deaths,
-        kdRatio: matchData.deaths > 0 ? matchData.kills / matchData.deaths : matchData.kills,
-        score: matchData.score,
-        goodPlays: matchData.goodPlays,
-        badPlays: matchData.badPlays,
-        duration: matchData.duration,
-        gameType: matchData.gameType,
-        rounds: killsData ? processRoundsData(killsData) : undefined,
-      }
+      const detection = detectQueryType(userMessage)
+      const matchContext = buildOptimizedContext(detection.type, detection.roundNumber, matchData, killsData)
 
-      // Enviar al bot y obtener respuesta
-      const botResponse = await chatGPTService.sendMessage(userMessage, matchContext)
+      console.log(
+        `[v0] Query type detected: ${detection.type}`,
+        detection.roundNumber ? `(Round ${detection.roundNumber})` : "",
+      )
+
+      const botResponse = await chatGPTService.sendMessage(userMessage, matchContext, detection.type, selectedUser)
 
       // Crear mensaje del bot
       const botChatMessage: ChatMessage = {
@@ -149,7 +349,11 @@ export function BotChat({ matchData, killsData, initialMessages, onNewMessage }:
                   msg.isBot ? "bg-primary/10 border border-primary/20" : "bg-secondary/10 border border-secondary/20"
                 }`}
               >
-                <p className="text-sm text-white whitespace-pre-wrap">{msg.message}</p>
+                {msg.isBot ? (
+                  <MarkdownMessage content={msg.message} />
+                ) : (
+                  <p className="text-sm text-white whitespace-pre-wrap">{msg.message}</p>
+                )}
               </div>
             </div>
           ))}

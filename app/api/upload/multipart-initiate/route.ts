@@ -36,10 +36,8 @@ export async function POST(request: NextRequest) {
     const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY!
     const sessionToken = process.env.AWS_SESSION_TOKEN
 
-    // Generate S3 key
     const timestamp = Date.now()
-    const randomId = Math.random().toString(36).substring(7)
-    const s3Key = `uploads/${fileType}/${timestamp}-${randomId}-${fileName}`
+    const s3Key = `uploads/${fileType}/${timestamp}-${fileName}`
 
     console.log("[v0] Initiating multipart upload for:", s3Key)
 

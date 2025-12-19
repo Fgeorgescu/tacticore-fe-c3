@@ -23,6 +23,7 @@ import { useApi } from "@/hooks/useApi"
 import { useUser } from "@/contexts/UserContext"
 import { apiService, type Kill, type ChatMessage } from "@/lib/api"
 import { SimpleMapView } from "@/components/match-details/simple-map-view"
+import { formatScore } from "@/lib/utils"
 
 interface MatchDetailsProps {
   matchId: string | null
@@ -90,9 +91,8 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={onBack} className="gap-2 bg-transparent">
+          <Button variant="outline" onClick={onBack} size="icon" className="shrink-0 bg-transparent">
             <ArrowLeft className="h-4 w-4" />
-            Volver al Dashboard
           </Button>
           <h1 className="text-3xl font-bold font-heading text-white">Error al cargar la partida</h1>
         </div>
@@ -107,9 +107,8 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={onBack} className="gap-2 bg-transparent">
+          <Button variant="outline" onClick={onBack} size="icon" className="shrink-0 bg-transparent">
             <ArrowLeft className="h-4 w-4" />
-            Volver al Dashboard
           </Button>
           <h1 className="text-3xl font-bold font-heading text-white">Partida no encontrada</h1>
         </div>
@@ -176,27 +175,26 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={onBack} className="gap-2 bg-transparent">
+          <Button variant="outline" onClick={onBack} size="icon" className="shrink-0 bg-transparent">
             <ArrowLeft className="h-4 w-4" />
-            Volver al Dashboard
           </Button>
-          <h1 className="text-3xl font-bold font-heading text-white">{matchData.fileName}</h1>
+          <h1 className="text-3xl font-bold font-heading text-white truncate max-w-2xl">{matchData.fileName}</h1>
         </div>
-        <Button variant="destructive" onClick={handleDeleteMatch} className="gap-2">
+        <Button variant="destructive" onClick={handleDeleteMatch} className="gap-2 shrink-0">
           <Trash2 className="h-4 w-4" />
           Eliminar Partida
         </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 h-[800px] flex flex-col">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5" />
               Estadísticas de la Partida
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 overflow-auto min-h-0">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
                 <p className="text-2xl font-bold text-green-400">{matchData.kills}</p>
@@ -233,7 +231,7 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
 
             <div className="mt-6 flex justify-center items-center gap-8">
               <div className="text-center">
-                <p className="text-3xl font-bold text-primary">{matchData.score.toFixed(1)}/10</p>
+                <p className="text-3xl font-bold text-primary">{formatScore(matchData.score)}/10</p>
                 <p className="text-sm text-white">Puntaje Final</p>
               </div>
 
@@ -295,11 +293,12 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-1 flex flex-col">
-          <CardContent className="p-4 flex-1 flex flex-col">
+        <Card className="lg:col-span-1 flex flex-col h-[800px]">
+          <CardContent className="p-4 flex-1 flex flex-col min-h-0">
             <BotChat
               matchData={matchData}
               killsData={killsData}
+              selectedUser={selectedUser.value}
               initialMessages={chatMessagesData}
               onNewMessage={(message) => {
                 setChatMessagesData((prev) => [...prev, message])
@@ -396,11 +395,6 @@ export function MatchDetails({ matchId, onBack }: MatchDetailsProps) {
                                   <p className="text-xs text-white">CT: {kill.teamAlive.ct}</p>
                                   <p className="text-xs text-white">T: {kill.teamAlive.t}</p>
                                 </div>
-                                {kill.isGoodPlay ? (
-                                  <TrendingUp className="h-4 w-4 text-green-400" />
-                                ) : (
-                                  <TrendingDown className="h-4 w-4 text-red-400" />
-                                )}
                               </div>
                             </div>
                           ))}

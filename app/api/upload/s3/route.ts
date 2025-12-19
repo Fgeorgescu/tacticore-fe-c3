@@ -29,13 +29,12 @@ function createS3Client(): S3Client {
 
 function generateS3Key(fileName: string, fileType: "dem" | "video"): string {
   const timestamp = Date.now()
-  const randomString = Math.random().toString(36).substring(7)
   const sanitizedName = fileName
     .replace(/[^a-zA-Z0-9.-]/g, "_")
     .substring(0, 50)
     .replace(/^\.+/, "")
 
-  return `uploads/${fileType}/${timestamp}-${randomString}-${sanitizedName}`
+  return `uploads/${fileType}/${timestamp}-${sanitizedName}`
 }
 
 export const config = {
