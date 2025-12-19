@@ -62,7 +62,7 @@ export function PremiumModal({ open, onOpenChange, onActivatePremium }: PremiumM
               className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-6 text-lg font-semibold"
             >
               <Sparkles className="h-5 w-5 mr-2" />
-              Obtener Premium por $1.500/mes
+              Obtener Premium por $7.500/mes
             </Button>
           </div>
 
