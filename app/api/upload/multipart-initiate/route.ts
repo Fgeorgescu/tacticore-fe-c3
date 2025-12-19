@@ -30,11 +30,23 @@ export async function POST(request: NextRequest) {
   try {
     const { fileName, fileType, contentType } = await request.json()
 
-    const bucket = process.env.AWS_S3_BUCKET!
-    const region = process.env.AWS_REGION!
-    const accessKeyId = process.env.AWS_ACCESS_KEY_ID!
-    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY!
+    const bucket = process.env.AWS_S3_BUCKET
+    const region = process.env.AWS_REGION
+    const accessKeyId = process.env.AWS_ACCESS_KEY_ID
+    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
     const sessionToken = process.env.AWS_SESSION_TOKEN
+
+    if (!bucket || !region || !accessKeyId || !secretAccessKey) {
+      const missingVars = []
+      if (!bucket) missingVars.push("AWS_S3_BUCKET")
+      if (!region) missingVars.push("AWS_REGION")
+      if (!accessKeyId) missingVars.push("AWS_ACCESS_KEY_ID")
+      if (!secretAccessKey) missingVars.push("AWS_SECRET_ACCESS_KEY")
+
+      const errorMsg = `Missing required AWS environment variables: ${missingVars.join(", ")}`
+      console.error("[Server]", errorMsg)
+      return NextResponse.json({ error: errorMsg }, { status: 500 })
+    }
 
     const timestamp = Date.now()
     const s3Key = `uploads/${fileType}/${timestamp}-${fileName}`
@@ -107,6 +119,9 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     console.error("[Server] Failed to initiate multipart upload:", error.message)
+    if (error.stack) {
+      console.error("[Server] Stack trace:", error.stack)
+    }
     return NextResponse.json({ error: error.message || "Failed to initiate multipart upload" }, { status: 500 })
   }
 }
