@@ -59,7 +59,8 @@ export function UploadPipelineCard({ match, onHide }: UploadPipelineCardProps) {
 
   const getStatusMessage = () => {
     if (match.status === "uploading") {
-      return `${match.progress || 0}%`
+      const progress = match.progress || 0
+      return progress > 0 ? `${progress}%` : "Preparando subida..."
     }
     if (match.status === "initiating-processing") {
       return "Iniciando procesamiento..."
@@ -120,7 +121,7 @@ export function UploadPipelineCard({ match, onHide }: UploadPipelineCardProps) {
         </div>
         <div className="text-center min-w-[80px]">
           <p className="text-xs font-semibold text-foreground whitespace-nowrap">{label}</p>
-          {sublabel && <p className="text-xs text-blue-400 mt-0.5 font-medium">{sublabel}</p>}
+          {sublabel && sublabel !== "0%" && <p className="text-xs text-blue-400 mt-0.5 font-medium">{sublabel}</p>}
         </div>
       </div>
     )
