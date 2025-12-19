@@ -812,7 +812,6 @@ export class ApiService {
       console.log("[v0] Uploading file to S3...")
       const s3Result = await uploadToS3(fileToUpload, "dem", (progress) => {
         const percentage = Math.round(progress.percentage)
-        console.log(`[v0] S3 upload progress: ${percentage}%`)
         onProgress?.(percentage)
       })
 
