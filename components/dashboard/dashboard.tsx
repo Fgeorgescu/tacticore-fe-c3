@@ -3,6 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { UploadPipelineCard } from "@/components/upload/upload-pipeline-card"
 import {
   Eye,
   Play,
@@ -18,7 +19,6 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertCircle,
-  CheckCircle,
 } from "lucide-react"
 import { useApi } from "@/hooks/useApi"
 import { useUser } from "@/contexts/UserContext"
@@ -217,86 +217,12 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
           </Button>
         </div>
 
-        {allUploadingMatches.length > 0 && (
-          <Card className="bg-amber-500/10 border-amber-500/30">
-            <CardContent className="p-3">
-              <div className="flex items-start gap-2">
-                <Loader2 className="h-4 w-4 animate-spin text-amber-400 mt-0.5 flex-shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <h3 className="font-semibold text-amber-400 text-sm">
-                    Subiendo {allUploadingMatches.length} {allUploadingMatches.length === 1 ? "archivo" : "archivos"}
-                  </h3>
-                  <div className="space-y-1.5">
-                    {allUploadingMatches.map((match) => (
-                      <div key={match.id} className="flex items-center gap-2 text-sm">
-                        <Loader2 className="h-3 w-3 animate-spin text-amber-400 flex-shrink-0" />
-                        <span className="text-amber-200 truncate flex-1">{match.fileName}</span>
-                        {match.map !== "Unknown" && (
-                          <Badge
-                            variant="outline"
-                            className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs shrink-0"
-                          >
-                            {match.map}
-                          </Badge>
-                        )}
-                        {match.progress !== undefined && (
-                          <span className="text-amber-300 text-xs shrink-0 min-w-[35px] text-right">
-                            {match.progress}%
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {initiatingMatchesFromContext.length > 0 && (
-          <Card className="bg-green-500/10 border-green-500/30">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-green-400">Iniciando procesamiento</h3>
-                  </div>
-                  <p className="text-sm text-green-300 mb-3">Archivo subido exitosamente. Preparando análisis...</p>
-                  <div className="space-y-2">
-                    {initiatingMatchesFromContext.map((match) => (
-                      <div
-                        key={match.id}
-                        className="flex items-center justify-between bg-green-500/5 rounded-lg p-3 border border-green-500/20"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Loader2 className="h-4 w-4 animate-spin text-green-400" />
-                          <div>
-                            <p className="text-sm font-medium text-green-200">{match.fileName}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              {match.map !== "Unknown" && (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-green-500/20 text-green-300 border-green-500/30 text-xs"
-                                >
-                                  {match.map}
-                                </Badge>
-                              )}
-                              <span className="text-xs text-green-300">{getRelativeTime(match.date)}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <Badge variant="outline" className="bg-green-500/20 text-green-300 border-green-500/30">
-                          Iniciando...
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <div className="space-y-3">
+          {/* Combine uploading and processing matches */}
+          {[...allUploadingMatches, ...allProcessingMatches, ...initiatingMatchesFromContext].map((match) => (
+            <UploadPipelineCard key={match.id} match={match} />
+          ))}
+        </div>
 
         {errorMatchesFromContext.length > 0 && (
           <Card className="bg-red-500/10 border-red-500/30">
@@ -325,38 +251,6 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
                             Error
                           </Badge>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {allProcessingMatches.length > 0 && (
-          <Card className="bg-blue-500/10 border-blue-500/30">
-            <CardContent className="p-3">
-              <div className="flex items-start gap-2">
-                <Loader2 className="h-4 w-4 animate-spin text-blue-400 mt-0.5 flex-shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <h3 className="font-semibold text-blue-400 text-sm">
-                    Procesando {allProcessingMatches.length}{" "}
-                    {allProcessingMatches.length === 1 ? "partida" : "partidas"}
-                  </h3>
-                  <div className="space-y-1.5">
-                    {allProcessingMatches.map((match) => (
-                      <div key={match.id} className="flex items-center gap-2 text-sm">
-                        <span className="text-blue-200 truncate flex-1">{match.fileName}</span>
-                        {match.map !== "Unknown" && (
-                          <Badge
-                            variant="outline"
-                            className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs shrink-0"
-                          >
-                            {match.map}
-                          </Badge>
-                        )}
-                        <span className="text-blue-300 text-xs shrink-0">{getRelativeTime(match.date)}</span>
                       </div>
                     ))}
                   </div>
