@@ -70,6 +70,16 @@ export function UploadPipelineCard({ match }: UploadPipelineCardProps) {
     return "pending"
   }
 
+  const getGameTypeBadge = (type: string) => {
+    const variants = {
+      Ranked: "bg-red-500/20 text-red-400 border-red-500/30",
+      Casual: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+      Entrenamiento: "bg-green-500/20 text-green-400 border-green-500/30",
+      Otros: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+    }
+    return variants[type as keyof typeof variants] || variants["Otros"]
+  }
+
   const PipelineNode = ({ step, label, sublabel }: { step: PipelineStep; label: string; sublabel?: string }) => {
     const status = getStepStatus(step)
 
@@ -99,28 +109,30 @@ export function UploadPipelineCard({ match }: UploadPipelineCardProps) {
   }
 
   const PipelineConnector = ({ active }: { active: boolean }) => (
-    <div className={`flex-1 h-0.5 ${active ? "bg-blue-500" : "bg-gray-600"} mx-2 transition-colors`} />
+    <div className="flex items-center flex-1 px-2 -mt-9">
+      <div className={`w-full h-0.5 ${active ? "bg-blue-500" : "bg-gray-600"} transition-colors`} />
+    </div>
   )
 
   return (
-    <Card className="bg-card border-border">
-      <CardContent className="p-6">
+    <Card className="bg-card/50 border-card-border hover:border-primary/30 transition-colors">
+      <CardContent className="p-4">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex-shrink-0">
-            <p className="font-semibold text-base mb-1">{match.fileName}</p>
+            <p className="font-semibold text-foreground mb-1">{match.fileName}</p>
             <div className="flex gap-2 flex-wrap">
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className={getGameTypeBadge(match.gameType)}>
                 {match.gameType}
               </Badge>
               {match.map !== "Unknown" && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
                   {match.map}
                 </Badge>
               )}
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm font-medium text-muted-foreground">{getStatusMessage()}</p>
+            <p className="text-sm font-medium text-white">{getStatusMessage()}</p>
           </div>
         </div>
 
