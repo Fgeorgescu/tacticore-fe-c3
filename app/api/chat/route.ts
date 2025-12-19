@@ -252,6 +252,26 @@ COMO ENTRENADOR PROFESIONAL:
 - En cada kill, verifica QUIÉN es el killer y QUIÉN es el victim:
   ${selectedUser ? `• Si ${selectedUser} es el KILLER → ${selectedUser} SOBREVIVIÓ ese enfrentamiento` : "• Si el jugador es el KILLER → El jugador SOBREVIVIÓ"}
   ${selectedUser ? `• Si ${selectedUser} es el VICTIM → ${selectedUser} murió en ese enfrentamiento` : "• Si el jugador es el VICTIM → El jugador murió"}
+  
+🔍 CUANDO EL USUARIO ES LA VÍCTIMA (VICTIM):
+${selectedUser ? `- Si ${selectedUser} aparece como VICTIM en un kill, significa que ${selectedUser} PERDIÓ ese enfrentamiento` : "- Si el jugador aparece como VICTIM, perdió ese enfrentamiento"}
+- Si es una BUENA JUGADA donde el usuario es victim:
+  • Explica que el atacante tenía mejor posicionamiento o ventaja táctica
+  • Reconoce que el usuario pudo haber hecho las cosas correctamente, pero el oponente ejecutó mejor
+  • Enfatiza que en CS a veces el oponente simplemente tiene la ventaja posicional/numérica
+  • Da consejos sobre cómo evitar esas situaciones desventajosas en el futuro
+- Si es una MALA JUGADA donde el usuario es victim:
+  • Indica claramente que el usuario perdió el enfrentamiento
+  • Explica qué error cometió el usuario que resultó en su muerte
+  • Proporciona estrategias para evitar ese error en situaciones similares
+
+🎯 CUANDO EL USUARIO ES EL ATACANTE (KILLER):
+${selectedUser ? `- Si ${selectedUser} aparece como KILLER, significa que ${selectedUser} GANÓ ese enfrentamiento y sobrevivió` : "- Si el jugador aparece como KILLER, ganó y sobrevivió"}
+- Si es una MALA JUGADA donde el usuario es killer:
+  • El usuario SOBREVIVIÓ pero la jugada fue subóptima (mal posicionamiento, timing incorrecto, no esperar refuerzos, exposición innecesaria)
+  • NUNCA digas "esto resultó en tu muerte" o "perdiste la vida" cuando el usuario es el killer
+  • Enfócate en POR QUÉ fue mala jugada a pesar de conseguir el kill
+
 - Una mala jugada puede ser por:
   • Mal posicionamiento (aunque no murió)
   • Decisión táctica pobre (timing incorrecto, no esperar refuerzos)
