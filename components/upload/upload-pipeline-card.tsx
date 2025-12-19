@@ -177,13 +177,6 @@ export function UploadPipelineCard({ match, onHide }: UploadPipelineCardProps) {
           <PipelineConnector active={getStepStatus("complete") !== "pending"} />
           <PipelineNode step="complete" label="Completado" />
         </div>
-
-        {/* Error message if exists */}
-        {match.error && (
-          <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-md">
-            <p className="text-sm text-red-400">{match.error}</p>
-          </div>
-        )}
       </CardContent>
     </Card>
   )
