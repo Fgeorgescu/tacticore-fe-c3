@@ -2,28 +2,41 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Check } from "lucide-react"
+import { Loader2, Check, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import type { UploadingMatch } from "@/contexts/UploadContext"
 
 interface UploadPipelineCardProps {
   match: UploadingMatch
+  onHide?: () => void
 }
 
 type PipelineStep = "ready" | "uploading" | "processing" | "complete"
 
-export function UploadPipelineCard({ match }: UploadPipelineCardProps) {
+export function UploadPipelineCard({ match, onHide }: UploadPipelineCardProps) {
   const [elapsedTime, setElapsedTime] = useState(0)
 
   // Calculate current step based on match status
   const getCurrentStep = (): PipelineStep => {
-    if (match.status === "error") return "ready"
+    if (match.status === "error") {
+      if (match.progress && match.progress < 100) return "uploading"
+      return "processing"
+    }
     if (match.status === "uploading") return "uploading"
     if (match.status === "initiating-processing" || match.status === "processing") return "processing"
     return "ready"
   }
 
   const currentStep = getCurrentStep()
+
+  useEffect(() => {
+    if (match.status === "error") {
+      const timeout = setTimeout(() => {
+        onHide?.()
+      }, 10000)
+      return () => clearTimeout(timeout)
+    }
+  }, [match.status, onHide])
 
   // Track elapsed time for processing step
   useEffect(() => {
@@ -46,13 +59,13 @@ export function UploadPipelineCard({ match }: UploadPipelineCardProps) {
 
   const getStatusMessage = () => {
     if (match.status === "uploading") {
-      return `Subiendo archivo a S3... ${match.progress || 0}%`
+      return `${match.progress || 0}%`
     }
     if (match.status === "initiating-processing") {
       return "Iniciando procesamiento..."
     }
     if (match.status === "processing") {
-      return `Procesando archivo... ${formatElapsedTime(elapsedTime)}`
+      return `Procesando... ${formatElapsedTime(elapsedTime)}`
     }
     if (match.status === "error") {
       return "Error en el procesamiento"
@@ -60,7 +73,9 @@ export function UploadPipelineCard({ match }: UploadPipelineCardProps) {
     return "Preparando archivo..."
   }
 
-  const getStepStatus = (step: PipelineStep): "pending" | "active" | "completed" => {
+  const getStepStatus = (step: PipelineStep): "pending" | "active" | "completed" | "error" => {
+    if (match.status === "error" && step === currentStep) return "error"
+
     const steps: PipelineStep[] = ["ready", "uploading", "processing", "complete"]
     const currentIndex = steps.indexOf(currentStep)
     const stepIndex = steps.indexOf(step)
@@ -93,12 +108,15 @@ export function UploadPipelineCard({ match }: UploadPipelineCardProps) {
               ? "bg-blue-500 border-blue-500"
               : status === "active"
                 ? "bg-orange-500 border-orange-500 shadow-lg shadow-orange-500/50"
-                : "bg-gray-700 border-gray-600"
+                : status === "error"
+                  ? "bg-red-500 border-red-500 shadow-lg shadow-red-500/50"
+                  : "bg-gray-700 border-gray-600"
           }
         `}
         >
           {status === "completed" && <Check className="h-6 w-6 text-white" />}
           {status === "active" && <Loader2 className="h-6 w-6 text-white animate-spin" />}
+          {status === "error" && <X className="h-6 w-6 text-white" />}
         </div>
         <div className="text-center min-w-[80px]">
           <p className="text-xs font-semibold text-foreground whitespace-nowrap">{label}</p>

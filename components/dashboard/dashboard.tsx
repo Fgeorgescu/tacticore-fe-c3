@@ -34,7 +34,7 @@ interface DashboardProps {
 
 export function Dashboard({ onViewDetails }: DashboardProps) {
   const { selectedUser } = useUser()
-  const { uploadingMatches } = useUpload()
+  const { uploadingMatches, removeUploadingMatch } = useUpload()
   const [matchesPage, setMatchesPage] = useState(1)
   const MATCHES_PER_PAGE = 10
 
@@ -220,7 +220,7 @@ export function Dashboard({ onViewDetails }: DashboardProps) {
         <div className="space-y-3">
           {/* Combine uploading and processing matches */}
           {[...allUploadingMatches, ...allProcessingMatches, ...initiatingMatchesFromContext].map((match) => (
-            <UploadPipelineCard key={match.id} match={match} />
+            <UploadPipelineCard key={match.id} match={match} onHide={() => removeUploadingMatch(match.id)} />
           ))}
         </div>
 
